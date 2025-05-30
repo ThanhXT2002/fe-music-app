@@ -1,0 +1,295 @@
+<!-- Settings Page -->
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <!-- Header -->
+  <header class="bg-blue-600 dark:bg-blue-700 text-white shadow-lg">
+    <div class="px-4 py-4">
+      <h1 class="text-xl font-semibold">Settings</h1>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <div class="bg-gray-50 dark:bg-gray-900">
+    <!-- User Profile Section -->
+    <div *ngIf="user()" class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div class="flex items-center space-x-4">
+        <img [src]="user()?.photoURL || 'assets/images/default-avatar.png'"
+             [alt]="user()?.displayName"
+             class="w-16 h-16 rounded-full object-cover">
+        <div class="flex-1">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {{ user()?.displayName || 'User' }}
+          </h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {{ user()?.email }}
+          </p>
+        </div>
+        <button class="btn btn-secondary flex items-center space-x-2" (click)="logout()">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings Groups -->
+    <div class="p-4 space-y-6">
+
+      <!-- Playback Settings -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Playback
+          </h3>
+        </div>
+
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Auto Play -->
+          <div class="flex items-center justify-between p-4">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">Auto Play</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Automatically play next song
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                     [checked]="preferences().autoPlay"
+                     (change)="updatePreference('autoPlay', $any($event.target).checked)"
+                     class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <!-- Shuffle Mode -->
+          <div class="flex items-center justify-between p-4">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">Shuffle</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Play songs in random order
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                     [checked]="preferences().shuffleMode"
+                     (change)="updatePreference('shuffleMode', $any($event.target).checked)"
+                     class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+
+          <!-- Repeat Mode -->
+          <div class="p-4">
+            <p class="font-medium text-gray-900 dark:text-gray-100 mb-2">Repeat Mode</p>
+            <select [value]="preferences().repeatMode"
+                    (change)="updatePreference('repeatMode', $any($event.target).value)"
+                    class="input w-full">
+              <option value="none">No Repeat</option>
+              <option value="one">Repeat One</option>
+              <option value="all">Repeat All</option>
+            </select>
+          </div>
+
+          <!-- Background Play -->
+          <div class="flex items-center justify-between p-4">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">Background Play</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Continue playing when app is minimized
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                     [checked]="preferences().backgroundPlay"
+                     (change)="updatePreference('backgroundPlay', $any($event.target).checked)"
+                     class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Download Settings -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Downloads
+          </h3>
+        </div>
+
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Download Quality -->
+          <div class="p-4">
+            <p class="font-medium text-gray-900 dark:text-gray-100 mb-2">Download Quality</p>
+            <select [value]="preferences().downloadQuality"
+                    (change)="updatePreference('downloadQuality', $any($event.target).value)"
+                    class="input w-full">
+              <option value="high">High Quality (320kbps)</option>
+              <option value="medium">Medium Quality (192kbps)</option>
+              <option value="low">Low Quality (128kbps)</option>
+            </select>
+          </div>
+
+          <!-- Storage Location -->
+          <div class="p-4">
+            <p class="font-medium text-gray-900 dark:text-gray-100 mb-2">Storage Location</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ preferences().storageLocation }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appearance Settings -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Appearance
+          </h3>
+        </div>
+
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Dark Mode -->
+          <div class="flex items-center justify-between p-4">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">Dark Mode</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Switch to dark theme
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                     [checked]="preferences().darkMode"
+                     (change)="toggleDarkMode()"
+                     class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Notifications
+          </h3>
+        </div>
+
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Enable Notifications -->
+          <div class="flex items-center justify-between p-4">
+            <div>
+              <p class="font-medium text-gray-900 dark:text-gray-100">Enable Notifications</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Show playback controls in notification
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox"
+                     [checked]="preferences().notifications"
+                     (change)="updatePreference('notifications', $any($event.target).checked)"
+                     class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Storage Info -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Storage
+          </h3>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Total Songs:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">
+              {{ storageInfo().totalSongs }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Music Storage:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">
+              {{ storageInfo().totalSize }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Cache Size:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">
+              {{ storageInfo().cacheSize }}
+            </span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Available Space:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">
+              {{ storageInfo().availableSpace }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Data Management
+          </h3>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <button class="btn btn-secondary w-full flex items-center justify-center space-x-2"
+                  (click)="clearCache()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span>Clear Cache</span>
+          </button>
+
+          <button class="btn btn-primary w-full flex items-center justify-center space-x-2"
+                  (click)="exportData()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span>Export Data</span>
+          </button>
+
+          <button class="btn bg-red-600 hover:bg-red-700 text-white w-full flex items-center justify-center space-x-2"
+                  (click)="clearAllData()">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            <span>Clear All Data</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- App Info -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            About
+          </h3>
+        </div>
+
+        <div class="p-4 space-y-2">
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">App Version:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">1.0.0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Developer:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">XTMusic Team</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,198 @@
+.player-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* Ensure proper touch events for mobile */
+.player-container * {
+  touch-action: manipulation;
+}
+
+/* Custom scrollbar for overlays */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Progress bar improvements */
+.progress-bar {
+  transition: all 0.15s ease;
+}
+
+.progress-bar:active .progress-thumb {
+  transform: scale(1.2);
+}
+
+/* Button hover effects */
+button {
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Album art animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.album-art.playing {
+  animation: spin 20s linear infinite;
+}
+
+/* Volume slider styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: white;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #8b5cf6;
+}
+
+input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 4px;
+  border-radius: 2px;
+  border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+  background: white;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #8b5cf6;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .w-80 {
+    width: 16rem; /* Smaller album art on very small screens */
+  }
+
+  .h-80 {
+    height: 16rem;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+
+  .w-16 {
+    width: 3.5rem; /* Smaller play button */
+  }
+
+  .h-16 {
+    height: 3.5rem;
+  }
+}
+
+/* Dark mode enhancements */
+@media (prefers-color-scheme: dark) {
+  .player-container {
+    color-scheme: dark;
+  }
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Error states */
+.error {
+  color: #ef4444;
+}
+
+/* Success states */
+.success {
+  color: #10b981;
+}
+
+/* Backdrop blur fallback */
+@supports not (backdrop-filter: blur(1px)) {
+  .backdrop-blur-sm {
+    background-color: rgba(0, 0, 0, 0.8) !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bg-white\/10 {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .bg-white\/20 {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  .text-white\/70 {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus management */
+button:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+}
+
+/* Safe area adjustments for mobile devices */
+@supports (padding: env(safe-area-inset-top)) {
+  .pt-8 {
+    padding-top: max(2rem, env(safe-area-inset-top));
+  }
+
+  .pb-6 {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}

@@ -68,3 +68,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+/environments
+/environments/*
+/src/environments/*
+ducument.txt
+key-auth-google.json
