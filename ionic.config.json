@@ -1,0 +1,7 @@
+{
+  "name": "txt-music",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
