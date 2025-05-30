@@ -1,0 +1,95 @@
+<div class="tabs-container flex flex-col h-full">
+  <!-- Tab Content -->
+  <div class="flex-1 overflow-hidden">
+    <router-outlet></router-outlet>
+  </div>
+
+    <!-- Mini Player -->
+  <div *ngIf="currentSong" class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40">
+    <div class="flex items-center space-x-3">
+      <!-- Song Info -->
+      <img [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
+           [alt]="currentSong.title"
+           class="w-12 h-12 rounded-lg object-cover">
+
+      <div class="flex-1 min-w-0" (click)="openFullPlayer()">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ currentSong.title }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ currentSong.artist }}</p>
+      </div>
+
+      <!-- Player Controls -->
+      <div class="flex items-center space-x-4">
+        <button (click)="previousSong()" class="text-gray-600 dark:text-gray-300">
+          <i class="fas fa-step-backward"></i>
+        </button>
+
+        <button
+          (click)="togglePlayPause()"
+          class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white">
+          <i [class]="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
+        </button>
+
+        <button (click)="nextSong()" class="text-gray-600 dark:text-gray-300">
+          <i class="fas fa-step-forward"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="mt-2">
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+        <div
+          class="bg-purple-500 h-1 rounded-full transition-all duration-300"
+          [style.width.%]="progressPercentage">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Tabs -->
+  <div
+    class="bottom-tabs bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-2 py-1 h__bottom__tabs"
+  >
+    <div class="flex justify-around items-center h-full">
+      <!-- List Tab -->
+      <a
+        routerLink="/tabs/list"
+        routerLinkActive="active"
+        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+      >
+        <i class="fas fa-list text-xl mb-1"></i>
+        <span class="text-xs font-medium">Danh sách</span>
+      </a>
+
+      <!-- Albums Tab -->
+      <a
+        routerLink="/tabs/albums"
+        routerLinkActive="active"
+        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+      >
+        <i class="fas fa-compact-disc text-xl mb-1"></i>
+        <span class="text-xs font-medium">Album</span>
+      </a>
+
+      <!-- Search Tab -->
+      <a
+        routerLink="/tabs/search"
+        routerLinkActive="active"
+        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+      >
+        <i class="fas fa-download text-xl mb-1"></i>
+        <span class="text-xs font-medium">Tải về</span>
+      </a>
+
+      <!-- Settings Tab -->
+      <a
+        routerLink="/tabs/settings"
+        routerLinkActive="active"
+        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+      >
+        <i class="fas fa-cog text-xl mb-1"></i>
+        <span class="text-xs font-medium">Cài đặt</span>
+      </a>
+    </div>
+  </div>
+</div>

@@ -34,11 +34,17 @@
     --surface-dark: #1e293b;
     --on-surface: #1e293b;
     --on-surface-dark: #f8fafc;
+    --h-header: 55px;
+    --h-bottom-tabs: 55px; /* Header height */
   }
 
   .dark {
     background: #0f172a;
     color: #f8fafc;
+  }
+
+  .h__header {
+    height: var(--h-header);
   }
 }
 
@@ -109,40 +115,89 @@
   .spinner {
     @apply animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600;
   }
-
   /* Custom Toggle Switch */
   .toggle-switch {
-    @apply relative inline-block w-12 h-6;
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
   }
 
   .toggle-switch input {
-    @apply opacity-0 w-0 h-0;
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
 
   .toggle-slider {
-    @apply absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full transition-all duration-300 dark:bg-gray-600;
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #cbd5e1;
+    transition: 0.3s;
+    border-radius: 24px;
   }
 
   .toggle-slider:before {
-    @apply absolute content-[''] h-5 w-5 left-0.5 bottom-0.5 bg-white rounded-full transition-all duration-300;
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
-  .toggle-switch input:checked + .toggle-slider {
-    @apply bg-blue-600;
+  input:checked + .toggle-slider {
+    background-color: #8b5cf6;
   }
 
-  .toggle-switch input:focus + .toggle-slider {
-    @apply ring-2 ring-blue-500 ring-offset-2;
+  input:checked + .toggle-slider:before {
+    transform: translateX(24px);
   }
 
-  .toggle-switch input:checked + .toggle-slider:before {
-    @apply transform translate-x-6;
+  input:focus + .toggle-slider {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
   }
 
+  /* Dark mode toggle adjustments */
+  .dark .toggle-slider {
+    background-color: #475569;
+  }
+
+  .dark input:checked + .toggle-slider {
+    background-color: #a855f7;
+  }
   /* Custom Select Dropdown */
   .select {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-white appearance-none bg-no-repeat bg-right bg-[length:16px];
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: white;
+    color: #1f2937;
+    appearance: none;
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+  }
+  .select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px #3b82f6;
+    border-color: transparent;
+  }
+
+  .dark .select {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: white;
   }
 }
 
@@ -152,15 +207,28 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
+  background-color: #f3f4f6;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background-color: #1f2937;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+  background-color: #d1d5db;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #4b5563;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
+  background-color: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
 }
 
 /* Utilities */

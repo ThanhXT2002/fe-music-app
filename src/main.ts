@@ -10,6 +10,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
+import { ThemeService } from './app/services/theme.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -22,5 +23,6 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(BrowserAnimationsModule),
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),
+    ThemeService, // Đảm bảo ThemeService được khởi tạo
   ],
 });

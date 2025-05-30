@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://music-app-api.tranxuanthanhtxt.com/api', // Replace with your production API URL
+  apiUrl: 'https://music-app-api.tranxuanthanhtxt.com/api', 
   firebaseConfig: {
     apiKey: "your-api-key",
     authDomain: "txt-system.firebaseapp.com",

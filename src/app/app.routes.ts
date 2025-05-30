@@ -8,7 +8,7 @@ export const routes: Routes = [
   },
   {
     path: 'tabs',
-    loadComponent: () => import('./pages/tabs/tabs.page').then(m => m.TabsPage),
+    loadComponent: () => import('./pages/layout/layout.component').then(m => m.LayoutComponent),
     children: [
       {
         path: '',

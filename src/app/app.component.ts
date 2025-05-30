@@ -1,24 +1,29 @@
-import { Component, OnInit, OnDestroy, signal, effect } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterOutlet, Router } from '@angular/router';
+import { RouterOutlet, Router, RouterLink } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { AudioPlayerService } from './services/audio-player.service';
 import { SearchService } from './services/search.service';
+import { ThemeService } from './services/theme.service';
 import { Song } from './interfaces/song.interface';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [CommonModule, FormsModule, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink],
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private audioPlayerService = inject(AudioPlayerService);
+  private searchService = inject(SearchService);
+  private themeService = inject(ThemeService); // Inject để khởi tạo theme service
 
   showSearch = false;
+  isVisible = false;
   searchQuery = '';
   searchResults: Song[] = [];
 
@@ -26,23 +31,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isPlaying = false;
   progressPercentage = 0;
 
-  constructor(
-    private audioPlayerService: AudioPlayerService,
-    private searchService: SearchService,
-    private router: Router
-  ) {}
-
   ngOnInit() {
-    // Use effect to watch playback state changes
-    effect(() => {
-      const state = this.audioPlayerService.playbackState();
-      this.currentSong = state.currentSong;
-      this.isPlaying = state.isPlaying;
-
-      if (state.duration > 0) {
-        this.progressPercentage = (state.currentTime / state.duration) * 100;
-      }
-    });
+    // Theme service sẽ tự động apply theme khi khởi tạo
   }
 
   ngOnDestroy() {
@@ -51,11 +41,20 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   toggleSearch() {
-    this.showSearch = !this.showSearch;
-    if (!this.showSearch) {
-      this.clearSearch();
-    }
+  if (!this.showSearch) {
+    // Mở: cho hiện luôn và áp hiệu ứng
+    this.isVisible = true;
+    setTimeout(() => {
+      this.showSearch = true;
+    }, 10); // delay nhỏ để áp class `slide-down`
+  } else {
+    // Đóng: áp hiệu ứng trước rồi ẩn hẳn
+    this.showSearch = false;
+    setTimeout(() => {
+      this.isVisible = false;
+    }, 300); // chờ hiệu ứng `slide-up` xong rồi mới ẩn
   }
+}
 
   async onSearchInput() {
     if (this.searchQuery.trim().length < 2) {
@@ -76,21 +75,5 @@ export class AppComponent implements OnInit, OnDestroy {
     await this.audioPlayerService.playSong(song);
     this.clearSearch();
     this.showSearch = false;
-  }
-
-  async togglePlayPause() {
-    await this.audioPlayerService.togglePlayPause();
-  }
-
-  async previousSong() {
-    await this.audioPlayerService.playPrevious();
-  }
-
-  async nextSong() {
-    await this.audioPlayerService.playNext();
-  }
-
-  openFullPlayer() {
-    this.router.navigate(['/player']);
   }
 }

@@ -73,3 +73,4 @@ Thumbs.db
 /src/environments/*
 ducument.txt
 key-auth-google.json
+google-services.json
