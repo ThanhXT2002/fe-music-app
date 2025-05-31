@@ -1,10 +1,16 @@
 import { Injectable } from '@angular/core';
-import { Auth, signInWithPopup, GoogleAuthProvider, signOut, User } from '@angular/fire/auth';
+import {
+  Auth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  User,
+} from '@angular/fire/auth';
 import { Observable, from, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
@@ -12,17 +18,18 @@ export class AuthService {
 
   constructor(private auth: Auth) {
     // Listen to auth state changes
-    this.auth.onAuthStateChanged(user => {
+    this.auth.onAuthStateChanged((user) => {
       this.userSubject.next(user);
     });
   }
+
   signInWithGoogle(): Observable<User> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
 
     return from(signInWithPopup(this.auth, provider)).pipe(
-      map(result => result.user)
+      map((result) => result.user)
     );
   }
   // Alias for compatibility with login page
@@ -32,7 +39,38 @@ export class AuthService {
     provider.addScope('email');
 
     const result = await signInWithPopup(this.auth, provider);
+    console.log('Google login result:', result);
+    console.log('Google login result user:', result.user);
     return result.user;
+  }
+
+  async getIdToken(): Promise<string | null> {
+    const user = this.auth.currentUser;
+    if (user) {
+      try {
+        // forceRefresh = true để đảm bảo token mới nhất
+        console.log('Getting ID token for user:', user.getIdToken(true));
+        return await user.getIdToken(true);
+      } catch (error) {
+        console.error('Error getting ID token:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // Lấy token với force refresh
+  async getIdTokenForceRefresh(): Promise<string | null> {
+    const user = this.auth.currentUser;
+    if (user) {
+      try {
+        return await user.getIdToken(true); // force refresh
+      } catch (error) {
+        console.error('Error getting fresh ID token:', error);
+        return null;
+      }
+    }
+    return null;
   }
 
   // Guest login - just set a flag or create anonymous session
@@ -43,7 +81,7 @@ export class AuthService {
       uid: 'guest-' + Date.now(),
       displayName: 'Guest User',
       email: null,
-      photoURL: null
+      photoURL: null,
     } as any;
     this.userSubject.next(guestUser);
   }
@@ -84,4 +122,23 @@ export class AuthService {
     const user = this.getCurrentUser();
     return user?.email || null;
   }
+
+  // Method để gửi request có kèm token
+async makeAuthenticatedRequest(url: string, options: any = {}): Promise<any> {
+  const token = await this.getIdToken();
+
+  if (!token) {
+    throw new Error('No authentication token available');
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  };
+
+  return fetch(url, {
+    ...options,
+    headers
+  });
+}
 }
