@@ -69,8 +69,8 @@ testem.log
 .DS_Store
 Thumbs.db
 /environments
-/environments/*
 /src/environments/*
+!src/environments/.gitkeep
 ducument.txt
 key-auth-google.json
 google-services.json
