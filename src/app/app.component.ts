@@ -9,13 +9,12 @@ import { AudioPlayerService } from './services/audio-player.service';
 import { SearchService } from './services/search.service';
 import { ThemeService } from './services/theme.service';
 import { PWAService } from './services/pwa.service';
-import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
 import { Song } from './interfaces/song.interface';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, InstallPromptComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink],
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
