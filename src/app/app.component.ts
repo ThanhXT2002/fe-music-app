@@ -8,12 +8,14 @@ import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { AudioPlayerService } from './services/audio-player.service';
 import { SearchService } from './services/search.service';
 import { ThemeService } from './services/theme.service';
+import { PWAService } from './services/pwa.service';
+import { InstallPromptComponent } from './components/install-prompt/install-prompt.component';
 import { Song } from './interfaces/song.interface';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, InstallPromptComponent],
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
@@ -21,6 +23,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private searchService = inject(SearchService);
   private themeService = inject(ThemeService); // Inject để khởi tạo theme service
+  private pwaService = inject(PWAService); // Inject PWA service
 
   showSearch = false;
   isVisible = false;
@@ -33,6 +36,14 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Theme service sẽ tự động apply theme khi khởi tạo
+
+    // Khởi tạo PWA service
+    this.pwaService.onNetworkStatusChange();
+
+    // Kiểm tra updates định kỳ (mỗi 30 phút)
+    setInterval(() => {
+      this.pwaService.checkForUpdates();
+    }, 30 * 60 * 1000);
   }
 
   ngOnDestroy() {

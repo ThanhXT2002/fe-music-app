@@ -7,10 +7,15 @@
     "ng": "ng",
     "start": "ionic serve --port=4800 --host=0.0.0.0",
     "build": "ng build --configuration production --output-hashing=all",
+    "build:pwa": "ng build --configuration production --output-hashing=all && npm run ngsw-config",
     "build:vercel": "node generate-env.js && ng build --configuration production",
+    "ngsw-config": "ngsw-config www ngsw-config.json",
+    "serve:pwa": "npm run build:pwa && npx http-server www -p 8080 -c-1",
+    "test:pwa": "npx http-server www -p 8080 -c-1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "generate-env": "node generate-env.js"
   },
   "private": true,
   "dependencies": {
@@ -23,6 +28,7 @@
     "@angular/platform-browser": "^19.0.0",
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/router": "^19.0.0",
+    "@angular/service-worker": "^19.0.0",
     "@capacitor-community/sqlite": "^7.0.0",
     "@capacitor/app": "7.0.1",
     "@capacitor/background-runner": "^2.1.0",
@@ -63,6 +69,7 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsdoc": "^48.2.1",
     "eslint-plugin-prefer-arrow": "1.2.2",
+    "express": "^5.1.0",
     "jasmine-core": "~5.1.0",
     "jasmine-spec-reporter": "~5.0.0",
     "karma": "~6.4.0",
