@@ -6,6 +6,7 @@ import { AuthService } from '../../services/auth.service';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ThemeService } from '../../services/theme.service';
+import { InstallPromptComponent } from "../../components/install-prompt/install-prompt.component";
 
 interface UserPreferences {
   darkMode: boolean;
@@ -22,7 +23,7 @@ interface UserPreferences {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, InstallPromptComponent],
   templateUrl: './settings.page.html'
 })
 export class SettingsPage implements OnInit {

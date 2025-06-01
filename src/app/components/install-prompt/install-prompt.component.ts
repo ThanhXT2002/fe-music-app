@@ -5,37 +5,26 @@ import { IonicModule } from '@ionic/angular';
 @Component({
   selector: 'app-install-prompt',
   template: `
-    <ion-toast
-      [isOpen]="showInstallPrompt"
-      message="Cài đặt TXT Music để có trải nghiệm tốt nhất!"
-      position="bottom"
-      [duration]="0"
-      [buttons]="toastButtons"
-      (didDismiss)="onDismiss()">
-    </ion-toast>
+    <div class="p-4" *ngIf="!isRunningStandalone()">
+      <!-- Dark Mode Toggle -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-medium text-gray-900 dark:text-white">Cài đặt</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Cài đặt app để có trải nghiệm tốt nhất với XTMusic.
+          </p>
+        </div>
+        <button class="text-white p-3 bg-purple-600 rounded-full hover:bg-indigo-400 flex justify-center items-center" (click)="installApp()">
+          <i class="fa-solid fa-download"></i>
+        </button>
+      </div>
+    </div>
   `,
   imports: [CommonModule, IonicModule],
-  standalone: true
+  standalone: true,
 })
 export class InstallPromptComponent implements OnInit {
-  showInstallPrompt = false;
   private deferredPrompt: any = null;
-
-  toastButtons = [
-    {
-      text: 'Cài đặt',
-      handler: () => {
-        this.installApp();
-      }
-    },
-    {
-      text: 'Để sau',
-      role: 'cancel',
-      handler: () => {
-        this.dismissPrompt();
-      }
-    }
-  ];
 
   ngOnInit() {
     this.setupInstallPrompt();
@@ -45,31 +34,22 @@ export class InstallPromptComponent implements OnInit {
     window.addEventListener('beforeinstallprompt', (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-
       // Stash the event so it can be triggered later
       this.deferredPrompt = e;
-
-      // Check if app is already installed
-      if (!this.isAppInstalled()) {
-        // Show install prompt after 3 seconds
-        setTimeout(() => {
-          this.showInstallPrompt = true;
-        }, 3000);
-      }
     });
 
     // Check if app was successfully installed
     window.addEventListener('appinstalled', () => {
       console.log('PWA được cài đặt thành công');
       this.deferredPrompt = null;
-      this.showInstallPrompt = false;
     });
   }
 
-  private isAppInstalled(): boolean {
-    // Check if app is running in standalone mode (installed)
-    return window.matchMedia('(display-mode: standalone)').matches ||
-           (window.navigator as any).standalone === true;
+  isRunningStandalone(): boolean {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true
+    );
   }
 
   async installApp() {
@@ -91,27 +71,5 @@ export class InstallPromptComponent implements OnInit {
 
     // Clear the deferredPrompt variable
     this.deferredPrompt = null;
-    this.showInstallPrompt = false;
-  }
-
-  dismissPrompt() {
-    this.showInstallPrompt = false;
-
-    // Don't show again for 7 days
-    localStorage.setItem('installPromptDismissed', Date.now().toString());
-  }
-
-  onDismiss() {
-    this.showInstallPrompt = false;
-  }
-
-  private shouldShowPrompt(): boolean {
-    const dismissed = localStorage.getItem('installPromptDismissed');
-    if (!dismissed) return true;
-
-    const dismissedTime = parseInt(dismissed, 10);
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-
-    return dismissedTime < sevenDaysAgo;
   }
 }
