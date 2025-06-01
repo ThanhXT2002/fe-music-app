@@ -16,8 +16,7 @@ import { Platform } from '@ionic/angular';
           </p>
         </div>
         <button class="text-white p-3 bg-purple-600 rounded-full hover:bg-indigo-400 flex justify-center items-center"
-                (click)="installApp()"
-                [disabled]="!canInstall()">
+                (click)="installApp()">
           <i class="fa-solid fa-download"></i>
         </button>
       </div>
@@ -28,46 +27,46 @@ import { Platform } from '@ionic/angular';
 })
 export class InstallPromptComponent implements OnInit {
   private deferredPrompt: any = null;
-  private installPromptAvailable = false;
+  private showPrompt = false;
+  private promptDismissed = false;
 
-    constructor(private platform: Platform) {}
+  constructor(private platform: Platform) {}
 
   ngOnInit() {
+    // Hiển thị ngay lập tức nếu không phải standalone mode
+    if (!this.isRunningStandalone() && !this.isDismissedRecently()) {
+      this.showPrompt = true;
+    }
+
     this.setupInstallPrompt();
   }
 
   private setupInstallPrompt() {
-    // Check if already installed
+    // Skip nếu đã ở trong app
     if (this.isRunningStandalone()) {
       return;
     }
 
     window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt event triggered');
       e.preventDefault();
       this.deferredPrompt = e;
-      this.installPromptAvailable = true;
+
+      // Có native prompt, hiển thị ngay
+      if (!this.isDismissedRecently()) {
+        this.showPrompt = true;
+      }
     });
 
     window.addEventListener('appinstalled', () => {
       console.log('PWA được cài đặt thành công');
       this.deferredPrompt = null;
-      this.installPromptAvailable = false;
+      this.showPrompt = false;
     });
-
-    // Fallback: Check if prompt should be available after a delay
-    setTimeout(() => {
-      if (!this.installPromptAvailable && !this.isRunningStandalone()) {
-        this.installPromptAvailable = true;
-      }
-    }, 1000);
   }
 
   shouldShowInstallPrompt(): boolean {
-    return !this.isRunningStandalone() && this.installPromptAvailable;
-  }
-
-  canInstall(): boolean {
-    return this.deferredPrompt !== null || !this.isRunningStandalone();
+    return this.showPrompt && !this.isRunningStandalone();
   }
 
   isRunningStandalone(): boolean {
@@ -79,38 +78,58 @@ export class InstallPromptComponent implements OnInit {
 
   async installApp() {
     if (this.deferredPrompt) {
-      // Use native install prompt
-      this.deferredPrompt.prompt();
-      const { outcome } = await this.deferredPrompt.userChoice;
+      // Native install prompt
+      try {
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
 
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      } else {
-        console.log('User dismissed the install prompt');
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+        } else {
+          console.log('User dismissed the install prompt');
+          this.dismissPrompt();
+        }
+
+        this.deferredPrompt = null;
+      } catch (error) {
+        console.error('Install prompt error:', error);
+        this.showManualInstallInstructions();
       }
-
-      this.deferredPrompt = null;
-      this.installPromptAvailable = false;
     } else {
-      // Fallback: Show manual installation instructions
+      // Fallback: Manual instructions
       this.showManualInstallInstructions();
     }
   }
 
+  dismissPrompt() {
+    this.showPrompt = false;
+    this.promptDismissed = true;
 
+    // Don't show again for 24 hours
+    localStorage.setItem('installPromptDismissed', Date.now().toString());
+  }
 
-    private showManualInstallInstructions() {
-      let message = 'Để cài đặt ứng dụng:\n';
+  private isDismissedRecently(): boolean {
+    const dismissed = localStorage.getItem('installPromptDismissed');
+    if (!dismissed) return false;
 
-      if (this.platform.is('ios')) {
-        message += '1. Nhấn vào nút Share (chia sẻ)\n2. Chọn "Add to Home Screen"';
-      } else if (this.platform.is('android')) {
-        message += '1. Nhấn vào menu trình duyệt (3 chấm)\n2. Chọn "Add to Home screen" hoặc "Install app"';
-      } else {
-        message += '1. Nhấn vào menu trình duyệt\n2. Chọn "Install" hoặc "Add to Home screen"';
-      }
+    const dismissedTime = parseInt(dismissed, 10);
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
 
-      alert(message);
+    return dismissedTime > oneDayAgo;
+  }
+
+  private showManualInstallInstructions() {
+    let message = 'Để cài đặt ứng dụng:\n';
+
+    if (this.platform.is('ios')) {
+      message += '1. Nhấn vào nút Share (chia sẻ)\n2. Chọn "Add to Home Screen"';
+    } else if (this.platform.is('android')) {
+      message += '1. Nhấn vào menu trình duyệt (3 chấm)\n2. Chọn "Add to Home screen" hoặc "Install app"';
+    } else {
+      message += '1. Nhấn vào menu trình duyệt\n2. Chọn "Install" hoặc "Add to Home screen"';
     }
 
+    alert(message);
+  }
 }
