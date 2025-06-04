@@ -96,3 +96,14 @@ export interface DownloadProgress {
   status: 'pending' | 'downloading' | 'completed' | 'error';
   error?: string;
 }
+
+export interface SearchResultItem {
+  id: string;
+  title: string;
+  artist: string;
+  duration: string;
+  thumbnail: string;
+  url: string;
+  isDownloading?: boolean;
+  downloadProgress?: number;
+}

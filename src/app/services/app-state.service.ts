@@ -62,7 +62,7 @@ export class AppStateService {
       },
       searchPage: {
         hasQuery: !!this.searchPageState.searchQuery,
-        hasResults: !!this.searchPageState.searchResult,
+        // hasResults: !!this.searchPageState.searchResult,
         historyCount: this.searchPageState.searchHistory.length
       },
       downloads: {

@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Song, Album } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
+import { AlbumsPageStateService } from '../../services/albums-page-state.service';
 
 @Component({
   selector: 'app-albums',
@@ -13,14 +14,11 @@ import { AudioPlayerService } from '../../services/audio-player.service';
       <!-- <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white">Albums</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ albums.length }} albums</p>
-      </div> -->
-
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <!-- Albums Grid -->
-        <div *ngIf="albums.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      </div> -->      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-4" #scrollContainer>        <!-- Albums Grid -->
+        <div *ngIf="albumsState.albums.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div
-            *ngFor="let album of albums; trackBy: trackByAlbumId"
+            *ngFor="let album of albumsState.albums; trackBy: trackByAlbumId"
             (click)="openAlbum(album)"
             class="album-card bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer">
 
@@ -52,10 +50,8 @@ import { AudioPlayerService } from '../../services/audio-player.service';
               </div>
             </div>
           </div>
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="albums.length === 0" class="text-center py-16">
+        </div>        <!-- Empty State -->
+        <div *ngIf="albumsState.albums.length === 0" class="text-center py-16">
           <i class="fas fa-compact-disc text-6xl text-gray-300 dark:text-gray-600 mb-6"></i>
           <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Chưa có album nào</h3>
           <p class="text-gray-500 dark:text-gray-400 mb-6">Tải nhạc từ YouTube để tạo albums tự động</p>
@@ -81,22 +77,39 @@ import { AudioPlayerService } from '../../services/audio-player.service';
   imports: [CommonModule, RouterLink],
   standalone: true
 })
-export class AlbumsPage implements OnInit {
-  albums: Album[] = [];
+export class AlbumsPage implements OnInit, OnDestroy {
+  @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
   constructor(
     private databaseService: DatabaseService,
-    private audioPlayerService: AudioPlayerService
-  ) {}
+    private audioPlayerService: AudioPlayerService,
+    public albumsState: AlbumsPageStateService
+  ) {}  async ngOnInit() {
+    // Restore scroll position if available
+    setTimeout(() => {
+      if (this.scrollContainer && this.albumsState.scrollPosition > 0) {
+        this.scrollContainer.nativeElement.scrollTop = this.albumsState.scrollPosition;
+      }
+    }, 100);
 
-  async ngOnInit() {
-    await this.loadAlbums();
+    // Load albums if not already loaded
+    if (!this.albumsState.isDataLoaded) {
+      await this.loadAlbums();
+    }
+  }
+
+  ngOnDestroy() {
+    // Save scroll position when leaving the page
+    if (this.scrollContainer) {
+      this.albumsState.setScrollPosition(this.scrollContainer.nativeElement.scrollTop);
+    }
   }
 
   async loadAlbums() {
     try {
       const songs = await this.databaseService.getAllSongs();
-      this.albums = this.groupSongsIntoAlbums(songs);
+      const albums = this.groupSongsIntoAlbums(songs);
+      this.albumsState.setAlbums(albums);
     } catch (error) {
       console.error('Error loading albums:', error);
     }
