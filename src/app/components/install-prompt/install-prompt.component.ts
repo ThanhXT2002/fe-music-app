@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Platform } from '@ionic/angular';
+import { InstallService } from '../../services/install.service';
 
 @Component({
   selector: 'app-install-prompt',
@@ -26,110 +27,39 @@ import { Platform } from '@ionic/angular';
   standalone: true,
 })
 export class InstallPromptComponent implements OnInit {
-  private deferredPrompt: any = null;
   private showPrompt = false;
-  private promptDismissed = false;
 
-  constructor(private platform: Platform) {}
+  constructor(private platform: Platform, private installService: InstallService) {}
 
   ngOnInit() {
-    // Hiển thị ngay nếu không phải standalone mode
-    if (!this.isRunningStandalone()) {
+    // Hiển thị prompt nếu không phải standalone mode
+    if (!this.installService.isRunningStandalone()) {
       this.showPrompt = true;
     }
-
-    this.setupInstallPrompt();
-  }
-
-  private setupInstallPrompt() {
-    // Skip nếu đã ở trong app
-    if (this.isRunningStandalone()) {
-      return;
-    }
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('beforeinstallprompt event triggered');
-      e.preventDefault();
-      this.deferredPrompt = e;
-    });
-
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA được cài đặt thành công');
-      this.deferredPrompt = null;
-      this.showPrompt = false;
-    });
   }
 
   shouldShowInstallPrompt(): boolean {
-    return this.showPrompt && !this.isRunningStandalone();
-  }
-
-  isRunningStandalone(): boolean {
-    return (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true
-    );
+    return this.showPrompt && !this.installService.isRunningStandalone();
   }
 
   async installApp() {
-    // Nếu chưa có deferredPrompt, đợi một chút để event có thể trigger
-    if (!this.deferredPrompt) {
-      console.log('Waiting for beforeinstallprompt event...');
+    const result = await this.installService.install();
 
-      // Đợi tối đa 3 giây cho beforeinstallprompt event
-      const waitForPrompt = new Promise<boolean>((resolve) => {
-        let timeout: any;
-
-        const checkPrompt = () => {
-          if (this.deferredPrompt) {
-            clearTimeout(timeout);
-            resolve(true);
-          }
-        };
-
-        // Kiểm tra mỗi 100ms
-        const interval = setInterval(checkPrompt, 100);
-
-        // Timeout sau 3 giây
-        timeout = setTimeout(() => {
-          clearInterval(interval);
-          resolve(false);
-        }, 3000);
-      });
-
-      const hasPrompt = await waitForPrompt;
-
-      if (!hasPrompt) {
-        console.log('beforeinstallprompt not available, showing manual instructions');
-        this.showManualInstallInstructions();
-        return;
-      }
-    }
-
-    // Có deferredPrompt, hiển thị native install dialog
-    if (this.deferredPrompt) {
-      try {
-        this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-
-        if (outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        } else {
-          console.log('User dismissed the install prompt');
-          this.dismissPrompt();
-        }
-
-        this.deferredPrompt = null;
-      } catch (error) {
-        console.error('Install prompt error:', error);
-        this.showManualInstallInstructions();
-      }
+    if (result === 'accepted') {
+      console.log('User accepted the install prompt');
+      this.showPrompt = false;
+    } else if (result === 'dismissed') {
+      console.log('User dismissed the install prompt');
+      // Không ẩn button, để user có thể thử lại
+      // this.dismissPrompt();
+    } else {
+      // not-available - hiển thị hướng dẫn manual
+      this.showManualInstallInstructions();
     }
   }
 
   dismissPrompt() {
     this.showPrompt = false;
-    this.promptDismissed = true;
   }
 
   private showManualInstallInstructions() {
