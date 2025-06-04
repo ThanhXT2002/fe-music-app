@@ -6,12 +6,27 @@ import { Injectable } from '@angular/core';
 export class InstallService {
   private deferredPrompt: any = null;
   private isPromptReady = false;
+  private eventListenerAdded = false;
 
   constructor() {
-    this.setupInstallPrompt();
+    // Đợi DOM load xong mới setup
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.setupInstallPrompt();
+      });
+    } else {
+      this.setupInstallPrompt();
+    }
   }
 
   private setupInstallPrompt() {
+    if (this.eventListenerAdded) return;
+
+    console.log('Setting up install prompt listeners...');
+
+    // Thêm user engagement triggers
+    this.addUserEngagementListeners();
+
     window.addEventListener('beforeinstallprompt', (e) => {
       console.log('beforeinstallprompt event triggered');
       e.preventDefault();
@@ -24,6 +39,53 @@ export class InstallService {
       this.deferredPrompt = null;
       this.isPromptReady = false;
     });
+
+    this.eventListenerAdded = true;
+  }
+
+  private addUserEngagementListeners() {
+    // Thêm listeners cho user interactions để trigger beforeinstallprompt
+    const events = ['click', 'scroll', 'keydown', 'touchstart'];
+    let interactionCount = 0;
+
+    const handleInteraction = () => {
+      interactionCount++;
+      console.log(`User interaction ${interactionCount}`);
+
+      // Sau 3 interactions, check lại
+      if (interactionCount >= 3 && !this.deferredPrompt) {
+        setTimeout(() => {
+          console.log('Checking for delayed beforeinstallprompt...');
+        }, 1000);
+      }
+
+      // Remove listeners sau 5 interactions
+      if (interactionCount >= 5) {
+        events.forEach(event => {
+          document.removeEventListener(event, handleInteraction);
+        });
+      }
+    };
+
+    events.forEach(event => {
+      document.addEventListener(event, handleInteraction, { passive: true });
+    });
+  }
+
+  private checkInstallability() {
+    // Force check bằng cách trigger một số user interactions
+    console.log('Checking PWA installability...');
+
+    // Kiểm tra xem có service worker không
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        console.log('Service Worker registrations:', registrations.length);
+      });
+    }
+
+    // Kiểm tra manifest
+    const manifest = document.querySelector('link[rel="manifest"]');
+    console.log('Manifest found:', !!manifest);
   }
 
   canInstall(): boolean {
