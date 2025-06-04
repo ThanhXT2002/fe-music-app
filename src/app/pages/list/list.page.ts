@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Song } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
+import { ListPageStateService } from '../../services/list-page-state.service';
 import { SongItemComponent } from '../../components/shared/song-item.component';
 
 @Component({
@@ -21,10 +22,8 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
             {{ tab.label }}
           </button>
         </div>
-      </div>
-
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4">
+      </div>      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-4" #scrollContainer>
         <!-- All Songs -->
         <div *ngIf="activeTab === 'all'">
           <div class="mb-4">
@@ -128,8 +127,8 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
   imports: [CommonModule, SongItemComponent],
   standalone: true
 })
-export class ListPage implements OnInit {
-  activeTab = 'all';
+export class ListPage implements OnInit, OnDestroy {
+  @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef;
 
   tabs = [
     { id: 'all', label: 'Tất cả' },
@@ -138,42 +137,98 @@ export class ListPage implements OnInit {
     { id: 'favorites', label: 'Yêu thích' }
   ];
 
-  allSongs: Song[] = [];
-  recentSongs: Song[] = [];
-  favoriteSongs: Song[] = [];
-  artists: any[] = [];
-
   constructor(
     private databaseService: DatabaseService,
-    private audioPlayerService: AudioPlayerService
+    private audioPlayerService: AudioPlayerService,
+    private stateService: ListPageStateService
   ) {}
 
+  // Use getters to access state reactively
+  get activeTab() {
+    return this.stateService.activeTab;
+  }
+
+  set activeTab(value: string) {
+    this.stateService.setActiveTab(value);
+  }
+
+  get allSongs() {
+    return this.stateService.allSongs;
+  }
+
+  get recentSongs() {
+    return this.stateService.recentSongs;
+  }
+
+  get favoriteSongs() {
+    return this.stateService.favoriteSongs;
+  }
+
+  get artists() {
+    return this.stateService.artists;
+  }
   async ngOnInit() {
-    await this.loadData();
+    // Restore scroll position if available
+    setTimeout(() => {
+      if (this.scrollContainer && this.stateService.scrollPosition > 0) {
+        this.scrollContainer.nativeElement.scrollTop = this.stateService.scrollPosition;
+      }
+    }, 100);
+
+    // Load data only if not already loaded
+    if (!this.stateService.isDataLoaded) {
+      await this.loadData();
+    }
+  }
+
+  ngOnDestroy() {
+    // Save scroll position when leaving the page
+    if (this.scrollContainer) {
+      this.stateService.setScrollPosition(this.scrollContainer.nativeElement.scrollTop);
+    }
   }
 
   async loadData() {
     try {
       // Load all songs
-      this.allSongs = await this.databaseService.getAllSongs();
+      const allSongs = await this.databaseService.getAllSongs();
 
       // Load recent songs
-      this.recentSongs = await this.databaseService.getRecentlyPlayedSongs(50);
+      const recentSongs = await this.databaseService.getRecentlyPlayedSongs(50);
 
       // Load favorite songs
-      this.favoriteSongs = await this.databaseService.getFavoriteSongs();
+      const favoriteSongs = await this.databaseService.getFavoriteSongs();
 
       // Group songs by artists
-      this.groupSongsByArtists();
+      const artists = this.groupSongsByArtists(allSongs);
+
+      // Update state service with all data
+      this.stateService.updateAllData({
+        allSongs,
+        recentSongs,
+        favoriteSongs,
+        artists
+      });
     } catch (error) {
       console.error('Error loading data:', error);
     }
   }
 
-  private groupSongsByArtists() {
+  // Public method to refresh data (can be called from parent components or other services)
+  async refreshData() {
+    await this.loadData();
+  }
+
+  // Method to clear state and reload (useful for login/logout scenarios)
+  async resetAndReload() {
+    this.stateService.resetState();
+    await this.loadData();
+  }
+
+  private groupSongsByArtists(songs: Song[]) {
     const artistMap = new Map();
 
-    this.allSongs.forEach(song => {
+    songs.forEach(song => {
       if (!artistMap.has(song.artist)) {
         artistMap.set(song.artist, {
           name: song.artist,
@@ -184,10 +239,9 @@ export class ListPage implements OnInit {
       artistMap.get(song.artist).songCount++;
     });
 
-    this.artists = Array.from(artistMap.values())
+    return Array.from(artistMap.values())
       .sort((a, b) => b.songCount - a.songCount);
   }
-
   getTabClass(tabId: string): string {
     const baseClasses = 'flex-shrink-0 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap';
 
@@ -197,6 +251,7 @@ export class ListPage implements OnInit {
 
     return baseClasses + ' text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300';
   }
+
   async playSong(event: { song: Song; playlist: Song[]; index: number }) {
     // Use the playlist and index from the event, or fallback to current tab's playlist
     let playlist = event.playlist.length > 0 ? event.playlist : [];
@@ -225,11 +280,19 @@ export class ListPage implements OnInit {
 
   async toggleFavorite(song: Song) {
     const newStatus = await this.databaseService.toggleFavorite(song.id);
-    song.isFavorite = newStatus;
 
-    // Refresh favorites list if we're on that tab
-    if (this.activeTab === 'favorites') {
-      this.favoriteSongs = await this.databaseService.getFavoriteSongs();
+    // Update the song in state service
+    this.stateService.updateSong(song.id, { isFavorite: newStatus });
+
+    // If we're on favorites tab and song is no longer favorite, remove it from the list
+    if (this.activeTab === 'favorites' && !newStatus) {
+      this.stateService.removeSongFromFavorites(song.id);
+    }
+
+    // If song became favorite and we're on favorites tab, refresh the list
+    if (this.activeTab === 'favorites' && newStatus) {
+      const favoriteSongs = await this.databaseService.getFavoriteSongs();
+      this.stateService.setFavoriteSongs(favoriteSongs);
     }
   }
 
