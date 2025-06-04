@@ -39,6 +39,32 @@ export class InstallPromptComponent implements OnInit {
     }
 
     this.setupInstallPrompt();
+
+    // Thêm delay để đảm bảo beforeinstallprompt có thể kích hoạt
+    this.waitForUserEngagement();
+  }
+
+  private waitForUserEngagement() {
+    // Đợi user tương tác với trang
+    const engagementEvents = ['click', 'scroll', 'keydown', 'touchstart'];
+
+    const handleEngagement = () => {
+      setTimeout(() => {
+        // Trigger lại setup sau khi user đã tương tác
+        if (!this.deferredPrompt && !this.isRunningStandalone()) {
+          console.log('Checking for install prompt after user engagement');
+        }
+      }, 1000);
+
+      // Remove listeners sau lần đầu
+      engagementEvents.forEach(event => {
+        document.removeEventListener(event, handleEngagement);
+      });
+    };
+
+    engagementEvents.forEach(event => {
+      document.addEventListener(event, handleEngagement, { once: true });
+    });
   }
 
   private setupInstallPrompt() {
@@ -47,20 +73,21 @@ export class InstallPromptComponent implements OnInit {
       return;
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('beforeinstallprompt event triggered');
-      e.preventDefault();
-      this.deferredPrompt = e;
+    // Thêm delay nhỏ để đảm bảo event được đăng ký đúng
+    setTimeout(() => {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('beforeinstallprompt event triggered');
+        e.preventDefault();
+        this.deferredPrompt = e;
+        this.showPrompt = true;
+      });
 
-      // Vẫn hiển thị (đã hiển thị từ ngOnInit rồi)
-      this.showPrompt = true;
-    });
-
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA được cài đặt thành công');
-      this.deferredPrompt = null;
-      this.showPrompt = false;
-    });
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA được cài đặt thành công');
+        this.deferredPrompt = null;
+        this.showPrompt = false;
+      });
+    }, 100);
   }
 
   shouldShowInstallPrompt(): boolean {
