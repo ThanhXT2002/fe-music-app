@@ -1,8 +1,4 @@
-.tabs-container {
-  height: calc(
-    100vh - var(--h-header)
-  ); /* Adjust based on header and mini-player height */
-}
+
 
 .tab-item {
   @apply text-gray-500 dark:text-gray-400;
