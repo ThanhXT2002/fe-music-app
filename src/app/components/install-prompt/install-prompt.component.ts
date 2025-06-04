@@ -33,8 +33,8 @@ export class InstallPromptComponent implements OnInit {
   constructor(private platform: Platform) {}
 
   ngOnInit() {
-    // Hiển thị ngay lập tức nếu không phải standalone mode
-    if (!this.isRunningStandalone() && !this.isDismissedRecently()) {
+    // Hiển thị ngay nếu không phải standalone mode
+    if (!this.isRunningStandalone()) {
       this.showPrompt = true;
     }
 
@@ -52,10 +52,8 @@ export class InstallPromptComponent implements OnInit {
       e.preventDefault();
       this.deferredPrompt = e;
 
-      // Có native prompt, hiển thị ngay
-      if (!this.isDismissedRecently()) {
-        this.showPrompt = true;
-      }
+      // Vẫn hiển thị (đã hiển thị từ ngOnInit rồi)
+      this.showPrompt = true;
     });
 
     window.addEventListener('appinstalled', () => {
@@ -78,7 +76,6 @@ export class InstallPromptComponent implements OnInit {
 
   async installApp() {
     if (this.deferredPrompt) {
-      // Native install prompt
       try {
         this.deferredPrompt.prompt();
         const { outcome } = await this.deferredPrompt.userChoice;
@@ -96,7 +93,6 @@ export class InstallPromptComponent implements OnInit {
         this.showManualInstallInstructions();
       }
     } else {
-      // Fallback: Manual instructions
       this.showManualInstallInstructions();
     }
   }
@@ -104,19 +100,6 @@ export class InstallPromptComponent implements OnInit {
   dismissPrompt() {
     this.showPrompt = false;
     this.promptDismissed = true;
-
-    // Don't show again for 24 hours
-    localStorage.setItem('installPromptDismissed', Date.now().toString());
-  }
-
-  private isDismissedRecently(): boolean {
-    const dismissed = localStorage.getItem('installPromptDismissed');
-    if (!dismissed) return false;
-
-    const dismissedTime = parseInt(dismissed, 10);
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-
-    return dismissedTime > oneDayAgo;
   }
 
   private showManualInstallInstructions() {

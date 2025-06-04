@@ -8,17 +8,6 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { ThemeService } from '../../services/theme.service';
 import { InstallPromptComponent } from "../../components/install-prompt/install-prompt.component";
 
-interface UserPreferences {
-  darkMode: boolean;
-  autoPlay: boolean;
-  shuffleMode: boolean;
-  repeatMode: 'none' | 'one' | 'all';
-  downloadQuality: 'high' | 'medium' | 'low';
-  notifications: boolean;
-  backgroundPlay: boolean;
-  storageLocation: string;
-  cacheSize: number; // in MB
-}
 
 @Component({
   selector: 'app-settings',
