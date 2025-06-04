@@ -34,6 +34,7 @@ export class AppStateService {
     this.albumsPageState.resetState();
 
     // Don't reset search state and download state as they should persist
+    // Comment below line if you want search results to persist between app refreshes
     // this.searchPageState.resetState();
     // this.downloadService.clearAll();
   }
@@ -59,11 +60,11 @@ export class AppStateService {
       albumsPage: {
         isDataLoaded: this.albumsPageState.isDataLoaded,
         albumsCount: this.albumsPageState.albums.length
-      },
-      searchPage: {
+      },      searchPage: {
         hasQuery: !!this.searchPageState.searchQuery,
-        // hasResults: !!this.searchPageState.searchResult,
-        historyCount: this.searchPageState.searchHistory.length
+        hasResults: this.searchPageState.searchResults.length > 0,
+        historyCount: this.searchPageState.searchHistory.length,
+        downloadHistoryCount: this.searchPageState.downloadHistory.length
       },
       downloads: {
         total: this.downloadService.currentDownloads.length,
