@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { ToastController } from '@ionic/angular/standalone';
+import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { filter } from 'rxjs/operators';
 
 @Injectable({
@@ -10,6 +10,7 @@ export class PWAService {
 
   constructor(
     private swUpdate: SwUpdate,
+    private alertController: AlertController,
     private toastController: ToastController
   ) {
     if (swUpdate.isEnabled) {
@@ -32,24 +33,25 @@ export class PWAService {
         filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY')
       )
       .subscribe(async (evt) => {
-        const toast = await this.toastController.create({
-          message: 'Có phiên bản mới của ứng dụng. Bạn có muốn cập nhật?',
-          position: 'bottom',
+        const alert = await this.alertController.create({
+          header: 'Cập nhật ứng dụng',
+          message: 'Có phiên bản mới của ứng dụng. Bạn có muốn cập nhật ngay không?',
+          backdropDismiss: false,
           buttons: [
             {
-              text: 'Cập nhật',
+              text: 'Để sau',
+              role: 'cancel',
+              cssClass: 'secondary'
+            },
+            {
+              text: 'Cập nhật ngay',
               handler: () => {
                 this.updateApp();
               }
-            },
-            {
-              text: 'Để sau',
-              role: 'cancel'
             }
-          ],
-          duration: 10000
+          ]
         });
-        await toast.present();
+        await alert.present();
       });
   }
 
