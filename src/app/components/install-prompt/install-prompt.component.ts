@@ -39,32 +39,6 @@ export class InstallPromptComponent implements OnInit {
     }
 
     this.setupInstallPrompt();
-
-    // Thêm delay để đảm bảo beforeinstallprompt có thể kích hoạt
-    this.waitForUserEngagement();
-  }
-
-  private waitForUserEngagement() {
-    // Đợi user tương tác với trang
-    const engagementEvents = ['click', 'scroll', 'keydown', 'touchstart'];
-
-    const handleEngagement = () => {
-      setTimeout(() => {
-        // Trigger lại setup sau khi user đã tương tác
-        if (!this.deferredPrompt && !this.isRunningStandalone()) {
-          console.log('Checking for install prompt after user engagement');
-        }
-      }, 1000);
-
-      // Remove listeners sau lần đầu
-      engagementEvents.forEach(event => {
-        document.removeEventListener(event, handleEngagement);
-      });
-    };
-
-    engagementEvents.forEach(event => {
-      document.addEventListener(event, handleEngagement, { once: true });
-    });
   }
 
   private setupInstallPrompt() {
@@ -73,21 +47,17 @@ export class InstallPromptComponent implements OnInit {
       return;
     }
 
-    // Thêm delay nhỏ để đảm bảo event được đăng ký đúng
-    setTimeout(() => {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('beforeinstallprompt event triggered');
-        e.preventDefault();
-        this.deferredPrompt = e;
-        this.showPrompt = true;
-      });
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('beforeinstallprompt event triggered');
+      e.preventDefault();
+      this.deferredPrompt = e;
+    });
 
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA được cài đặt thành công');
-        this.deferredPrompt = null;
-        this.showPrompt = false;
-      });
-    }, 100);
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA được cài đặt thành công');
+      this.deferredPrompt = null;
+      this.showPrompt = false;
+    });
   }
 
   shouldShowInstallPrompt(): boolean {
@@ -102,6 +72,41 @@ export class InstallPromptComponent implements OnInit {
   }
 
   async installApp() {
+    // Nếu chưa có deferredPrompt, đợi một chút để event có thể trigger
+    if (!this.deferredPrompt) {
+      console.log('Waiting for beforeinstallprompt event...');
+
+      // Đợi tối đa 3 giây cho beforeinstallprompt event
+      const waitForPrompt = new Promise<boolean>((resolve) => {
+        let timeout: any;
+
+        const checkPrompt = () => {
+          if (this.deferredPrompt) {
+            clearTimeout(timeout);
+            resolve(true);
+          }
+        };
+
+        // Kiểm tra mỗi 100ms
+        const interval = setInterval(checkPrompt, 100);
+
+        // Timeout sau 3 giây
+        timeout = setTimeout(() => {
+          clearInterval(interval);
+          resolve(false);
+        }, 3000);
+      });
+
+      const hasPrompt = await waitForPrompt;
+
+      if (!hasPrompt) {
+        console.log('beforeinstallprompt not available, showing manual instructions');
+        this.showManualInstallInstructions();
+        return;
+      }
+    }
+
+    // Có deferredPrompt, hiển thị native install dialog
     if (this.deferredPrompt) {
       try {
         this.deferredPrompt.prompt();
@@ -119,8 +124,6 @@ export class InstallPromptComponent implements OnInit {
         console.error('Install prompt error:', error);
         this.showManualInstallInstructions();
       }
-    } else {
-      this.showManualInstallInstructions();
     }
   }
 
