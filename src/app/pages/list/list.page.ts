@@ -6,126 +6,14 @@ import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ListPageStateService } from '../../services/list-page-state.service';
 import { SongItemComponent } from '../../components/shared/song-item.component';
+import { IonContent, IonHeader, IonToolbar, IonTitle } from "@ionic/angular/standalone";
 
 @Component({
   selector: 'app-list',
-  template: `
-    <div class="list-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
-      <!-- Sub-tabs Header -->
-      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div class="flex overflow-x-auto scrollbar-hide">
-          <button
-            *ngFor="let tab of tabs"
-            (click)="activeTab = tab.id"
-            [class]="getTabClass(tab.id)"
-            class="flex-shrink-0 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap">
-            {{ tab.label }}
-          </button>
-        </div>
-      </div>      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4" #scrollContainer>
-        <!-- All Songs -->
-        <div *ngIf="activeTab === 'all'">
-          <div class="mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Tất cả bài hát ({{ allSongs.length }})
-            </h2>
-          </div>          <div class="space-y-2">            <app-song-item
-              *ngFor="let song of allSongs; let i = index; trackBy: trackBySongId"
-              [song]="song"
-              [playlist]="allSongs"
-              [index]="i"
-              (play)="playSong($event)"
-              (showMenu)="showSongMenu($event)"
-              (toggleFavorite)="toggleFavorite($event)">
-            </app-song-item>
-          </div>
-        </div>
-
-        <!-- Recently Played -->
-        <div *ngIf="activeTab === 'recent'">
-          <div class="mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Nghe gần đây
-            </h2>
-          </div>          <div class="space-y-2">
-            <app-song-item
-              *ngFor="let song of recentSongs; let i = index; trackBy: trackBySongId"
-              [song]="song"
-              [playlist]="recentSongs"
-              [index]="i"
-              (play)="playSong($event)"
-              (showMenu)="showSongMenu($event)"
-              (toggleFavorite)="toggleFavorite($event)">
-            </app-song-item>
-          </div>
-          <div *ngIf="recentSongs.length === 0" class="text-center py-12">
-            <i class="fas fa-history text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
-            <p class="text-gray-500 dark:text-gray-400">Chưa có bài hát nào được nghe gần đây</p>
-          </div>
-        </div>
-
-        <!-- Artists -->
-        <div *ngIf="activeTab === 'artists'">
-          <div class="mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Nghệ sĩ
-            </h2>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div
-              *ngFor="let artist of artists"
-              (click)="viewArtist(artist)"
-              class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-              <div class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-3">
-                <i class="fas fa-user-music text-white text-xl"></i>
-              </div>
-              <h3 class="font-medium text-gray-900 dark:text-white text-center truncate">{{ artist.name }}</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 text-center">{{ artist.songCount }} bài hát</p>
-            </div>
-          </div>
-          <div *ngIf="artists.length === 0" class="text-center py-12">
-            <i class="fas fa-microphone text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
-            <p class="text-gray-500 dark:text-gray-400">Chưa có nghệ sĩ nào</p>
-          </div>
-        </div>
-
-        <!-- Favorites -->
-        <div *ngIf="activeTab === 'favorites'">
-          <div class="mb-4">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Yêu thích
-            </h2>
-          </div>          <div class="space-y-2">
-            <app-song-item
-              *ngFor="let song of favoriteSongs; let i = index; trackBy: trackBySongId"
-              [song]="song"
-              [playlist]="favoriteSongs"
-              [index]="i"
-              (play)="playSong($event)"
-              (showMenu)="showSongMenu($event)"
-              (toggleFavorite)="toggleFavorite($event)">
-            </app-song-item>
-          </div>
-          <div *ngIf="favoriteSongs.length === 0" class="text-center py-12">
-            <i class="fas fa-heart text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
-            <p class="text-gray-500 dark:text-gray-400">Chưa có bài hát yêu thích nào</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
-  `],
-  imports: [CommonModule, SongItemComponent],
-  standalone: true
+  templateUrl: './list.page.html',
+  styleUrls: ['./list.page.scss'],
+  standalone: true,
+  imports: [ CommonModule, SongItemComponent]
 })
 export class ListPage implements OnInit, OnDestroy {
   @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef;
@@ -310,3 +198,4 @@ export class ListPage implements OnInit, OnDestroy {
     return song.id;
   }
 }
+

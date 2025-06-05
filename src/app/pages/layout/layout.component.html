@@ -1,110 +1,126 @@
-
-  <ion-header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h__header">
-    <div class="flex items-center justify-between px-4 h-full">
-      <!-- App Logo & Name -->
-      <div class="flex items-center space-x-3 cursor-pointer" routerLink="/">
-        <div
-          class="w-9 h-9  flex items-center justify-center rounded-full border-2 border-pink-500  dark:border-purple-500 hover:scale-110 transition-colors"
-        >
-          <img src="assets/icon/icon-app.png" alt="">
-        </div>
-        <h1
-          class="text-xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-        >
-          XTMusic
-        </h1>
-      </div>
-
-      <!-- Search Button -->
-      <button
-        (click)="toggleSearch()"
-        class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+<ion-header
+mode="md"
+  [translucent]="true"
+  class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h__header"
+>
+  <div class="flex items-center justify-between px-4 h-full">
+    <!-- App Logo & Name -->
+    <div class="flex items-center space-x-3 cursor-pointer" routerLink="/">
+      <div
+        class="w-9 h-9 flex items-center justify-center rounded-full border-2 border-pink-500 dark:border-purple-500 hover:scale-110 transition-colors"
       >
-        <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
+        <img src="assets/icon/icon-app.png" alt="" />
+      </div>
+      <h1
+        class="text-xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
+      >
+        XTMusic
+      </h1>
+    </div>
+
+    <!-- Search Button -->
+    <button
+      (click)="toggleSearch()"
+      class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+    >
+      <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
+    </button>
+  </div>
+
+  <!-- Search Bar (Expandable) -->
+  <div
+    class="px-4 pb-3 fixed top-[3.6rem] w-full z-50 max-h-screen transition-all duration-300 ease-in-out"
+    *ngIf="isVisible"
+    [ngClass]="
+      showSearch ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+    "
+  >
+    <div class="relative">
+      <input
+        #searchInput
+        type="text"
+        placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchInput()"
+        class="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+      />
+      <i
+        class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+      ></i>
+      <button
+        *ngIf="searchQuery"
+        (click)="clearSearch()"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        <i class="fas fa-times"></i>
       </button>
     </div>
 
-    <!-- Search Bar (Expandable) -->
+    <!-- Search Results Dropdown -->
     <div
-      class="px-4 pb-3 fixed top-[3.6rem] w-full z-50 max-h-screen transition-all duration-300 ease-in-out"
-      *ngIf="isVisible"
-      [ngClass]="
-        showSearch ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-      "
+      *ngIf="searchResults.length > 0"
+      class="absolute left-4 right-4 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-60 overflow-y-auto"
     >
-      <div class="relative">
-        <input
-          #searchInput
-          type="text"
-          placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
-          [(ngModel)]="searchQuery"
-          (input)="onSearchInput()"
-          class="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
-        />
-        <i
-          class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-        ></i>
-        <button
-          *ngIf="searchQuery"
-          (click)="clearSearch()"
-          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-        >
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <!-- Search Results Dropdown -->
       <div
-        *ngIf="searchResults.length > 0"
-        class="absolute left-4 right-4 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-60 overflow-y-auto"
+        *ngFor="let result of searchResults"
+        (click)="selectSearchResult(result)"
+        class="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
       >
-        <div
-          *ngFor="let result of searchResults"
-          (click)="selectSearchResult(result)"
-          class="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-        >
-          <img
-            [src]="result.thumbnail || 'assets/images/default-song.png'"
-            [alt]="result.title"
-            class="w-10 h-10 rounded-lg object-cover"
-          />
-          <div class="flex-1 min-w-0">
-            <p
-              class="text-sm font-medium text-gray-900 dark:text-white truncate"
-            >
-              {{ result.title }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-              {{ result.artist }}
-            </p>
-          </div>
-          <i class="fas fa-play text-purple-500 text-xs"></i>
+        <img
+          [src]="result.thumbnail || 'assets/images/default-song.png'"
+          [alt]="result.title"
+          class="w-10 h-10 rounded-lg object-cover"
+        />
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {{ result.title }}
+          </p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+            {{ result.artist }}
+          </p>
         </div>
+        <i class="fas fa-play text-purple-500 text-xs"></i>
       </div>
     </div>
-  </ion-header>
+  </div>
+</ion-header>
+<ion-content>
+  <ion-router-outlet></ion-router-outlet>
 
-  <div *ngIf="currentSong" class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40">
+  <div
+    *ngIf="currentSong"
+    class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40"
+  >
     <div class="flex items-center space-x-3">
       <!-- Song Info -->
-      <img [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
-           [alt]="currentSong.title"
-           class="w-12 h-12 rounded-lg object-cover">
+      <img
+        [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
+        [alt]="currentSong.title"
+        class="w-12 h-12 rounded-lg object-cover"
+      />
 
       <div class="flex-1 min-w-0" (click)="openFullPlayer()">
-        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ currentSong.title }}</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ currentSong.artist }}</p>
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+          {{ currentSong.title }}
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {{ currentSong.artist }}
+        </p>
       </div>
 
       <!-- Player Controls -->
       <div class="flex items-center space-x-4">
-        <button (click)="previousSong()" class="text-gray-600 dark:text-gray-300">
+        <button
+          (click)="previousSong()"
+          class="text-gray-600 dark:text-gray-300"
+        >
           <i class="fas fa-step-backward"></i>
         </button>
 
         <button
           (click)="togglePlayPause()"
-          class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white">
+          class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white"
+        >
           <i [class]="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
         </button>
 
@@ -119,50 +135,51 @@
       <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
         <div
           class="bg-purple-500 h-1 rounded-full transition-all duration-300"
-          [style.width.%]="progressPercentage">
-        </div>
+          [style.width.%]="progressPercentage"
+        ></div>
       </div>
     </div>
   </div>
-
-<ion-tabs>
- <div
-    class="bottom-tabs bg-white dark:bg-gray-800  px-2 py-1 h__bottom__tabs w-full"
-  >
-    <div class="flex justify-between items-center h-full !w-full">
-      <a
-        routerLink="/tabs/list"
-        routerLinkActive="active"
-        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-      >
-        <i class="fas fa-list text-xl mb-1"></i>
-        <span class="text-xs font-medium">Danh sách</span>
-      </a>
-      <a
-        routerLink="/tabs/albums"
-        routerLinkActive="active"
-        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-      >
-        <i class="fas fa-compact-disc text-xl mb-1"></i>
-        <span class="text-xs font-medium">Album</span>
-      </a>
-      <a
-        routerLink="/tabs/search"
-        routerLinkActive="active"
-        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-      >
-        <i class="fas fa-download text-xl mb-1"></i>
-        <span class="text-xs font-medium">Tải về</span>
-      </a>
-      <a
-        routerLink="/tabs/settings"
-        routerLinkActive="active"
-        class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-      >
-        <i class="fas fa-cog text-xl mb-1"></i>
-        <span class="text-xs font-medium">Cài đặt</span>
-      </a>
+</ion-content>
+<ion-footer mode="md">
+  <ion-toolbar >
+    <div
+      class="bottom-tabs bg-white dark:bg-gray-800 h__bottom__tabs w-full"
+    >
+      <div class="flex justify-between items-center h-full !w-full py-1 px-2">
+        <a
+          routerLink="/tabs/list"
+          routerLinkActive="active"
+          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+        >
+          <i class="fas fa-list text-xl mb-1"></i>
+          <span class="text-xs font-medium">Danh sách</span>
+        </a>
+        <a
+          routerLink="/tabs/albums"
+          routerLinkActive="active"
+          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+        >
+          <i class="fas fa-compact-disc text-xl mb-1"></i>
+          <span class="text-xs font-medium">Album</span>
+        </a>
+        <a
+          routerLink="/tabs/search"
+          routerLinkActive="active"
+          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+        >
+          <i class="fas fa-download text-xl mb-1"></i>
+          <span class="text-xs font-medium">Tải về</span>
+        </a>
+        <a
+          routerLink="/tabs/settings"
+          routerLinkActive="active"
+          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+        >
+          <i class="fas fa-cog text-xl mb-1"></i>
+          <span class="text-xs font-medium">Cài đặt</span>
+        </a>
+      </div>
     </div>
-  </div>
-</ion-tabs>
-
+  </ion-toolbar>
+</ion-footer>

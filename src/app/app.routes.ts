@@ -49,4 +49,8 @@ export const routes: Routes = [
     path: 'artist/:name',
     loadComponent: () => import('./pages/artist-detail/artist-detail.page').then(m => m.ArtistDetailPage),
   },
+  {
+    path: 'list',
+    loadComponent: () => import('./pages/list/list.page').then( m => m.ListPage)
+  },
 ];
