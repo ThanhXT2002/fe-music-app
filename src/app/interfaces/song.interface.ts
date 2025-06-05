@@ -107,3 +107,41 @@ export interface SearchResultItem {
   isDownloading?: boolean;
   downloadProgress?: number;
 }
+
+
+// dowload youtube song
+export interface YouTubeDownloadResponse {
+  success: boolean;
+  message: string;
+  song: YouTubeSong;
+  download_path: string;
+}
+
+export interface YouTubeSong {
+  title: string;
+  artist: string;
+  artists: string | null;
+  album: string | null;
+  duration: number;
+  genre: string | null;
+  release_date: string;
+  thumbnail_url: string;
+  audio_url: string;
+  lyrics: string | null;
+  has_lyrics: boolean;
+  keywords: string[];
+  source: string;
+  source_url: string;
+  bitrate: string | null;
+  language: string | null;
+  id: string;
+  is_downloaded: boolean;
+  downloaded_at: string;
+  local_path: string;
+  is_favorite: boolean;
+  play_count: number;
+  last_played_at: string | null;
+  user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}

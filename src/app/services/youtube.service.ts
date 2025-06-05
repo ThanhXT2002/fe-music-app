@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, from } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { YoutubeSearchResult, Song } from '../interfaces/song.interface';
+import { YoutubeSearchResult, Song, YouTubeDownloadResponse } from '../interfaces/song.interface';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -127,4 +127,18 @@ export class YoutubeService {
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     }
   }
+
+
+  // download youtube video
+  downloadFromYouTubeSimple(url: string): Observable<YouTubeDownloadResponse> {
+  const params = new HttpParams().set('url', url);
+  return this.http.post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, { params })
+    .pipe(
+      catchError(error => {
+        console.error('Error downloading from YouTube:', error);
+        throw error;
+      })
+    );
+}
+
 }

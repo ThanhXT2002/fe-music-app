@@ -7,6 +7,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { Song } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
+import { finalize, tap } from 'rxjs';
 
 interface SearchResult {
   id: string;
@@ -15,9 +16,12 @@ interface SearchResult {
   duration: string;
   thumbnail: string;
   url: string;
+  audio_url?: string;
+  download_path?: string;
   isDownloading?: boolean;
   downloadProgress?: number;
 }
+
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
@@ -25,7 +29,7 @@ interface SearchResult {
   imports: [CommonModule, FormsModule],
 })
 export class SearchPage implements OnInit {
-  private youtubeService = inject(YoutubeService);
+  youtubeService = inject(YoutubeService);
   private databaseService = inject(DatabaseService);
   private audioPlayerService = inject(AudioPlayerService);
   private clipboardService = inject(ClipboardService);
@@ -43,17 +47,61 @@ export class SearchPage implements OnInit {
     this.loadDownloadHistory();
   }
 
-  async onSearchInput(event: any) {
-    const query = event.target.value;
-    this.searchQuery.set(query);
+async onSearchInput(event: any) {
+  const query = event.target.value;
+  this.searchQuery.set(query);
 
-    if (query.trim().length < 3) {
-      this.searchResults.set([]);
-      return;
-    }
+  if (query.trim().length < 3) {
+    this.searchResults.set([]);
+    return;
+  }
 
+  // Check if the input is a valid YouTube URL
+  if (this.youtubeService.validateYoutubeUrl(query)) {
+    // Don't automatically process YouTube URLs - wait for user to click search button
+    this.searchResults.set([]);
+    return;
+  } else {
     await this.searchYouTube(query);
   }
+}
+
+async processYouTubeUrl(url: string) {
+  try {
+    this.isSearching.set(true);
+    this.youtubeService.downloadFromYouTubeSimple(url)
+      .pipe(
+        tap(response => {
+          if (response.success) {
+            const song = response.song;
+
+            // Convert API response to search result format
+            const result: SearchResult = {
+              id: song.id,
+              title: song.title,
+              artist: song.artist,
+              duration: this.formatDuration(song.duration),
+              thumbnail: song.thumbnail_url,
+              url: song.source_url,
+              audio_url: song.audio_url,
+              download_path: response.download_path
+            };
+
+            this.searchResults.set([result]);
+          } else {
+            console.error('API returned error:', response.message);
+            this.searchResults.set([]);
+          }
+        }),
+        finalize(() => this.isSearching.set(false))
+      )
+      .subscribe();
+  } catch (error) {
+    console.error('Error processing YouTube URL:', error);
+    this.isSearching.set(false);
+    this.searchResults.set([]);
+  }
+}
 
   clearSearch() {
     this.searchQuery.set('');
@@ -192,12 +240,27 @@ export class SearchPage implements OnInit {
     return minutes * 60 + seconds;
   }
 
-  formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+formatDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+onSearchYoutubeUrl(){
+  const query = this.searchQuery().trim();
+
+  if (query.length === 0) {
+    return;
   }
 
+  // Check if the input is a valid YouTube URL
+  if (this.youtubeService.validateYoutubeUrl(query)) {
+    this.processYouTubeUrl(query);
+  } else {
+    // If not a YouTube URL, perform regular search
+    this.searchYouTube(query);
+  }
+}
   async onPaste(event?: Event, isRetry: boolean = false) {
     if (!event) {
       // Button click - show loading

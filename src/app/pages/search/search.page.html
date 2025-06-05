@@ -11,29 +11,14 @@
     type="text"
     [value]="searchQuery()"
     (input)="onSearchInput($event)"
-    (paste)="onPaste($event)"
     placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
     class="input w-full pl-10 pr-10 bg-gray-100 dark:bg-gray-700"
   />
 
-  <svg
-    class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-width="2"
-      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-    ></path>
-  </svg>
-
   @if(searchQuery().length > 0) {
     <button
       (click)="clearSearch()"
-      class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
     >
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -45,10 +30,10 @@
       </svg>
     </button>
   } @else {
-    <button
+      <button
       (click)="onPaste()"
       [disabled]="isClipboardLoading()"
-      class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+      class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
     >
       @if(isClipboardLoading()) {
         <div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
@@ -56,7 +41,16 @@
         <i class="fa-solid fa-paste w-4 h-4"></i>
       }
     </button>
-  }
+  }  <button
+      (click)="onSearchYoutubeUrl()"
+      [ngClass]="{
+        'bg-pink-500': youtubeService.validateYoutubeUrl(searchQuery()),
+        'bg-gray-300 bg-opacity-20': !youtubeService.validateYoutubeUrl(searchQuery())
+      }"
+      class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
+    >
+      <i class="fa-solid fa-magnifying-glass w-4 h-4"></i>
+    </button>
 </div>
 
       <!-- Loading State -->
@@ -131,9 +125,7 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- No Results -->
+      </div>      <!-- No Results -->
       <div
         *ngIf="searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()"
         class="text-center py-8"
@@ -151,10 +143,18 @@
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           ></path>
         </svg>
-        <p class="text-gray-600 dark:text-gray-400">No results found</p>
-        <p class="text-sm text-gray-500 dark:text-gray-500">
-          Try different keywords
-        </p>
+
+        @if(youtubeService.validateYoutubeUrl(searchQuery())) {
+          <p class="text-gray-600 dark:text-gray-400">Tìm kiếm ngay</p>
+          <p class="text-sm text-gray-500 dark:text-gray-500">
+            Nhấn nút tìm kiếm để tải video YouTube
+          </p>
+        } @else {
+          <p class="text-gray-600 dark:text-gray-400">No results found</p>
+          <p class="text-sm text-gray-500 dark:text-gray-500">
+            Try different keywords
+          </p>
+        }
       </div>
     </div>
 
