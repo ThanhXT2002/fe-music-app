@@ -11,11 +11,12 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Subject } from 'rxjs';
 import { SearchService } from 'src/app/services/search.service';
 import { FormsModule } from '@angular/forms';
-import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, IonTab } from "@ionic/angular/standalone";
+import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, IonTab,IonRouterOutlet, IonContent, IonHeader } from "@ionic/angular/standalone";
+
 
 @Component({
   selector: 'app-layout',
-  imports: [IonTab, IonLabel, IonIcon, IonTabButton, IonTabBar, IonTabs, CommonModule, RouterOutlet, RouterLink, RouterLinkActive, FormsModule],
+  imports: [IonHeader, IonTab, IonLabel, IonIcon, IonTabButton, IonTabBar, IonTabs, CommonModule, IonRouterOutlet, RouterLink, RouterLinkActive, FormsModule,IonContent],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],

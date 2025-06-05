@@ -7,11 +7,6 @@
 }
 
 @media (min-width: 376px) {
-  .h__login {
-    min-height: unset; /* bỏ min-height để set height chuẩn */
-    height: calc(100vh - var(--h-header));
-  }
-
   .m-version{
   @apply mb-0;
 }

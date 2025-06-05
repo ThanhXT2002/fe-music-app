@@ -29,6 +29,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     importProvidersFrom(BrowserAnimationsModule),

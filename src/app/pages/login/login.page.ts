@@ -2,11 +2,12 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { IonContent } from "@ionic/angular/standalone";
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule],
+  imports: [IonContent, CommonModule],
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
 })

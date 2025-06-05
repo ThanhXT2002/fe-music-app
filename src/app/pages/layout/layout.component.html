@@ -1,7 +1,5 @@
-<div class="flex flex-col h-full">
-    <header
-    class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h__header"
-  >
+
+  <ion-header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h__header">
     <div class="flex items-center justify-between px-4 h-full">
       <!-- App Logo & Name -->
       <div class="flex items-center space-x-3 cursor-pointer" routerLink="/">
@@ -84,14 +82,13 @@
         </div>
       </div>
     </div>
-    </header>
+  </ion-header>
 
-  <!-- Tab Content -->
-  <div class="flex-1 overflow-hidden">
-    <router-outlet></router-outlet>
-  </div>
 
-    <!-- Mini Player -->
+
+<ion-content [fullscreen]="true">
+</ion-content>
+
   <div *ngIf="currentSong" class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40">
     <div class="flex items-center space-x-3">
       <!-- Song Info -->
@@ -132,14 +129,11 @@
       </div>
     </div>
   </div>
-  <!-- Bottom Tabs -->
-
 <ion-tabs>
-  <ion-tab-bar slot="bottom">
-    <div
-    class="bottom-tabs bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-2 py-1 h__bottom__tabs"
+ <div
+    class="bottom-tabs bg-white dark:bg-gray-800  px-2 py-1 h__bottom__tabs w-full"
   >
-    <div class="flex justify-around items-center h-full">
+    <div class="flex justify-between items-center h-full !w-full">
       <a
         routerLink="/tabs/list"
         routerLinkActive="active"
@@ -174,8 +168,5 @@
       </a>
     </div>
   </div>
-  </ion-tab-bar>
 </ion-tabs>
 
-  <!--  -->
-</div>

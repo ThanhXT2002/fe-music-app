@@ -5,10 +5,12 @@ import { RouterOutlet } from '@angular/router';
 import { Subject } from 'rxjs';
 import { PWAService } from './services/pwa.service';
 import { ThemeService } from 'src/app/services/theme.service';
+import { IonApp, IonRouterOutlet } from "@ionic/angular/standalone";
+
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [CommonModule, FormsModule, RouterOutlet],
+  imports: [IonRouterOutlet, IonApp, CommonModule, FormsModule],
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
@@ -19,8 +21,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
 
   ngOnInit() {
-    // Theme service sẽ tự động apply theme khi khởi tạo
-
     // Khởi tạo PWA service
     this.pwaService.onNetworkStatusChange();
 
