@@ -1,12 +1,13 @@
 import { Injectable, signal } from '@angular/core';
-import { SearchResult } from '../interfaces/song.interface';
+import { SearchResultItem, Song } from '../interfaces/song.interface';
 
 interface SearchPageState {
   searchQuery: string;
-  searchResult: SearchResult | null;
+  searchResults: SearchResultItem[];
   searchHistory: string[];
   isSearching: boolean;
   scrollPosition: number;
+  downloadHistory: Song[];
 }
 
 @Injectable({
@@ -15,14 +16,14 @@ interface SearchPageState {
 export class SearchPageStateService {
   private state = signal<SearchPageState>({
     searchQuery: '',
-    searchResult: null,
+    searchResults: [],
     searchHistory: [],
     isSearching: false,
-    scrollPosition: 0
+    scrollPosition: 0,
+    downloadHistory: []
   });
 
   constructor() {
-    // Load search history from localStorage
     this.loadSearchHistory();
   }
 
@@ -31,8 +32,8 @@ export class SearchPageStateService {
     return this.state().searchQuery;
   }
 
-  get searchResult() {
-    return this.state().searchResult;
+  get searchResults() {
+    return this.state().searchResults;
   }
 
   get searchHistory() {
@@ -42,9 +43,12 @@ export class SearchPageStateService {
   get isSearching() {
     return this.state().isSearching;
   }
-
   get scrollPosition() {
     return this.state().scrollPosition;
+  }
+
+  get downloadHistory() {
+    return this.state().downloadHistory;
   }
 
   // State setters
@@ -54,11 +58,18 @@ export class SearchPageStateService {
       searchQuery: query
     }));
   }
-
-  setSearchResult(result: SearchResult | null) {
+  setSearchResults(results: SearchResultItem[]) {
     this.state.update(current => ({
       ...current,
-      searchResult: result
+      searchResults: results
+    }));
+  }
+
+  // Compatible method for old code
+  setSearchResult(result: any) {
+    this.state.update(current => ({
+      ...current,
+      searchResults: result ? [result] : []
     }));
   }
 
@@ -68,11 +79,17 @@ export class SearchPageStateService {
       isSearching
     }));
   }
-
   setScrollPosition(position: number) {
     this.state.update(current => ({
       ...current,
       scrollPosition: position
+    }));
+  }
+
+  setDownloadHistory(songs: Song[]) {
+    this.state.update(current => ({
+      ...current,
+      downloadHistory: songs
     }));
   }
 
@@ -84,10 +101,7 @@ export class SearchPageStateService {
       const history = current.searchHistory.filter(h => h !== query);
       history.unshift(query);
 
-      // Keep only last 20 searches
       const limitedHistory = history.slice(0, 20);
-
-      // Save to localStorage
       this.saveSearchHistory(limitedHistory);
 
       return {
@@ -97,7 +111,6 @@ export class SearchPageStateService {
     });
   }
 
-  // Clear search history
   clearSearchHistory() {
     this.state.update(current => ({
       ...current,
@@ -106,7 +119,6 @@ export class SearchPageStateService {
     localStorage.removeItem('xtmusic_search_history');
   }
 
-  // Remove item from search history
   removeFromHistory(query: string) {
     this.state.update(current => {
       const history = current.searchHistory.filter(h => h !== query);
@@ -118,16 +130,14 @@ export class SearchPageStateService {
       };
     });
   }
-
-  // Reset state
   resetState() {
     this.state.update(current => ({
       ...current,
       searchQuery: '',
-      searchResult: null,
+      searchResults: [],
       isSearching: false,
       scrollPosition: 0
-      // Keep search history
+      // downloadHistory is kept intentionally
     }));
   }
 
