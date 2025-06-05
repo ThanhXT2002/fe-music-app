@@ -27,8 +27,8 @@ export class SettingsPage implements OnInit {
   // Sử dụng ThemeService thay vì local signal
   preferences = this.themeService.preferences;
 
-  // Thêm computed signal để dễ debug
-  isDarkMode = this.themeService.isDarkMode;
+  // // Thêm computed signal để dễ debug
+  // isDarkMode = this.themeService.isDarkMode;
 
   ngOnInit() {
   }

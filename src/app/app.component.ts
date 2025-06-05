@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
 import { Subject } from 'rxjs';
 import { PWAService } from './services/pwa.service';
+import { ThemeService } from 'src/app/services/theme.service';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -13,6 +14,8 @@ import { PWAService } from './services/pwa.service';
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private pwaService = inject(PWAService); // Inject PWA service
+  private themeService = inject(ThemeService);
+
 
 
   ngOnInit() {

@@ -133,11 +133,13 @@
     </div>
   </div>
   <!-- Bottom Tabs -->
-  <div
+
+<ion-tabs>
+  <ion-tab-bar slot="bottom">
+    <div
     class="bottom-tabs bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-2 py-1 h__bottom__tabs"
   >
     <div class="flex justify-around items-center h-full">
-      <!-- List Tab -->
       <a
         routerLink="/tabs/list"
         routerLinkActive="active"
@@ -146,8 +148,6 @@
         <i class="fas fa-list text-xl mb-1"></i>
         <span class="text-xs font-medium">Danh sách</span>
       </a>
-
-      <!-- Albums Tab -->
       <a
         routerLink="/tabs/albums"
         routerLinkActive="active"
@@ -156,8 +156,6 @@
         <i class="fas fa-compact-disc text-xl mb-1"></i>
         <span class="text-xs font-medium">Album</span>
       </a>
-
-      <!-- Search Tab -->
       <a
         routerLink="/tabs/search"
         routerLinkActive="active"
@@ -166,8 +164,6 @@
         <i class="fas fa-download text-xl mb-1"></i>
         <span class="text-xs font-medium">Tải về</span>
       </a>
-
-      <!-- Settings Tab -->
       <a
         routerLink="/tabs/settings"
         routerLinkActive="active"
@@ -178,4 +174,8 @@
       </a>
     </div>
   </div>
+  </ion-tab-bar>
+</ion-tabs>
+
+  <!--  -->
 </div>
