@@ -24,7 +24,7 @@ const devEnvContent = `export const environment = {
 // Production environment file
 const prodEnvContent = `export const environment = {
   production: true,
-  apiUrl: '${process.env.API_URL || 'https://music-app-api.tranxuanthanh.vn/api/v1'}',
+  apiUrl: '${process.env.API_URL || 'http://api-music.tranxuanthanh.vn/api/v1'}',
   firebaseConfig: {
     apiKey: '${process.env.FIREBASE_API_KEY || 'AIzaSyDbBfc6kNnVILMIQsYN_q83HVDDwNrFBuo'}',
     authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || 'txt-system-90788.firebaseapp.com'}',
