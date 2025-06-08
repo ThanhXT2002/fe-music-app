@@ -49,17 +49,14 @@ export class DatabaseService {
         artist TEXT NOT NULL,
         album TEXT,
         duration INTEGER NOT NULL,
-        thumbnail TEXT,
+        duration_formatted TEXT,
+        thumbnail_url TEXT,
         audioUrl TEXT NOT NULL,
         filePath TEXT,
-        youtubeId TEXT,
         addedDate TEXT NOT NULL,
         playCount INTEGER DEFAULT 0,
         isFavorite INTEGER DEFAULT 0,
-        lyrics TEXT,
-        genre TEXT,
-        year INTEGER,
-        quality TEXT DEFAULT 'medium'
+        genre TEXT
       );`,
 
       // Albums table
@@ -163,26 +160,23 @@ export class DatabaseService {
     try {
       await this.db.run(
         `INSERT OR REPLACE INTO songs
-         (id, title, artist, album, duration, thumbnail, audioUrl, filePath, youtubeId,
-          addedDate, playCount, isFavorite, lyrics, genre, year, quality)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, title, artist, album, duration,duration_formatted, thumbnail, audioUrl, filePath,
+          addedDate, playCount, isFavorite, genre)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
         [
           song.id,
           song.title,
           song.artist,
           song.album || null,
           song.duration,
+          song.duration_formatted || null,
           song.thumbnail || null,
           song.audioUrl,
           song.filePath || null,
-          song.youtubeId || null,
           song.addedDate.toISOString(),
           song.playCount,
           song.isFavorite ? 1 : 0,
-          song.lyrics || null,
           song.genre || null,
-          song.year || null,
-          song.quality || 'medium'
         ]
       );
       return true;
@@ -315,14 +309,10 @@ export class DatabaseService {
       thumbnail: row.thumbnail,
       audioUrl: row.audioUrl,
       filePath: row.filePath,
-      youtubeId: row.youtubeId,
       addedDate: new Date(row.addedDate),
       playCount: row.playCount,
       isFavorite: row.isFavorite === 1,
-      lyrics: row.lyrics,
       genre: row.genre,
-      year: row.year,
-      quality: row.quality
     }));
   }
 

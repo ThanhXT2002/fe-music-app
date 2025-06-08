@@ -5,6 +5,7 @@ import { YoutubeService } from '../../services/youtube.service';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { Song } from '../../interfaces/song.interface';
+import { ModalController, IonicModule } from '@ionic/angular';
 
 interface SearchResult {
   id: string;
@@ -16,16 +17,22 @@ interface SearchResult {
   isDownloading?: boolean;
   downloadProgress?: number;
 }
+
 @Component({
   selector: 'app-search',
-  templateUrl: './search.page.html',
-  standalone: true,
-  imports: [ CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule,IonicModule],
+  templateUrl: './search.component.html',
+  styleUrls: ['./search.component.scss'],
 })
-export class SearchPage  implements OnInit {
+export class SearchComponent  implements OnInit {
   private youtubeService = inject(YoutubeService);
   private databaseService = inject(DatabaseService);
   private audioPlayerService = inject(AudioPlayerService);
+
+
+  constructor(private modalCtrl: ModalController){
+
+  }
 
   searchQuery = signal('');
   searchResults = signal<SearchResult[]>([]);
@@ -34,6 +41,10 @@ export class SearchPage  implements OnInit {
 
   ngOnInit() {
     this.loadDownloadHistory();
+  }
+
+  closeModal() {
+    this.modalCtrl.dismiss(); // Có thể truyền dữ liệu ra nếu muốn
   }
 
   async onSearchInput(event: any) {
@@ -108,7 +119,7 @@ export class SearchPage  implements OnInit {
         this.searchResults.set(progressResults);
       }      // Create song object
       const song: Song = {
-        id: `yt_${result.id}_${Date.now()}`,
+        id: result.id,
         title: result.title,
         artist: result.artist,
         album: 'Downloaded',
@@ -116,7 +127,6 @@ export class SearchPage  implements OnInit {
         audioUrl: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
         filePath: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
         thumbnail: result.thumbnail,
-        youtubeUrl: result.url,
         addedDate: new Date(),
         playCount: 0,
         isFavorite: false
@@ -156,10 +166,10 @@ export class SearchPage  implements OnInit {
 
   private async loadDownloadHistory() {
     try {
-      const songs = await this.databaseService.getAllSongs();
-      // Filter only downloaded songs (those with youtubeUrl)
-      const downloaded = songs.filter(song => song.youtubeUrl);
-      this.downloadHistory.set(downloaded);
+      // const songs = await this.databaseService.getAllSongs();
+      // // Filter only downloaded songs (those with youtubeUrl)
+      // const downloaded = songs.filter(song => song.youtubeUrl);
+      // this.downloadHistory.set(downloaded);
     } catch (error) {
       console.error('Error loading download history:', error);
     }

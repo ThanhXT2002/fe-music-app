@@ -20,7 +20,7 @@ mode="md"
 
     <!-- Search Button -->
     <button
-      (click)="toggleSearch()"
+     id="openModal"
       class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
     >
       <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
@@ -85,8 +85,14 @@ mode="md"
   </div>
 </ion-header>
 <ion-content>
+  <ion-modal #modal trigger="openModal" (willPresent)="onWillPresent()">
+    <ng-template>
+      <ion-content>
+        <ion-nav #nav></ion-nav>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
   <ion-router-outlet></ion-router-outlet>
-
   <div
     *ngIf="currentSong"
     class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40"
@@ -164,7 +170,7 @@ mode="md"
           <span class="text-xs font-medium">Album</span>
         </a>
         <a
-          routerLink="/tabs/search"
+          routerLink="/tabs/downloads"
           routerLinkActive="active"
           class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
         >

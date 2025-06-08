@@ -4,18 +4,14 @@ export interface Song {
   artist: string;
   album?: string;
   duration: number; // in seconds
+  duration_formatted?: string; // in seconds
   thumbnail?: string;
   audioUrl: string;
   filePath?: string; // local file path
-  youtubeId?: string;
-  youtubeUrl?: string; // YouTube source URL
   addedDate: Date;
   playCount: number;
   isFavorite: boolean;
-  lyrics?: string;
   genre?: string;
-  year?: number;
-  quality?: 'low' | 'medium' | 'high';
 }
 
 export interface Album {
@@ -113,35 +109,18 @@ export interface SearchResultItem {
 export interface YouTubeDownloadResponse {
   success: boolean;
   message: string;
-  song: YouTubeSong;
-  download_path: string;
+  data: DataSong;
 }
 
-export interface YouTubeSong {
+export interface DataSong {
+  id:string;
   title: string;
   artist: string;
-  artists: string | null;
-  album: string | null;
-  duration: number;
-  genre: string | null;
-  release_date: string;
+  duration?: number;
+  duration_formatted: string;
   thumbnail_url: string;
   audio_url: string;
-  lyrics: string | null;
-  has_lyrics: boolean;
-  keywords: string[];
-  source: string;
-  source_url: string;
-  bitrate: string | null;
-  language: string | null;
-  id: string;
-  is_downloaded: boolean;
-  downloaded_at: string;
-  local_path: string;
-  is_favorite: boolean;
-  play_count: number;
-  last_played_at: string | null;
-  user_id: string | null;
-  created_at: string;
-  updated_at: string;
+  keywords?: string[];
 }
+
+

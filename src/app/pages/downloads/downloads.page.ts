@@ -9,14 +9,14 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
 import { finalize, tap } from 'rxjs';
 
-
 @Component({
-  selector: 'app-search',
-  templateUrl: './search.page.html',
+  selector: 'app-downloads',
+  templateUrl: './downloads.page.html',
+  styleUrls: ['./downloads.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule]
 })
-export class SearchPage implements OnInit {
+export class DownloadsPage implements OnInit {
   youtubeService = inject(YoutubeService);
   private databaseService = inject(DatabaseService);
   private audioPlayerService = inject(AudioPlayerService);
@@ -279,3 +279,4 @@ private async showManualPasteAlert() {
     }, 300);
   }
 }
+

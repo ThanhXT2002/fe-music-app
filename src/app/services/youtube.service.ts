@@ -2,11 +2,15 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, from } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { YoutubeSearchResult, Song, YouTubeDownloadResponse } from '../interfaces/song.interface';
+import {
+  YoutubeSearchResult,
+  Song,
+  YouTubeDownloadResponse,
+} from '../interfaces/song.interface';
 import { environment } from '../../environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class YoutubeService {
   private apiUrl = environment.apiUrl;
@@ -14,20 +18,25 @@ export class YoutubeService {
   constructor(private http: HttpClient) {}
 
   searchYoutubeVideo(url: string): Observable<YoutubeSearchResult> {
-    return this.http.post<YoutubeSearchResult>(`${this.apiUrl}/youtube/search`, { url })
+    return this.http
+      .post<YoutubeSearchResult>(`${this.apiUrl}/youtube/search`, { url })
       .pipe(
-        catchError(error => {
+        catchError((error) => {
           console.error('Error searching YouTube video:', error);
           throw error;
         })
       );
   }
 
-  downloadFromYoutube(url: string, quality: 'low' | 'medium' | 'high' = 'medium'): Observable<Song> {
-    return this.http.post<any>(`${this.apiUrl}/youtube/download`, { url, quality })
+  downloadFromYoutube(
+    url: string,
+    quality: 'low' | 'medium' | 'high' = 'medium'
+  ): Observable<Song> {
+    return this.http
+      .post<any>(`${this.apiUrl}/youtube/download`, { url, quality })
       .pipe(
-        map(response => this.mapApiResponseToSong(response)),
-        catchError(error => {
+        map((response) => this.mapApiResponseToSong(response)),
+        catchError((error) => {
           console.error('Error downloading from YouTube:', error);
           throw error;
         })
@@ -35,9 +44,10 @@ export class YoutubeService {
   }
 
   getVideoInfo(videoId: string): Observable<YoutubeSearchResult> {
-    return this.http.get<YoutubeSearchResult>(`${this.apiUrl}/youtube/info/${videoId}`)
+    return this.http
+      .get<YoutubeSearchResult>(`${this.apiUrl}/youtube/info/${videoId}`)
       .pipe(
-        catchError(error => {
+        catchError((error) => {
           console.error('Error getting video info:', error);
           throw error;
         })
@@ -47,7 +57,7 @@ export class YoutubeService {
   extractVideoId(url: string): string | null {
     const patterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/,
-      /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/
+      /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]+)/,
     ];
 
     for (const pattern of patterns) {
@@ -64,10 +74,10 @@ export class YoutubeService {
     const patterns = [
       /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/,
       /^https?:\/\/(www\.)?youtube\.com\/watch\?.*v=[a-zA-Z0-9_-]+/,
-      /^https?:\/\/youtu\.be\/[a-zA-Z0-9_-]+/
+      /^https?:\/\/youtu\.be\/[a-zA-Z0-9_-]+/,
     ];
 
-    return patterns.some(pattern => pattern.test(url));
+    return patterns.some((pattern) => pattern.test(url));
   }
 
   private mapApiResponseToSong(response: any): Song {
@@ -80,14 +90,10 @@ export class YoutubeService {
       thumbnail: response.thumbnail || undefined,
       audioUrl: response.audioUrl,
       filePath: response.filePath || undefined,
-      youtubeId: response.videoId || undefined,
       addedDate: new Date(),
       playCount: 0,
       isFavorite: false,
-      lyrics: response.lyrics || undefined,
       genre: response.genre || undefined,
-      year: response.year || undefined,
-      quality: response.quality || 'medium'
     };
   }
 
@@ -122,23 +128,26 @@ export class YoutubeService {
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs
+        .toString()
+        .padStart(2, '0')}`;
     } else {
       return `${minutes}:${secs.toString().padStart(2, '0')}`;
     }
   }
 
-
   // download youtube video
-  downloadFromYouTubeSimple(url: string): Observable<YouTubeDownloadResponse> {
-  const params = new HttpParams().set('url', url);
-  return this.http.post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, { params })
-    .pipe(
-      catchError(error => {
-        console.error('Error downloading from YouTube:', error);
-        throw error;
+  getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
+    const params = new HttpParams().set('url', url);
+    return this.http
+      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/info`, null, {
+        params,
       })
-    );
-}
-
+      .pipe(
+        catchError((error) => {
+          console.error('Error downloading from YouTube:', error);
+          throw error;
+        })
+      );
+  }
 }
