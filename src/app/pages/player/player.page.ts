@@ -55,11 +55,6 @@ export class PlayerPage implements OnInit, OnDestroy {
 
   durationTime = computed(() => this.formatTime(this.duration()));
 
-  currentLyrics = computed(() => {
-    const song = this.currentSong();
-    return song?.lyrics || this.getMockLyrics();
-  });
-
   ngOnInit() {
     // Initialize volume from audio service
     this.volume.set(this.audioPlayerService.getVolume());

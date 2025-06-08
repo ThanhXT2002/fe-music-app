@@ -1,7 +1,6 @@
 import { Component, effect, OnDestroy, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  RouterOutlet,
   RouterLink,
   RouterLinkActive,
   Router,
@@ -11,14 +10,14 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Subject } from 'rxjs';
 import { SearchService } from 'src/app/services/search.service';
 import { FormsModule } from '@angular/forms';
-import { IonTabs, IonHeader, IonContent, IonRouterOutlet, IonToolbar, IonFooter, IonTitle,IonModal,
-  IonNav, IonButtons, IonButton } from "@ionic/angular/standalone";
+import {  IonHeader, IonContent, IonRouterOutlet, IonToolbar, IonFooter, IonModal,
+  IonNav,  } from "@ionic/angular/standalone";
 import { SearchComponent } from 'src/app/components/search/search.component';
 
 
 @Component({
   selector: 'app-layout',
-  imports: [IonButton, IonButtons, IonFooter, IonToolbar, IonRouterOutlet, IonContent, IonHeader, CommonModule, RouterLink, RouterLinkActive, FormsModule,IonModal, IonNav,],
+  imports: [ IonFooter, IonToolbar, IonRouterOutlet, IonContent, IonHeader, CommonModule, RouterLink, RouterLinkActive, FormsModule,IonModal, IonNav,],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],

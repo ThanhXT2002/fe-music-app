@@ -231,7 +231,6 @@ export class ArtistDetailPage implements OnInit {
             artist: artistName,
             thumbnail: firstSong.thumbnail,
             songs: albumSongs,
-            year: firstSong.year,
             genre: firstSong.genre,
             totalDuration: albumSongs.reduce((total, song) => total + song.duration, 0)
           };

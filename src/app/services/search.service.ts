@@ -149,7 +149,6 @@ export class SearchService {
             artist: song.artist,
             thumbnail: song.thumbnail,
             songs: [],
-            year: song.year,
             genre: song.genre,
             totalDuration: 0
           });
