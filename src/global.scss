@@ -286,3 +286,10 @@
 .slide-down {
   animation: slideDown 0.3s ease-out;
 }
+
+ion-content {
+  padding-top: var(--padding-top);
+  padding-bottom: var(--padding-bottom);
+  padding-left: var(--padding-left);
+  padding-right: var(--padding-right);
+}

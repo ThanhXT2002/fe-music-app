@@ -25,6 +25,7 @@ import { environment } from './environments/environment';
 import { ThemeService } from './app/services/theme.service';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
+import { SafeAreaService } from './app/services/safe-area.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -36,6 +37,7 @@ bootstrapApplication(AppComponent, {
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),
     ThemeService,
+    SafeAreaService,
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
