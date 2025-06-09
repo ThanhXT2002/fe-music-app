@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
+  appId: 'com.tranxuanthanhtxt.MusicApp',
   appName: 'XTMusic',
   webDir: 'www',
   plugins: {
@@ -11,11 +11,12 @@ const config: CapacitorConfig = {
     },
     SplashScreen: {
       launchShowDuration: 3000,
-      launchAutoHide: true,
       backgroundColor: "#ffffff",
-      androidScaleType: "CENTER_CROP",
+      showSpinner: false,
+      androidSpinnerStyle: "small",
+      iosSpinnerStyle: "small",
       splashFullScreen: true,
-      splashImmersive: true,
+      splashImmersive: true
     }
   }
 };

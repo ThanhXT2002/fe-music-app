@@ -10,6 +10,7 @@ import { Platform } from '@ionic/angular';
 import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 @Component({
   selector: 'app-root',
@@ -48,6 +49,7 @@ export class AppComponent implements OnInit, OnDestroy {
       await StatusBar.setOverlaysWebView({ overlay: false });
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#00000000' });
+
     }
     this.safeAreaService.applyToContent();
   }
