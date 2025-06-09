@@ -8,6 +8,14 @@ const config: CapacitorConfig = {
     SafeArea: {
       enabled: true,
       customColorsForSystemNavigation: true
+    },
+    SplashScreen: {
+      launchShowDuration: 3000,
+      launchAutoHide: true,
+      backgroundColor: "#ffffff",
+      androidScaleType: "CENTER_CROP",
+      splashFullScreen: true,
+      splashImmersive: true,
     }
   }
 };
