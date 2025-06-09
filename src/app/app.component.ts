@@ -41,15 +41,18 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  async initializeApp() {
+  }  async initializeApp() {
     await this.platform.ready();
     if (Capacitor.isNativePlatform()) {
+      console.log('🚀 Native platform detected, setting up...');
+
       await StatusBar.setOverlaysWebView({ overlay: false });
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#00000000' });
 
+      console.log('✅ StatusBar configured');
+
+      // No need to manage splash screen here anymore - SplashActivity handles it
     }
     this.safeAreaService.applyToContent();
   }

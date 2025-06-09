@@ -8,10 +8,12 @@ const config: CapacitorConfig = {
     SafeArea: {
       enabled: true,
       customColorsForSystemNavigation: true
-    },
-    SplashScreen: {
-      launchShowDuration: 3000,
+    },    SplashScreen: {
+      launchShowDuration: 5000, // Tăng lên 5 giây
+      launchAutoHide: false,
       backgroundColor: "#ffffff",
+      androidSplashResourceName: "splash",
+      androidScaleType: "CENTER_CROP",
       showSpinner: false,
       androidSpinnerStyle: "small",
       iosSpinnerStyle: "small",
