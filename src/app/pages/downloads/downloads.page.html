@@ -1,7 +1,8 @@
 <div class="search-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
   <!-- Content -->
-  <div class="overflow-y-auto"
-  [ngClass]="searchHistoryItem().length > 0 ? 'h-2/5' : 'flex-1'"
+  <div
+    class="overflow-y-auto"
+    [ngClass]="searchHistoryItem().length > 0 ? 'h-2/5' : 'flex-1'"
   >
     <!-- Search Section -->
     <div class="p-4">
@@ -64,11 +65,40 @@
         </button>
       </div>
 
-      <!-- Search Results -->
-       @if(searchResults().length > 0 && !isSearching()) {
+      <!-- Loading State -->
+      @if(isSearching()){
+      <div class="space-y-3">
+        <h3
+          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 animate-pulse"
+        >
+          Đang tìm kiếm ...
+        </h3>
+
         <div
-        class="space-y-3"
-      >
+          class="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="rounded-full bg-slate-700 h-12 w-12"></div>
+
+            <!-- Song Info -->
+            <div class="flex-1 min-w-0 space-y-2">
+              <div class="h-2 bg-slate-700 rounded"></div>
+              <div class="h-2 bg-slate-700 rounded w-1/2"></div>
+              <div class="h-2 bg-slate-700 rounded w-1/6"></div>
+            </div>
+
+            <!-- Download Button -->
+            <div class="flex-shrink-0">
+              <div class="rounded-full bg-slate-700 h-5 w-5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Search Results -->
+      @if(searchResults().length > 0 && !isSearching()) {
+      <div class="space-y-3">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
           Thông tin tìm kiếm
         </h3>
@@ -128,14 +158,12 @@
         </div>
       </div>
 
-       }
-
+      }
 
       <!-- No Results -->
-       @if(searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()) {
-        <div
-        class="text-center"
-      >
+      @if(searchQuery().length >= 3 && searchResults().length === 0 &&
+      !isSearching()) {
+      <div class="text-center">
         <i class="fa-solid fa-magnifying-glass text-gray-300 text-6xl my-5"></i>
 
         @if(youtubeService.validateYoutubeUrl(searchQuery())) {
@@ -150,16 +178,16 @@
         </p>
         }
       </div>
-       }
-
-
+      }
     </div>
     <!-- Empty State -->
     <div
       *ngIf="searchQuery().length < 3 && searchResults().length === 0"
       class="flex flex-col items-center justify-center h-auto text-center px-4"
     >
-      <i class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5 "></i>
+      <i
+        class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5"
+      ></i>
       <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
         Download Music
       </h3>
@@ -168,62 +196,18 @@
         device
       </p>
     </div>
-
-    <!-- Download History Section -->
-    <div *ngIf="searchHistoryItem().length > 0" class="px-4 pb-4">
-      <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
-          Downloaded Songs
-        </h3>
-
-        <div class="space-y-2">
-          <div
-            *ngFor="let song of searchHistoryItem()"
-            class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
-          >
-            <div class="flex items-center space-x-3">
-              <!-- Thumbnail -->
-              <img
-                [src]="song.thumbnail_url || 'assets/images/default-album.png'"
-                [alt]="song.title"
-                class="w-12 h-12 rounded object-cover flex-shrink-0"
-              />
-
-              <!-- Song Info -->
-              <div class="flex-1 min-w-0">
-                <h4
-                  class="font-medium text-gray-900 dark:text-gray-100 truncate"
-                >
-                  {{ song.title }}
-                </h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {{ song.artist }}
-                </p>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
-                  {{ song.duration_formatted }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-
-
   </div>
-  @if(searchHistoryItem().length > 0){
-     <div class="h-3/5 overflow-y-auto">
-    <div class="p-4">
-      <div class="space-y-3">
-        <h3
-          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3"
-        >
-          <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
-        </h3>
 
-        <div class="space-y-2">
+  @if(searchHistoryItem().length > 0){
+  <div class="h-3/5">
+    <div class="space-y-3 h-full">
+      <h3
+        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
+      >
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
+      </h3>
+      <div class="h-full overflow-y-auto">
+        <div class="space-y-2 px-4">
           <div
             *ngFor="let song of searchHistoryItem()"
             class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
@@ -252,11 +236,10 @@
               </div>
             </div>
           </div>
+          <div class="h-[110px]"></div>
         </div>
       </div>
     </div>
-
   </div>
   }
-
 </div>
