@@ -1,6 +1,6 @@
 <div class="search-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
   <!-- Content -->
-  <div class="flex-1 overflow-y-auto">
+  <div class="h-2/5  overflow-y-auto">
     <!-- Search Section -->
     <div class="p-4">
       <!-- Search Input -->
@@ -49,6 +49,7 @@
           }
         </button>
         }
+
         <button
           (click)="onSearchYoutubeUrl()"
           [ngClass]="{
@@ -93,8 +94,8 @@
       }
 
       <!-- Search Results -->
-      <div
-        *ngIf="searchResults().length > 0 && !isSearching()"
+       @if(searchResults().length > 0 && !isSearching()) {
+        <div
         class="space-y-3"
       >
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
@@ -155,24 +156,16 @@
           </div>
         </div>
       </div>
+
+       }
+
+
       <!-- No Results -->
-      <div
-        *ngIf="searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()"
-        class="text-center py-8"
+       @if(searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()) {
+        <div
+        class="text-center"
       >
-        <svg
-          class="w-16 h-16 text-gray-400 mx-auto mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          ></path>
-        </svg>
+        <i class="fa-solid fa-magnifying-glass text-gray-300 text-6xl my-5"></i>
 
         @if(youtubeService.validateYoutubeUrl(searchQuery())) {
         <p class="text-gray-600 dark:text-gray-400">Tìm kiếm ngay</p>
@@ -180,16 +173,33 @@
           Nhấn nút tìm kiếm để tải video YouTube
         </p>
         } @else {
-        <p class="text-gray-600 dark:text-gray-400">No results found</p>
+        <p class="text-gray-600 dark:text-gray-400">Không có kết quả</p>
         <p class="text-sm text-gray-500 dark:text-gray-500">
-          Try different keywords
+          Hãy thử tìm kiếm với từ khóa khác hoặc dán link YouTube
         </p>
         }
       </div>
+       }
+
+
+    </div>
+    <!-- Empty State -->
+    <div
+      *ngIf="searchQuery().length < 3 && searchResults().length === 0"
+      class="flex flex-col items-center justify-center h-auto text-center px-4"
+    >
+      <i class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5 "></i>
+      <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        Download Music
+      </h3>
+      <p class="text-gray-600 dark:text-gray-400 text-sm">
+        Paste url - link for favorite songs on YouTube and download them to your
+        device
+      </p>
     </div>
 
     <!-- Download History Section -->
-    <div *ngIf="downloadHistory().length > 0" class="px-4 pb-4">
+    <div *ngIf="searchHistoryItem().length > 0" class="px-4 pb-4">
       <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
         <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
           Downloaded Songs
@@ -197,7 +207,7 @@
 
         <div class="space-y-2">
           <div
-            *ngFor="let song of searchResults()"
+            *ngFor="let song of searchHistoryItem()"
             class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <div class="flex items-center space-x-3">
@@ -228,31 +238,54 @@
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div
-      *ngIf="searchQuery().length < 3"
-      class="flex flex-col items-center justify-center h-64 text-center px-4"
-    >
-      <svg
-        class="w-24 h-24 text-gray-400 mb-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-        ></path>
-      </svg>
-      <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Search & Download Music
-      </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm">
-        Search for your favorite songs on YouTube and download them to your
-        device
-      </p>
-    </div>
+
+
+
   </div>
+  @if(searchHistoryItem().length > 0){
+     <div class="h-3/5 overflow-y-auto">
+    <div class="p-4">
+      <div class="space-y-3">
+        <h3
+          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3"
+        >
+          <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
+        </h3>
+
+        <div class="space-y-2">
+          <div
+            *ngFor="let song of searchHistoryItem()"
+            class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <div class="flex items-center space-x-3">
+              <!-- Thumbnail -->
+              <img
+                [src]="song.thumbnail_url || 'assets/images/default-album.png'"
+                [alt]="song.title"
+                class="w-12 h-12 rounded object-cover flex-shrink-0"
+              />
+
+              <!-- Song Info -->
+              <div class="flex-1 min-w-0">
+                <h4
+                  class="font-medium text-gray-900 dark:text-gray-100 truncate"
+                >
+                  {{ song.title }}
+                </h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+                  {{ song.artist }}
+                </p>
+                <p class="text-xs text-gray-600 dark:text-gray-400">
+                  {{ song.duration_formatted }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  }
+
 </div>

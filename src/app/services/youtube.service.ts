@@ -91,7 +91,6 @@ export class YoutubeService {
       audioUrl: response.audioUrl,
       filePath: response.filePath || undefined,
       addedDate: new Date(),
-      playCount: 0,
       isFavorite: false,
       genre: response.genre || undefined,
     };

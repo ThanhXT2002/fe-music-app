@@ -9,7 +9,6 @@ export interface Song {
   audioUrl: string;
   filePath?: string; // local file path
   addedDate: Date;
-  playCount: number;
   isFavorite: boolean;
   genre?: string;
 }
@@ -123,4 +122,16 @@ export interface DataSong {
   keywords?: string[];
 }
 
-
+export interface SearchHistoryItem {
+  id?: number;
+  songId: string;
+  title: string;
+  artist: string;
+  thumbnail_url: string;
+  audio_url: string;
+  duration: number;
+  duration_formatted: string;
+  keywords: string[];
+  searchedAt: Date;
+  isDownloaded: boolean; // Đã download về máy chưa
+}

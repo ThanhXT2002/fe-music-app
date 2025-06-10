@@ -128,7 +128,6 @@ export class SearchComponent  implements OnInit {
         filePath: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
         thumbnail: result.thumbnail,
         addedDate: new Date(),
-        playCount: 0,
         isFavorite: false
       };
 

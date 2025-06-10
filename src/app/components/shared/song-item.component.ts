@@ -24,7 +24,6 @@ import { Song } from '../../interfaces/song.interface';
           <p *ngIf="showArtist" class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ song.artist }}</p>
           <div class="flex items-center space-x-2 mt-1">
             <span *ngIf="showAlbum && song.album" class="text-xs text-gray-400 dark:text-gray-500">{{ song.album }}</span>
-            <span *ngIf="song.playCount > 0" class="text-xs text-gray-400 dark:text-gray-500">• {{ song.playCount }} lượt phát</span>
           </div>
         </div>
 

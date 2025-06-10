@@ -4,17 +4,21 @@ import { FormsModule } from '@angular/forms';
 import { YoutubeService } from '../../services/youtube.service';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
-import { DataSong, Song } from '../../interfaces/song.interface';
+import {
+  DataSong,
+  Song,
+  SearchHistoryItem,
+} from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
-import { finalize, tap } from 'rxjs';
+import { finalize, firstValueFrom, tap } from 'rxjs';
 
 @Component({
   selector: 'app-downloads',
   templateUrl: './downloads.page.html',
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule],
 })
 export class DownloadsPage implements OnInit {
   youtubeService = inject(YoutubeService);
@@ -27,77 +31,76 @@ export class DownloadsPage implements OnInit {
   searchResults = signal<DataSong[]>([]);
   isSearching = signal(false);
   downloadHistory = signal<Song[]>([]);
+  searchHistoryItem = signal<SearchHistoryItem[]>([]);
   isClipboardLoading = signal<boolean>(false);
   private clipboardRetryCount = 0; // Thêm counter
   private readonly MAX_CLIPBOARD_RETRIES = 2; // Giới hạn retry
 
-  ngOnInit() {
-
+  async ngOnInit() {
+    await this.loadSearchHistory()
   }
 
-async onSearchInput(event: any) {
-  const query = event.target.value;
-  this.searchQuery.set(query);
+  async onSearchInput(event: any) {
+    const query = event.target.value;
+    this.searchQuery.set(query);
 
-  if (query.trim().length < 3) {
-    this.searchResults.set([]);
-    return;
+    if (query.trim().length < 3) {
+      return;
+    }
+
+    // Check if the input is a valid YouTube URL
+    if (this.youtubeService.validateYoutubeUrl(query)) {
+      return;
+    } else {
+      await this.searchHistory(query);
+    }
   }
 
-  // Check if the input is a valid YouTube URL
-  if (this.youtubeService.validateYoutubeUrl(query)) {
-    // Don't automatically process YouTube URLs - wait for user to click search button
-    this.searchResults.set([]);
-    return;
-  } else {
-    await this.searchYouTube(query);
+  async processYouTubeUrl(url: string) {
+    try {
+      this.isSearching.set(true);
+
+      // Chuyển Observable thành Promise
+      const response = await firstValueFrom(
+        this.youtubeService.getYoutubeUrlInfo(url)
+      );
+
+      if (response.success) {
+        const song = response.data;
+        await this.databaseService.addToSearchHistory(song);
+        this.showSongInfo(song);
+      } else {
+        console.error('API returned error:', response.message);
+        this.searchResults.set([]);
+      }
+    } catch (error) {
+      console.error('Error processing YouTube URL:', error);
+      this.searchResults.set([]);
+    } finally {
+      this.isSearching.set(false);
+    }
   }
-}
 
-async processYouTubeUrl(url: string) {
-  try {
-    this.isSearching.set(true);
-    this.youtubeService.getYoutubeUrlInfo(url)
-      .pipe(
-        tap(response => {
-          if (response.success) {
-            const song = response.data;
-            console.log('YouTube song info duration_formatted:', song.duration_formatted);
+  showSongInfo(song: DataSong) {
+    const result: DataSong = {
+      id: song.id,
+      title: song.title,
+      artist: song.artist,
+      duration: song.duration,
+      duration_formatted: song.duration_formatted,
+      thumbnail_url: song.thumbnail_url,
+      audio_url: song.audio_url,
+      keywords: song.keywords || [],
+    };
 
-            // Convert API response to search result format
-            const result: DataSong = {
-              id: song.id,
-              title: song.title,
-              artist: song.artist,
-              duration: song.duration,
-              duration_formatted: song.duration_formatted,
-              thumbnail_url: song.thumbnail_url,
-              audio_url: song.audio_url,
-              keywords: song.keywords || [],
-            };
-
-            this.searchResults.set([result]);
-          } else {
-            console.error('API returned error:', response.message);
-            this.searchResults.set([]);
-          }
-        }),
-        finalize(() => this.isSearching.set(false))
-      )
-      .subscribe();
-  } catch (error) {
-    console.error('Error processing YouTube URL:', error);
-    this.isSearching.set(false);
-    this.searchResults.set([]);
+    this.searchResults.set([result]);
   }
-}
 
   clearSearch() {
     this.searchQuery.set('');
-    this.searchResults.set([]);
   }
 
-  async searchYouTube(query: string) {
+  async searchHistory(query: string) {
     try {
       this.isSearching.set(true);
 
@@ -130,7 +133,7 @@ async processYouTubeUrl(url: string) {
           result.artist.toLowerCase().includes(query.toLowerCase())
       );
 
-      this.searchResults.set(filteredResults);
+      // this.searchHistoryItem.set(filteredResults);
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -138,23 +141,34 @@ async processYouTubeUrl(url: string) {
     }
   }
 
+  onSearchYoutubeUrl() {
+    const query = this.searchQuery().trim();
 
+    if (query.length === 0) {
+      return;
+    }
 
-onSearchYoutubeUrl(){
-  const query = this.searchQuery().trim();
-
-  if (query.length === 0) {
-    return;
+    // Check if the input is a valid YouTube URL
+    if (this.youtubeService.validateYoutubeUrl(query)) {
+      this.processYouTubeUrl(query);
+    } else {
+      // If not a YouTube URL, perform regular search
+      this.searchHistory(query);
+    }
   }
 
-  // Check if the input is a valid YouTube URL
-  if (this.youtubeService.validateYoutubeUrl(query)) {
-    this.processYouTubeUrl(query);
-  } else {
-    // If not a YouTube URL, perform regular search
-    this.searchYouTube(query);
+  async loadSearchHistory() {
+    const history = await this.databaseService.getSearchHistory(20);
+
+    // history sẽ chứa đầy đủ thông tin:
+    // - songId, title, artist
+    // - thumbnail_url (để hiển thị ảnh)
+    // - duration_formatted
+    // - isDownloaded (để show trạng thái)
+    // - searchedAt (thời gian tìm kiếm)
+    this.searchHistoryItem.set(history);
   }
-}
+
   async onPaste(event?: Event, isRetry: boolean = false) {
     if (!event) {
       // Button click - show loading
@@ -246,26 +260,27 @@ onSearchYoutubeUrl(){
     await alert.present();
   }
 
-private async showManualPasteAlert() {
-  this.clipboardRetryCount = 0; // Reset counter
+  private async showManualPasteAlert() {
+    this.clipboardRetryCount = 0; // Reset counter
 
-  const alert = await this.alertController.create({
-    mode: 'ios',
-    header: 'Paste thủ công',
-    message: 'Không thể đọc clipboard tự động. Vui lòng:\n\n• Desktop: Nhấn Ctrl+V (hoặc Cmd+V)\n• Mobile: Nhấn giữ và chọn "Dán"',
-    buttons: [
-      {
-        text: 'OK',
-        handler: () => {
-          this.focusSearchInput();
-        }
-      }
-    ],
-    cssClass: 'custom-info-alert'
-  });
+    const alert = await this.alertController.create({
+      mode: 'ios',
+      header: 'Paste thủ công',
+      message:
+        'Không thể đọc clipboard tự động. Vui lòng:\n\n• Desktop: Nhấn Ctrl+V (hoặc Cmd+V)\n• Mobile: Nhấn giữ và chọn "Dán"',
+      buttons: [
+        {
+          text: 'OK',
+          handler: () => {
+            this.focusSearchInput();
+          },
+        },
+      ],
+      cssClass: 'custom-info-alert',
+    });
 
-  await alert.present();
-}
+    await alert.present();
+  }
 
   private focusSearchInput() {
     setTimeout(() => {
@@ -279,4 +294,3 @@ private async showManualPasteAlert() {
     }, 300);
   }
 }
-
