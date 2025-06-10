@@ -46,9 +46,17 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
   async initializeApp() {
     await this.platform.ready();
+
+    // Khởi tạo database ngay sau khi platform ready
+    try {
+      console.log('🗄️ Initializing database...');
+      await this.dbService.initializeDatabase();
+    } catch (error) {
+      console.error('❌ Failed to initialize database:', error);
+    }
+
     if (Capacitor.isNativePlatform()) {
       console.log('🚀 Native platform detected, setting up...');
 

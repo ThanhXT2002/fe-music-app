@@ -64,37 +64,6 @@
         </button>
       </div>
 
-      <!-- Loading State -->
-      @if(isSearching()){
-      <div class="space-y-3">
-        <h3
-          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 animate-pulse"
-        >
-          Đang tìm kiếm ...
-        </h3>
-
-        <div
-          class="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex items-center space-x-3">
-            <div class="rounded-full bg-slate-700 h-12 w-12"></div>
-
-            <!-- Song Info -->
-            <div class="flex-1 min-w-0 space-y-2">
-              <div class="h-2 bg-slate-700 rounded"></div>
-              <div class="h-2 bg-slate-700 rounded w-1/2"></div>
-              <div class="h-2 bg-slate-700 rounded w-1/6"></div>
-            </div>
-
-            <!-- Download Button -->
-            <div class="flex-shrink-0">
-              <div class="rounded-full bg-slate-700 h-5 w-5"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      }
-
       <!-- Search Results -->
        @if(searchResults().length > 0 && !isSearching()) {
         <div

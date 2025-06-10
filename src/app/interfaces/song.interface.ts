@@ -7,7 +7,7 @@ export interface Song {
   duration_formatted?: string; // in seconds
   thumbnail?: string;
   audioUrl: string;
-  filePath?: string; // local file path
+  filePath?: string | null; // local file path
   addedDate: Date;
   isFavorite: boolean;
   genre?: string;

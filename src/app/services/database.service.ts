@@ -24,17 +24,21 @@ export class DatabaseService {
     // Khởi tạo database khi service được tạo
     this.initializeDatabase();
   }
-
   /**
    * Khởi tạo cơ sở dữ liệu và tạo các bảng cần thiết
    */
   async initializeDatabase() {
     try {
+      console.log('🚀 Starting database initialization...');
+      console.log('Platform:', Capacitor.getPlatform());
+
       // Khởi tạo web store nếu chạy trên web platform
       if (Capacitor.getPlatform() === 'web') {
+        console.log('📱 Web platform detected, initializing web store...');
         await this.sqlite.initWebStore();
       }
 
+      console.log('🔗 Creating database connection...');
       // Tạo kết nối database với tên 'xtmusic_db'
       this.db = await this.sqlite.createConnection(
         DB_XTMUSIC,
@@ -44,14 +48,19 @@ export class DatabaseService {
         false
       );
 
+      console.log('🔓 Opening database...');
       // Mở kết nối database
       await this.db.open();
+
+      console.log('🏗️ Creating tables...');
       // Tạo các bảng cần thiết
       await this.createTables();
       this.isDbReady = true;
-      console.log('Database initialized successfully');
+      console.log('✅ Database initialized successfully');
     } catch (error) {
-      console.error('Error initializing database:', error);
+      console.error('❌ Error initializing database:', error);
+      this.isDbReady = false;
+      throw error; // Re-throw để caller có thể handle
     }
   }
 
