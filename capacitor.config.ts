@@ -4,13 +4,17 @@ const config: CapacitorConfig = {
   appId: 'com.tranxuanthanhtxt.MusicApp',
   appName: 'XTMusic',
   webDir: 'www',
+  server: {
+    androidScheme: 'https'
+  },
   plugins: {
     SafeArea: {
       enabled: true,
       customColorsForSystemNavigation: true
-    },    SplashScreen: {
-      launchShowDuration: 5000, // Tăng lên 5 giây
-      launchAutoHide: false,
+    },
+    SplashScreen: {
+      launchShowDuration: 3000,
+      launchAutoHide: true,
       backgroundColor: "#ffffff",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",

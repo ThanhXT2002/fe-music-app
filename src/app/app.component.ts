@@ -41,7 +41,9 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }  async initializeApp() {
+  }
+  
+  async initializeApp() {
     await this.platform.ready();
     if (Capacitor.isNativePlatform()) {
       console.log('🚀 Native platform detected, setting up...');
