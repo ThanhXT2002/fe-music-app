@@ -95,11 +95,7 @@ export class SearchService {
     );
   }
 
-  getPopularSongs(limit: number = 20): Song[] {
-    return [...this.allSongs]
-      .sort((a, b) => b.playCount - a.playCount)
-      .slice(0, limit);
-  }
+
 
   getRecentlyAddedSongs(limit: number = 20): Song[] {
     return [...this.allSongs]

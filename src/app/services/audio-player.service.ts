@@ -116,9 +116,6 @@ export class AudioPlayerService {
       await this.audio.load();
       await this.audio.play();
 
-      // Update play count in database
-      await this.databaseService.updateSongPlayCount(song.id);
-
     } catch (error) {
       console.error('Error playing song:', error);
     }
