@@ -11,6 +11,7 @@ import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { DatabaseService } from './services/database.service';
 
 @Component({
   selector: 'app-root',
@@ -20,11 +21,14 @@ import { SplashScreen } from '@capacitor/splash-screen';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  private pwaService = inject(PWAService); // Inject PWA service
-  private themeService = inject(ThemeService);
-  private safeAreaService = inject(SafeAreaService);
-  private platform = inject(Platform);
 
+  constructor(
+    private pwaService: PWAService,
+    private themeService: ThemeService,
+    private safeAreaService: SafeAreaService,
+    private platform: Platform,
+    private dbService: DatabaseService
+  ) {}
 
 
   ngOnInit() {
@@ -42,7 +46,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
   async initializeApp() {
     await this.platform.ready();
     if (Capacitor.isNativePlatform()) {

@@ -7,6 +7,8 @@ import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../i
  * Service quản lý cơ sở dữ liệu SQLite cho ứng dụng nhạc
  * Xử lý tất cả các thao tác CRUD với bài hát, album, nghệ sĩ và playlist
  */
+const DB_XTMUSIC = 'xtmusic_db';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -35,7 +37,7 @@ export class DatabaseService {
 
       // Tạo kết nối database với tên 'xtmusic_db'
       this.db = await this.sqlite.createConnection(
-        'xtmusic_db',
+        DB_XTMUSIC,
         false, // không mã hóa
         'no-encryption',
         1, // phiên bản database
