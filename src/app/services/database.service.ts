@@ -490,6 +490,7 @@ export class DatabaseService {
     if (!this.db || !this.isDbReady) return false;
 
     try {
+      console.log('Adding to search history:', youtubeData);
       // Kiểm tra xem bài hát đã có trong lịch sử chưa
       const existing = await this.db.query(
         'SELECT id FROM search_history WHERE songId = ?',

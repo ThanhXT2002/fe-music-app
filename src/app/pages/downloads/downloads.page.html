@@ -1,6 +1,8 @@
 <div class="search-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
   <!-- Content -->
-  <div class="h-2/5  overflow-y-auto">
+  <div class="overflow-y-auto"
+  [ngClass]="searchHistoryItem().length > 0 ? 'h-2/5' : 'flex-1'"
+  >
     <!-- Search Section -->
     <div class="p-4">
       <!-- Search Input -->

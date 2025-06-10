@@ -7,6 +7,7 @@
     "ng": "ng",
     "start": "ionic serve --port=4800 --host=0.0.0.0",
     "build": "ng build --configuration production --output-hashing=all && npm run ngsw-config",
+    "build:android": "ionic build && npx cap sync android && npx cap open android",
     "build:pwa": "ng build --configuration production --output-hashing=all --optimization=true && npm run ngsw-config",
     "build:pwa-lite": "ng build --configuration production --output-hashing=all --optimization=false && npm run ngsw-config",
     "build:vercel": "node generate-env.js && ng build --configuration production",
