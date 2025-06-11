@@ -5,44 +5,45 @@ const config: CapacitorConfig = {
   appName: 'XTMusic',
   webDir: 'www',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
   },
   plugins: {
     SafeArea: {
       enabled: true,
-      customColorsForSystemNavigation: true
+      customColorsForSystemNavigation: true,
     },
     SplashScreen: {
       launchShowDuration: 3000,
       launchAutoHide: true,
-      backgroundColor: "#ffffff",
-      androidSplashResourceName: "splash",
-      androidScaleType: "CENTER_CROP",
+      backgroundColor: '#ffffff',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
       showSpinner: false,
-      androidSpinnerStyle: "small",
-      iosSpinnerStyle: "small",
+      androidSpinnerStyle: 'small',
+      iosSpinnerStyle: 'small',
       splashFullScreen: true,
-      splashImmersive: true      },
+      splashImmersive: true,
+    },
     CapacitorSQLite: {
       iosDatabaseLocation: 'Library/CapacitorDatabase',
       iosIsEncryption: false,
       iosKeychainPrefix: 'xtmusic-app',
       iosBiometric: {
         biometricAuth: false,
-        biometricTitle : "Biometric login for capacitor sqlite"
+        biometricTitle: 'Biometric login for capacitor sqlite',
       },
       androidIsEncryption: false,
       androidBiometric: {
-        biometricAuth : false,
-        biometricTitle : "Biometric login for capacitor sqlite",
-        biometricSubTitle : "Log in using your biometric"
+        biometricAuth: false,
+        biometricTitle: 'Biometric login for capacitor sqlite',
+        biometricSubTitle: 'Log in using your biometric',
       },
       electronIsEncryption: false,
-      electronWindowsLocation: "C:\\ProgramData\\CapacitorDatabases",
-      electronMacLocation: "/Volumes/Development_Lacie/Development/Databases",
-      electronLinuxLocation: "Databases"
-    }
-  }
+      electronWindowsLocation: 'C:\\ProgramData\\CapacitorDatabases',
+      electronMacLocation: '/Volumes/Development_Lacie/Development/Databases',
+      electronLinuxLocation: 'Databases',
+    },
+  },
 };
 
 export default config;

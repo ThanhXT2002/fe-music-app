@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { YoutubeService } from '../../services/youtube.service';
 import { DatabaseService } from '../../services/database.service';
+import { DownloadService, DownloadTask } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import {
   DataSong,
@@ -10,7 +11,7 @@ import {
   SearchHistoryItem,
 } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
-import { AlertController } from '@ionic/angular/standalone';
+import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
 
 @Component({
@@ -23,9 +24,11 @@ import { finalize, firstValueFrom, tap } from 'rxjs';
 export class DownloadsPage implements OnInit {
   youtubeService = inject(YoutubeService);
   private databaseService = inject(DatabaseService);
+  private downloadService = inject(DownloadService);
   private audioPlayerService = inject(AudioPlayerService);
   private clipboardService = inject(ClipboardService);
   private alertController = inject(AlertController);
+  private toastController = inject(ToastController);
 
   searchQuery = signal('');
   searchResults = signal<DataSong[]>([]);
@@ -33,11 +36,20 @@ export class DownloadsPage implements OnInit {
   downloadHistory = signal<Song[]>([]);
   searchHistoryItem = signal<SearchHistoryItem[]>([]);
   isClipboardLoading = signal<boolean>(false);
-  private clipboardRetryCount = 0; // Thêm counter
-  private readonly MAX_CLIPBOARD_RETRIES = 2; // Giới hạn retry
+
+  // Download state
+  downloads = signal<DownloadTask[]>([]);
+
+  private clipboardRetryCount = 0;
+  private readonly MAX_CLIPBOARD_RETRIES = 2;
 
   async ngOnInit() {
-    await this.loadSearchHistory()
+    await this.loadSearchHistory();
+
+    // Subscribe to download changes
+    this.downloadService.downloads$.subscribe(downloads => {
+      this.downloads.set(downloads);
+    });
   }
 
   async onSearchInput(event: any) {
@@ -48,7 +60,6 @@ export class DownloadsPage implements OnInit {
       return;
     }
 
-    // Check if the input is a valid YouTube URL
     if (this.youtubeService.validateYoutubeUrl(query)) {
       return;
     } else {
@@ -60,7 +71,6 @@ export class DownloadsPage implements OnInit {
     try {
       this.isSearching.set(true);
 
-      // Chuyển Observable thành Promise
       const response = await firstValueFrom(
         this.youtubeService.getYoutubeUrlInfo(url)
       );
@@ -69,6 +79,8 @@ export class DownloadsPage implements OnInit {
         const song = response.data;
         await this.databaseService.addToSearchHistory(song);
         this.showSongInfo(song);
+        // Reload search history to show the new item
+        await this.loadSearchHistory();
       } else {
         console.error('API returned error:', response.message);
         this.searchResults.set([]);
@@ -96,6 +108,120 @@ export class DownloadsPage implements OnInit {
     this.searchResults.set([result]);
   }
 
+  /**
+   * Download bài hát từ search results
+   * @param songData - Data bài hát từ API
+   */
+  async downloadSong(songData: DataSong) {
+    try {
+      // Kiểm tra xem đã download chưa
+      if (this.downloadService.isSongDownloaded(songData.id)) {
+        await this.showToast('Bài hát đã được tải xuống!', 'warning');
+        return;
+      }
+
+      // Bắt đầu download
+      const downloadId = await this.downloadService.downloadSong(songData);
+      console.log('Started download with ID:', downloadId);
+
+      await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
+
+    } catch (error) {
+      console.error('Download error:', error);
+      await this.showToast('Lỗi khi tải bài hát!', 'danger');
+    }
+  }
+
+  /**
+   * Download bài hát từ search history
+   * @param historyItem - Item từ lịch sử tìm kiếm
+   */
+  async downloadFromHistory(historyItem: SearchHistoryItem) {
+    const songData: DataSong = {
+      id: historyItem.songId,
+      title: historyItem.title,
+      artist: historyItem.artist,
+      thumbnail_url: historyItem.thumbnail_url,
+      audio_url: historyItem.audio_url,
+      duration: historyItem.duration,
+      duration_formatted: historyItem.duration_formatted,
+      keywords: historyItem.keywords
+    };
+
+    await this.downloadSong(songData);
+  }
+
+  /**
+   * Kiểm tra trạng thái download của bài hát
+   * @param songId - ID bài hát
+   * @returns DownloadTask | undefined
+   */
+  getDownloadStatus(songId: string): DownloadTask | undefined {
+    return this.downloadService.getDownloadBySongId(songId);
+  }
+
+  /**
+   * Kiểm tra xem bài hát có đang download không
+   * @param songId - ID bài hát
+   * @returns boolean
+   */
+  isDownloading(songId: string): boolean {
+    const download = this.getDownloadStatus(songId);
+    return download?.status === 'downloading' || download?.status === 'pending';
+  }
+
+  /**
+   * Lấy progress của download
+   * @param songId - ID bài hát
+   * @returns number
+   */
+  getDownloadProgress(songId: string): number {
+    const download = this.getDownloadStatus(songId);
+    return download?.progress || 0;
+  }
+
+  /**
+   * Kiểm tra xem bài hát đã download xong chưa
+   * @param songId - ID bài hát
+   * @returns boolean
+   */
+  isDownloaded(songId: string): boolean {
+    return this.downloadService.isSongDownloaded(songId);
+  }
+
+  /**
+   * Cancel download
+   * @param songId - ID bài hát
+   */
+  cancelDownload(songId: string) {
+    const download = this.getDownloadStatus(songId);
+    if (download) {
+      this.downloadService.cancelDownload(download.id);
+    }
+  }
+
+  /**
+   * Pause download
+   * @param songId - ID bài hát
+   */
+  pauseDownload(songId: string) {
+    const download = this.getDownloadStatus(songId);
+    if (download) {
+      this.downloadService.pauseDownload(download.id);
+    }
+  }
+
+  /**
+   * Resume download
+   * @param songId - ID bài hát
+   */
+  resumeDownload(songId: string) {
+    const download = this.getDownloadStatus(songId);
+    if (download) {
+      this.downloadService.resumeDownload(download.id);
+    }
+  }
+
   clearSearch() {
     this.searchQuery.set('');
   }
@@ -103,37 +229,7 @@ export class DownloadsPage implements OnInit {
   async searchHistory(query: string) {
     try {
       this.isSearching.set(true);
-
-      // Simulate YouTube search results (in real implementation, use YouTube API)
-      const mockResults: DataSong[] = [
-        {
-          id: '1',
-          title: 'Sample Song 1',
-          artist: 'Artist Name',
-          duration_formatted: '3:45',
-          duration: 225, // seconds
-          thumbnail_url: 'https://via.placeholder.com/120x90',
-          audio_url: 'https://youtube.com/watch?v=sample1',
-        },
-        {
-          id: '2',
-          title: 'Another Great Track',
-          artist: 'Different Artist',
-          duration_formatted: '4:12',
-          duration: 252, // seconds
-          thumbnail_url: 'https://via.placeholder.com/120x90',
-          audio_url: 'https://youtube.com/watch?v=sample2',
-        },
-      ];
-
-      // Filter results based on query
-      const filteredResults = mockResults.filter(
-        (result) =>
-          result.title.toLowerCase().includes(query.toLowerCase()) ||
-          result.artist.toLowerCase().includes(query.toLowerCase())
-      );
-
-      // this.searchHistoryItem.set(filteredResults);
+      // Implementation for search in history if needed
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -148,30 +244,37 @@ export class DownloadsPage implements OnInit {
       return;
     }
 
-    // Check if the input is a valid YouTube URL
     if (this.youtubeService.validateYoutubeUrl(query)) {
       this.processYouTubeUrl(query);
     } else {
-      // If not a YouTube URL, perform regular search
       this.searchHistory(query);
     }
   }
 
   async loadSearchHistory() {
     const history = await this.databaseService.getSearchHistory(20);
-
-    // history sẽ chứa đầy đủ thông tin:
-    // - songId, title, artist
-    // - thumbnail_url (để hiển thị ảnh)
-    // - duration_formatted
-    // - isDownloaded (để show trạng thái)
-    // - searchedAt (thời gian tìm kiếm)
     this.searchHistoryItem.set(history);
   }
 
+  /**
+   * Hiển thị toast message
+   * @param message - Nội dung thông báo
+   * @param color - Màu sắc toast
+   */
+  private async showToast(message: string, color: string) {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      color,
+      position: 'bottom'
+    });
+    await toast.present();
+  }
+
+  // ... Giữ nguyên các method khác (onPaste, showClipboardError, etc.)
+
   async onPaste(event?: Event, isRetry: boolean = false) {
     if (!event) {
-      // Button click - show loading
       this.isClipboardLoading.set(true);
     }
 
@@ -179,40 +282,33 @@ export class DownloadsPage implements OnInit {
       let clipboardText = '';
 
       if (event) {
-        // Paste từ keyboard
         const pasteEvent = event as ClipboardEvent;
         if (pasteEvent.clipboardData) {
           clipboardText = pasteEvent.clipboardData.getData('text');
         }
       } else {
-        // Paste từ button - dùng service
         clipboardText = await this.clipboardService.read();
       }
 
       if (clipboardText.trim()) {
         this.searchQuery.set(clipboardText.trim());
         this.onSearchInput({ target: { value: clipboardText.trim() } } as any);
-
-        // Reset retry count khi thành công
         this.clipboardRetryCount = 0;
       }
     } catch (error) {
       console.error('Failed to paste:', error);
 
-      // Chỉ show error nếu không phải từ retry hoặc chưa vượt quá limit
       if (!isRetry || this.clipboardRetryCount < this.MAX_CLIPBOARD_RETRIES) {
         this.showClipboardError();
       } else {
-        // Đã retry quá nhiều lần - chuyển thẳng sang manual paste
         this.showManualPasteAlert();
-        this.clipboardRetryCount = 0; // Reset counter
+        this.clipboardRetryCount = 0;
       }
     } finally {
       this.isClipboardLoading.set(false);
     }
   }
 
-  // Thêm method để focus vào input
   private async showClipboardError() {
     const alert = await this.alertController.create({
       mode: 'ios',
@@ -225,17 +321,12 @@ export class DownloadsPage implements OnInit {
           cssClass: 'alert-button-confirm',
           handler: async () => {
             try {
-              this.clipboardRetryCount++; // Tăng counter
-
-              // Check permission trước
-              const hasPermission =
-                await this.clipboardService.checkPermissions();
+              this.clipboardRetryCount++;
+              const hasPermission = await this.clipboardService.checkPermissions();
 
               if (hasPermission) {
-                // Có permission - thử paste lại
-                this.onPaste(undefined, true); // isRetry = true
+                this.onPaste(undefined, true);
               } else {
-                // Không có permission - show manual alert
                 this.showManualPasteAlert();
               }
             } catch (error) {
@@ -249,7 +340,7 @@ export class DownloadsPage implements OnInit {
           role: 'cancel',
           cssClass: 'alert-button-cancel',
           handler: () => {
-            this.clipboardRetryCount = 0; // Reset counter
+            this.clipboardRetryCount = 0;
             this.focusSearchInput();
           },
         },
@@ -261,7 +352,7 @@ export class DownloadsPage implements OnInit {
   }
 
   private async showManualPasteAlert() {
-    this.clipboardRetryCount = 0; // Reset counter
+    this.clipboardRetryCount = 0;
 
     const alert = await this.alertController.create({
       mode: 'ios',
@@ -284,9 +375,7 @@ export class DownloadsPage implements OnInit {
 
   private focusSearchInput() {
     setTimeout(() => {
-      const searchInput = document.getElementById(
-        'searchInput'
-      ) as HTMLInputElement;
+      const searchInput = document.getElementById('searchInput') as HTMLInputElement;
       if (searchInput) {
         searchInput.focus();
         searchInput.select();

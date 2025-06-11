@@ -23,18 +23,8 @@
           (click)="clearSearch()"
           class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
         >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M6 18L18 6M6 6l12 12"
-            ></path>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
         } @else {
@@ -44,9 +34,7 @@
           class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
         >
           @if(isClipboardLoading()) {
-          <div
-            class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"
-          ></div>
+          <div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
           } @else {
           <i class="fa-solid fa-paste w-4 h-4"></i>
           }
@@ -56,9 +44,9 @@
         <button
           (click)="onSearchYoutubeUrl()"
           [ngClass]="{
-        'bg-pink-500': youtubeService.validateYoutubeUrl(searchQuery()),
-        'bg-gray-300 bg-opacity-20': !youtubeService.validateYoutubeUrl(searchQuery())
-      }"
+            'bg-pink-500': youtubeService.validateYoutubeUrl(searchQuery()),
+            'bg-gray-300 bg-opacity-20': !youtubeService.validateYoutubeUrl(searchQuery())
+          }"
           class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
         >
           <i class="fa-solid fa-magnifying-glass w-4 h-4"></i>
@@ -68,26 +56,18 @@
       <!-- Loading State -->
       @if(isSearching()){
       <div class="space-y-3">
-        <h3
-          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 animate-pulse"
-        >
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 animate-pulse">
           Đang tìm kiếm ...
         </h3>
 
-        <div
-          class="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
+        <div class="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700">
           <div class="flex items-center space-x-3">
             <div class="rounded-full bg-slate-700 h-12 w-12"></div>
-
-            <!-- Song Info -->
             <div class="flex-1 min-w-0 space-y-2">
               <div class="h-2 bg-slate-700 rounded"></div>
               <div class="h-2 bg-slate-700 rounded w-1/2"></div>
               <div class="h-2 bg-slate-700 rounded w-1/6"></div>
             </div>
-
-            <!-- Download Button -->
             <div class="flex-shrink-0">
               <div class="rounded-full bg-slate-700 h-5 w-5"></div>
             </div>
@@ -130,39 +110,36 @@
 
             <!-- Download Button -->
             <div class="flex-shrink-0">
-              <button class="btn-icon text-purple-600 hover:text-purple-700">
-                <svg
-                  class="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              @if(isDownloaded(result.id)) {
+                <!-- Downloaded -->
+                <div class="text-green-600">
+                  <i class="fa-solid fa-check-circle text-lg"></i>
+                </div>
+              } @else if(isDownloading(result.id)) {
+                <!-- Downloading -->
+                <div class="text-center min-w-[60px]">
+                  <div class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p class="text-xs text-purple-600 mt-1">
+                    {{ getDownloadProgress(result.id) }}%
+                  </p>
+                </div>
+              } @else {
+                <!-- Download Button -->
+                <button
+                  (click)="downloadSong(result)"
+                  class="btn-icon text-purple-600 hover:text-purple-700"
                 >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  ></path>
-                </svg>
-              </button>
-
-              <!-- Download Progress -->
-              <!-- <div *ngIf="result.isDownloading" class="text-center">
-                <div class="spinner mx-auto w-6 h-6"></div>
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  {{ result.downloadProgress }}%
-                </p>
-              </div> -->
+                  <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"></i>
+                </button>
+              }
             </div>
           </div>
         </div>
       </div>
-
       }
 
       <!-- No Results -->
-      @if(searchQuery().length >= 3 && searchResults().length === 0 &&
-      !isSearching()) {
+      @if(searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()) {
       <div class="text-center">
         <i class="fa-solid fa-magnifying-glass text-gray-300 text-6xl my-5"></i>
 
@@ -180,20 +157,18 @@
       </div>
       }
     </div>
+
     <!-- Empty State -->
     <div
       *ngIf="searchQuery().length < 3 && searchResults().length === 0"
       class="flex flex-col items-center justify-center h-auto text-center px-4"
     >
-      <i
-        class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5"
-      ></i>
+      <i class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5"></i>
       <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
         Download Music
       </h3>
       <p class="text-gray-600 dark:text-gray-400 text-sm">
-        Paste url - link for favorite songs on YouTube and download them to your
-        device
+        Paste url - link for favorite songs on YouTube and download them to your device
       </p>
     </div>
   </div>
@@ -201,9 +176,7 @@
   @if(searchHistoryItem().length > 0){
   <div class="h-3/5">
     <div class="space-y-3 h-full">
-      <h3
-        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
-      >
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4">
         <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
       </h3>
       <div class="h-full overflow-y-auto">
@@ -217,14 +190,12 @@
               <img
                 [src]="song.thumbnail_url || 'assets/images/default-album.png'"
                 [alt]="song.title"
-                class="w-12 h-12 rounded object-cover flex-shrink-0"
+                class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500"
               />
 
               <!-- Song Info -->
               <div class="flex-1 min-w-0">
-                <h4
-                  class="font-medium text-gray-900 dark:text-gray-100 truncate"
-                >
+                <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate">
                   {{ song.title }}
                 </h4>
                 <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -233,6 +204,32 @@
                 <p class="text-xs text-gray-600 dark:text-gray-400">
                   {{ song.duration_formatted }}
                 </p>
+              </div>
+
+              <!-- Download Status -->
+              <div class="flex-shrink-0">
+                @if(song.isDownloaded) {
+                  <!-- Already Downloaded -->
+                  <div class="text-green-600">
+                    <i class="fa-solid fa-check-circle text-lg"></i>
+                  </div>
+                } @else if(isDownloading(song.songId)) {
+                  <!-- Currently Downloading -->
+                  <div class="text-center min-w-[60px]">
+                    <div class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p class="text-xs text-purple-600 mt-1">
+                      {{ getDownloadProgress(song.songId) }}%
+                    </p>
+                  </div>
+                } @else {
+                  <!-- Download Button -->
+                  <button
+                    (click)="downloadFromHistory(song)"
+                    class="btn-icon text-purple-600 hover:text-purple-700"
+                  >
+                    <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"></i>
+                  </button>
+                }
               </div>
             </div>
           </div>
