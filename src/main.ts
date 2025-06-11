@@ -26,6 +26,15 @@ import { ThemeService } from './app/services/theme.service';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { SafeAreaService } from './app/services/safe-area.service';
+import { DebugService } from './app/services/debug.service';
+import { APP_INITIALIZER } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+
+function initializeDebug(debugService: DebugService) {
+  return () => {
+    debugService.initEruda();
+  };
+}
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -38,6 +47,12 @@ bootstrapApplication(AppComponent, {
     provideAuth(() => getAuth()),
     ThemeService,
     SafeAreaService,
+    ...(Capacitor.isNativePlatform() ? [{
+      provide: APP_INITIALIZER,
+      useFactory: initializeDebug,
+      deps: [DebugService],
+      multi: true
+    }] : []),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
@@ -45,4 +60,5 @@ bootstrapApplication(AppComponent, {
   ],
 }).catch((error) => {
   console.error('Error initializing app:', error);
+
 });

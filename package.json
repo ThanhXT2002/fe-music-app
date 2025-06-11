@@ -5,7 +5,7 @@
   "homepage": "https://ionicframework.com/",
   "scripts": {
     "ng": "ng",
-    "start": "ionic serve --port=4800 --host=0.0.0.0",
+    "start": "ng serve --port=4800 --host=0.0.0.0",
     "build": "ng build --configuration production --output-hashing=all && npm run ngsw-config",
     "build:android": "ionic build && npx cap sync android && npx cap open android",
     "build-android": "npx ionic cap run android --livereload --external --port=8100",

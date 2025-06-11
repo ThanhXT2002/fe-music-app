@@ -643,7 +643,8 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
 
     try {
-      console.log('Adding to search history:', youtubeData);      if (this.platform === 'web') {
+      console.log('Adding to search history:', youtubeData);
+      if (this.platform === 'web') {
         // Sử dụng IndexedDB cho web
         const historyData = {
           songId: youtubeData.id,

@@ -208,7 +208,7 @@
 
               <!-- Download Status -->
               <div class="flex-shrink-0">
-                @if(song.isDownloaded) {
+                @if(isDownloaded(song.songId)) {
                   <!-- Already Downloaded -->
                   <div class="text-green-600">
                     <i class="fa-solid fa-check-circle text-lg"></i>
