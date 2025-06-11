@@ -41,6 +41,8 @@ bootstrapApplication(AppComponent, {
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
-    }), // Đảm bảo ThemeService được khởi tạo
+    }),
   ],
+}).catch((error) => {
+  console.error('Error initializing app:', error);
 });

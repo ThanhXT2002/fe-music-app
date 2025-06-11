@@ -22,8 +22,8 @@ const config: CapacitorConfig = {
       androidSpinnerStyle: "small",
       iosSpinnerStyle: "small",
       splashFullScreen: true,
-      splashImmersive: true
-    },    CapacitorSQLite: {
+      splashImmersive: true      },
+    CapacitorSQLite: {
       iosDatabaseLocation: 'Library/CapacitorDatabase',
       iosIsEncryption: false,
       iosKeychainPrefix: 'xtmusic-app',
