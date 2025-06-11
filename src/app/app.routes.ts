@@ -48,9 +48,12 @@ export const routes: Routes = [
   {
     path: 'artist/:name',
     loadComponent: () => import('./pages/artist-detail/artist-detail.page').then(m => m.ArtistDetailPage),
-  },
-  {
+  },  {
     path: 'search',
     loadComponent: () => import('./pages/search/search.page').then(m => m.SearchPage),
+  },
+  {
+    path: 'database-test',
+    loadComponent: () => import('./pages/database-test/database-test.page').then(m => m.DatabaseTestPage),
   }
 ];

@@ -658,7 +658,7 @@ export class DatabaseService {
           isDownloaded: 0
         };        // For IndexedDB, put will update existing record with same songId or create new one
         const success = await this.indexedDB.put('search_history', historyData);
-        
+
         if (success) {
           // Limit search history to 100 items for web platform
           const allHistory = await this.indexedDB.getAll('search_history');
@@ -666,14 +666,14 @@ export class DatabaseService {
             // Sort by searchedAt and keep only the newest 100
             allHistory.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
             const toRemove = allHistory.slice(100);
-            
+
             // Remove old items
             for (const item of toRemove) {
               await this.indexedDB.delete('search_history', item.songId);
             }
           }
         }
-        
+
         return success;
       } else {
         // Sử dụng SQLite cho native
@@ -950,7 +950,7 @@ export class DatabaseService {
         const downloaded = allHistory.filter(item => item.isDownloaded === 1);
         // Sắp xếp theo searchedAt DESC
         downloaded.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
-        
+
         return downloaded.map(row => ({
           id: row.id,
           songId: row.songId,
@@ -1002,7 +1002,7 @@ export class DatabaseService {
         // Sử dụng IndexedDB cho web
         const allHistory = await this.indexedDB.getAll('search_history');
         const filtered = allHistory.filter(item => item.songId !== songId);
-        
+
         // Clear and re-populate the store
         await this.indexedDB.clear('search_history');
         for (const item of filtered) {
@@ -1063,7 +1063,7 @@ export class DatabaseService {
         const totalSongs = allHistory.length;
         const downloadedSongs = allHistory.filter(item => item.isDownloaded === 1).length;
         const pendingSongs = allHistory.filter(item => item.isDownloaded === 0).length;
-        
+
         return {
           totalSongs,
           downloadedSongs,
@@ -1072,7 +1072,7 @@ export class DatabaseService {
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return { totalSongs: 0, downloadedSongs: 0, pendingSongs: 0 };
-        
+
         const result = await this.db.query(
           `SELECT
              COUNT(*) as totalSongs,

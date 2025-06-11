@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from '../../services/database.service';
 import { DataSong, Song } from '../../interfaces/song.interface';
 
@@ -127,9 +128,16 @@ export class DatabaseTestPage implements OnInit {
   private addResult(message: string) {
     this.testResults.push(`${new Date().toLocaleTimeString()}: ${message}`);
   }
-
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  getPlatform(): string {
+    return Capacitor.getPlatform();
+  }
+
+  getUserAgent(): string {
+    return navigator.userAgent;
   }
 
   async clearData() {
