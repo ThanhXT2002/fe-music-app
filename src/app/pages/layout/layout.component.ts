@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import {  IonHeader, IonContent, IonRouterOutlet, IonToolbar, IonFooter, IonModal,
   IonNav,  } from "@ionic/angular/standalone";
 import { SearchComponent } from 'src/app/components/search/search.component';
+import { Platform } from '@ionic/angular';
 
 
 
@@ -28,6 +29,7 @@ export class LayoutComponent implements OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private router = inject(Router);
   private searchService = inject(SearchService);
+  private platform = inject(Platform);
 
   showSearch = false;
   isVisible = false;
@@ -37,6 +39,7 @@ export class LayoutComponent implements OnDestroy {
   currentSong: Song | null = null;
   isPlaying = false;
   progressPercentage = 0;
+  bottomPosition:string=  this.platform.is('ios') && this.platform.is('pwa')  ? 'bottom-[90px]' : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
   @ViewChild('nav') private nav!: IonNav;
 

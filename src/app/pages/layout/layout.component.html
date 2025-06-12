@@ -41,7 +41,8 @@
 
   @if(currentSong){
   <div
-    class="mini-player fixed bottom-[--h-bottom-tabs] left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40"
+    class="mini-player fixed  left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40"
+    [ngClass]="bottomPosition"
   >
     <div class="p-3">
       <div class="flex items-center space-x-3">
@@ -79,8 +80,8 @@
         </div>
 
         <div class="flex-1 min-w-0" (click)="openFullPlayer()">
-          <marquee behavior="scroll" direction="left" scrollamount="5" loop="infinite"
-         onmouseover="this.stop()" onmouseout="this.start()" class="text-sm font-medium text-gray-900 dark:text-white truncate">
+          <marquee behavior="scroll" direction="left" scrollamount="4" scrolldelay="0"  loop="infinite"
+         onmouseover="this.stop()" onmouseout="this.start()" class="text-sm font-medium text-gray-900 dark:text-white">
             {{ currentSong.title }}
           </marquee>
           <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
