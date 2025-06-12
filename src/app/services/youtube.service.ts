@@ -139,7 +139,7 @@ export class YoutubeService {
   getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
     const params = new HttpParams().set('url', url);
     return this.http
-      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/info`, null, {
+      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, {
         params,
       })
       .pipe(

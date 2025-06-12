@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'www',
   server: {
     androidScheme: 'https',
+    allowNavigation: ['https://*.ngrok-free.app']
   },
   plugins: {
     SafeArea: {
