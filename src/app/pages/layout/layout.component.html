@@ -58,10 +58,14 @@
             (click)="togglePlayPause()"
             class="bg-purple-500 rounded-full flex items-center justify-center text-white relative"
           >
-            <img
+           <img
               [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
               [alt]="currentSong.title"
               class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
+              [ngClass]="{
+                'spin-with-fill': true,
+                'spin-paused': !isPlaying
+              }"
             />
             <i
               class="absolute transition-opacity duration-300 opacity-60 hover:opacity-100"

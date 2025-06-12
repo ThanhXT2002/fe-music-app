@@ -307,3 +307,12 @@ ion-content {
   padding-left: var(--padding-left);
   padding-right: var(--padding-right);
 }
+
+.spin-with-fill {
+  animation: spin 5s linear infinite;
+  animation-fill-mode: forwards;
+}
+
+.spin-paused {
+  animation-play-state: paused;
+}

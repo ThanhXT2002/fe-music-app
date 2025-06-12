@@ -23,6 +23,7 @@ export class AudioPlayerService {
 
   public playbackState = this._playbackState.asReadonly();
   private updateInterval?: number;
+  private audioCache = new Map<string, string>(); // Cache cho blob URLs
 
   // Additional signals for PlayerPage
   currentSong = signal<Song | null>(null);
@@ -37,11 +38,176 @@ export class AudioPlayerService {
   constructor(private databaseService: DatabaseService) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
-
-    // Update signals when playback state changes
     this.setupSignalUpdates();
   }
 
+  // 🆕 Method để load audio với ngrok bypass
+  private async loadAudioWithBypass(audioUrl: string): Promise<string> {
+    try {
+      // Kiểm tra cache trước
+      if (this.audioCache.has(audioUrl)) {
+        console.log('🎵 Using cached audio:', audioUrl);
+        return this.audioCache.get(audioUrl)!;
+      }
+
+      console.log('🔄 Loading audio with bypass headers:', audioUrl);
+
+      // 🆕 Retry logic
+      const maxRetries = 2;
+      let lastError: any;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`🔄 Attempt ${attempt}/${maxRetries} for:`, audioUrl);
+
+          const response = await fetch(audioUrl, {
+            headers: {
+              'ngrok-skip-browser-warning': 'true',
+              'User-Agent': 'IonicApp/1.0',
+              'Accept': 'audio/*,*/*;q=0.9'
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const audioBlob = await response.blob();
+          const audioObjectUrl = URL.createObjectURL(audioBlob);
+
+          // Cache blob URL
+          this.audioCache.set(audioUrl, audioObjectUrl);
+
+          console.log('✅ Audio loaded successfully:', {
+            originalUrl: audioUrl,
+            blobUrl: audioObjectUrl,
+            size: `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`,
+            attempt: attempt
+          });
+
+          return audioObjectUrl;
+
+        } catch (error) {
+          lastError = error;
+          console.warn(`❌ Attempt ${attempt} failed:`, error);
+
+          // Nếu không phải lần cuối, đợi một chút trước khi retry
+          if (attempt < maxRetries) {
+            const delay = attempt * 1000; // 1s, 2s...
+            console.log(`⏳ Waiting ${delay}ms before retry...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+
+      // Nếu tất cả attempts đều fail
+      throw lastError;
+
+    } catch (error) {
+      console.error('❌ All attempts failed for audio loading:', error);
+
+      // Fallback: thử load trực tiếp
+      console.log('🔄 Fallback: trying direct load...');
+      return audioUrl;
+    }
+  }
+
+  // 🆕 Method để preload audio (optional)
+  async preloadAudio(song: Song): Promise<void> {
+    try {
+      if (!this.audioCache.has(song.audioUrl)) {
+        await this.loadAudioWithBypass(song.audioUrl);
+        console.log('🎵 Preloaded:', song.title);
+      }
+    } catch (error) {
+      console.error('Error preloading audio:', error);
+    }
+  }
+
+  // 🔄 Modified playSong method
+  async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
+    try {
+      console.log('🎵 Playing song:', song.title);
+
+      this._playbackState.update(state => ({
+        ...state,
+        currentSong: song,
+        currentPlaylist: playlist.length > 0 ? playlist : [song],
+        currentIndex: playlist.length > 0 ? index : 0
+      }));
+
+      // Load audio với bypass headers
+      const audioUrl = await this.loadAudioWithBypass(song.audioUrl);
+
+      // Set audio source và play
+      this.audio.src = audioUrl;
+      await this.audio.load();
+      await this.audio.play();
+
+      // Preload next song (optional optimization)
+      this.preloadNextSong();
+
+    } catch (error) {
+      console.error('❌ Error playing song:', error);
+
+      // Show user-friendly error
+      this.handlePlaybackError(error, song);
+    }
+  }
+
+  // 🆕 Preload next song for smooth playback
+  private async preloadNextSong(): Promise<void> {
+    try {
+      const state = this._playbackState();
+      if (state.currentPlaylist.length > 1) {
+        const nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
+        const nextSong = state.currentPlaylist[nextIndex];
+
+        if (nextSong && !this.audioCache.has(nextSong.audioUrl)) {
+          // Preload in background
+          setTimeout(() => this.preloadAudio(nextSong), 2000);
+        }
+      }
+    } catch (error) {
+      console.error('Error preloading next song:', error);
+    }
+  }
+
+  // 🆕 Handle playback errors
+  private handlePlaybackError(error: any, song: Song): void {
+    console.error('Playback error for song:', song.title, error);
+
+    this._playbackState.update(state => ({
+      ...state,
+      isPlaying: false,
+      isPaused: false
+    }));
+
+    // Có thể emit event hoặc show toast notification
+    // this.toastService.showError(`Cannot play ${song.title}`);
+  }
+
+  // 🆕 Clear cache method
+  private clearAudioCache(): void {
+    console.log('🧹 Clearing audio cache...');
+
+    this.audioCache.forEach((blobUrl, originalUrl) => {
+      URL.revokeObjectURL(blobUrl);
+      console.log('🗑️ Revoked:', originalUrl);
+    });
+
+    this.audioCache.clear();
+  }
+
+  // 🔄 Modified destroy method
+  destroy() {
+    this.stopTimeUpdate();
+    this.audio.pause();
+    this.audio.src = '';
+    this.clearAudioCache(); // Clear cache khi destroy
+  }
+
+  // Rest of the methods remain the same...
   private setupAudioEventListeners() {
     this.audio.addEventListener('loadedmetadata', () => {
       this._playbackState.update(state => ({
@@ -88,8 +254,8 @@ export class AudioPlayerService {
       }));
     });
   }
+
   private setupSignalUpdates() {
-    // Subscribe to playback state changes and update individual signals
     setInterval(() => {
       const state = this._playbackState();
       this.currentSong.set(state.currentSong);
@@ -101,24 +267,6 @@ export class AudioPlayerService {
       this.queue.set(state.currentPlaylist);
       this.currentIndex.set(state.currentIndex);
     }, 100);
-  }
-
-  async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
-    try {
-      this._playbackState.update(state => ({
-        ...state,
-        currentSong: song,
-        currentPlaylist: playlist.length > 0 ? playlist : [song],
-        currentIndex: playlist.length > 0 ? index : 0
-      }));
-
-      this.audio.src = song.audioUrl;
-      await this.audio.load();
-      await this.audio.play();
-
-    } catch (error) {
-      console.error('Error playing song:', error);
-    }
   }
 
   async pause() {
@@ -140,13 +288,13 @@ export class AudioPlayerService {
       await this.resume();
     }
   }
+
   seekTo(time: number) {
     if (this.audio.duration) {
       this.audio.currentTime = Math.max(0, Math.min(time, this.audio.duration));
     }
   }
 
-  // Alias for seekTo for PlayerPage compatibility
   async seek(time: number) {
     this.seekTo(time);
   }
@@ -183,7 +331,6 @@ export class AudioPlayerService {
     let nextIndex: number;
 
     if (state.isShuffled) {
-      // Random next song
       nextIndex = Math.floor(Math.random() * state.currentPlaylist.length);
     } else {
       nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
@@ -199,7 +346,6 @@ export class AudioPlayerService {
     const state = this._playbackState();
     if (state.currentPlaylist.length === 0) return;
 
-    // If we're more than 3 seconds into the song, restart current song
     if (this.audio.currentTime > 3) {
       this.seekTo(0);
       return;
@@ -208,7 +354,6 @@ export class AudioPlayerService {
     let prevIndex: number;
 
     if (state.isShuffled) {
-      // Random previous song
       prevIndex = Math.floor(Math.random() * state.currentPlaylist.length);
     } else {
       prevIndex = state.currentIndex - 1;
@@ -259,20 +404,16 @@ export class AudioPlayerService {
 
     switch (state.repeatMode) {
       case 'one':
-        // Repeat current song
         this.seekTo(0);
         await this.audio.play();
         break;
       case 'all':
-        // Play next song in playlist
         await this.playNext();
         break;
       case 'none':
-        // Check if there's a next song
         if (state.currentIndex < state.currentPlaylist.length - 1) {
           await this.playNext();
         } else {
-          // Playlist ended
           this._playbackState.update(state => ({
             ...state,
             isPlaying: false,
@@ -350,6 +491,7 @@ export class AudioPlayerService {
   getCurrentSong(): Song | null {
     return this._playbackState().currentSong;
   }
+
   isPlaying(): boolean {
     return this._playbackState().isPlaying;
   }
@@ -364,12 +506,6 @@ export class AudioPlayerService {
 
   getVolume(): number {
     return this._playbackState().volume;
-  }
-
-  destroy() {
-    this.stopTimeUpdate();
-    this.audio.pause();
-    this.audio.src = '';
   }
 
   updateCurrentSong(song: Song) {
@@ -398,7 +534,6 @@ export class AudioPlayerService {
       if (index < state.currentIndex) {
         newIndex = state.currentIndex - 1;
       } else if (index === state.currentIndex) {
-        // If removing current song, adjust index
         newIndex = Math.min(newIndex, newPlaylist.length - 1);
       }
 
@@ -408,5 +543,18 @@ export class AudioPlayerService {
         currentIndex: newIndex
       }));
     }
+  }
+
+  // 🆕 Additional utility methods
+  getCacheSize(): number {
+    return this.audioCache.size;
+  }
+
+  getCachedUrls(): string[] {
+    return Array.from(this.audioCache.keys());
+  }
+
+  async clearCache(): Promise<void> {
+    this.clearAudioCache();
   }
 }
