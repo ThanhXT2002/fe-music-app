@@ -19,11 +19,13 @@ export class ListPage implements OnInit, OnDestroy {
   @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef;
 
   tabs = [
-    { id: 'all', label: 'Tất cả' },
-    { id: 'recent', label: 'Gần đây' },
-    { id: 'artists', label: 'Nghệ sĩ' },
-    { id: 'favorites', label: 'Yêu thích' }
+    { id: 'all', icon: 'fas fa-music', title: 'Tất cả bài hát', label: 'Tất cả' },
+    { id: 'recent', icon: 'fas fa-clock', title: 'Bài hát gần đây', label: 'Gần đây' },
+    { id: 'artists', icon: 'fas fa-user-music', title: 'Danh sách nghệ sĩ', label: 'Nghệ sĩ' },
+    { id: 'favorites', icon: 'fas fa-heart', title: 'Bài hát yêu thích', label: 'Yêu thích' }
   ];
+
+  tabTitle:string = 'Tất cả bài hát';
 
   constructor(
     private databaseService: DatabaseService,
@@ -73,6 +75,16 @@ export class ListPage implements OnInit, OnDestroy {
     // Save scroll position when leaving the page
     if (this.scrollContainer) {
       this.stateService.setScrollPosition(this.scrollContainer.nativeElement.scrollTop);
+    }
+  }
+
+  onTabChange(tab: any) {
+    this.activeTab = tab.id;
+    this.tabTitle = tab.title;
+
+    // Optionally, you can load data for the new tab if needed
+    if (!this.stateService.isDataLoaded) {
+      this.loadData();
     }
   }
 

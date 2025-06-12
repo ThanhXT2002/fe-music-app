@@ -1,6 +1,10 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Song } from '../../interfaces/song.interface';
+import { IonIcon } from '@ionic/angular/standalone';
+
+import { addIcons } from 'ionicons';
+import { apps } from 'ionicons/icons';
 
 @Component({
   selector: 'app-song-item',
@@ -75,7 +79,7 @@ import { Song } from '../../interfaces/song.interface';
         <img
           [src]="song.thumbnail || 'assets/images/default-album.png'"
           [alt]="song.title"
-          class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500"
+          class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500 shadow-2xl shadow-rose-500"
         />
 
         <!-- Song Info -->
@@ -94,9 +98,10 @@ import { Song } from '../../interfaces/song.interface';
         <div class="flex-shrink-0">
           <button
             (click)="onShowMenu($event)"
-            class="w-8 h-8 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 dark:text-gray-500"
+            class="w-10 h-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 dark:text-gray-500"
           >
-            <i class="fas fa-ellipsis-h"></i>
+            <!-- <i class="fas fa-ellipsis-h"></i> -->
+             <ion-icon name="apps"></ion-icon>
           </button>
         </div>
       </div>
@@ -109,7 +114,7 @@ import { Song } from '../../interfaces/song.interface';
       }
     `,
   ],
-  imports: [CommonModule],
+  imports: [CommonModule,IonIcon],
   standalone: true,
 })
 export class SongItemComponent {
@@ -125,6 +130,10 @@ export class SongItemComponent {
   }>();
   @Output() showMenu = new EventEmitter<Song>();
   @Output() toggleFavorite = new EventEmitter<Song>();
+
+  constructor() {
+    addIcons({ apps });
+  }
   onPlay() {
     this.play.emit({
       song: this.song,

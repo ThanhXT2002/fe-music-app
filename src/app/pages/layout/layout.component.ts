@@ -15,6 +15,7 @@ import {  IonHeader, IonContent, IonRouterOutlet, IonToolbar, IonFooter, IonModa
 import { SearchComponent } from 'src/app/components/search/search.component';
 
 
+
 @Component({
   selector: 'app-layout',
   imports: [ IonFooter, IonToolbar, IonRouterOutlet, IonContent, IonHeader, CommonModule, RouterLink, RouterLinkActive, FormsModule,IonModal, IonNav,],

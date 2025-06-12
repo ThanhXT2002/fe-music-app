@@ -1,5 +1,5 @@
 <ion-header
-mode="md"
+  mode="md"
   [translucent]="true"
   class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h__header"
 >
@@ -20,70 +20,14 @@ mode="md"
 
     <!-- Search Button -->
     <button
-     id="openModal"
+      id="openModal"
       class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
     >
       <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
     </button>
   </div>
-
-  <!-- Search Bar (Expandable) -->
-  <div
-    class="px-4 pb-3 fixed top-[3.6rem] w-full z-50 max-h-screen transition-all duration-300 ease-in-out"
-    *ngIf="isVisible"
-    [ngClass]="
-      showSearch ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-    "
-  >
-    <div class="relative">
-      <input
-        #searchInput
-        type="text"
-        placeholder="Tìm kiếm bài hát, nghệ sĩ, album..."
-        [(ngModel)]="searchQuery"
-        (input)="onSearchInput()"
-        class="w-full pl-10 pr-10 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
-      />
-      <i
-        class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-      ></i>
-      <button
-        *ngIf="searchQuery"
-        (click)="clearSearch()"
-        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-      >
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-
-    <!-- Search Results Dropdown -->
-    <div
-      *ngIf="searchResults.length > 0"
-      class="absolute left-4 right-4 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-60 overflow-y-auto"
-    >
-      <div
-        *ngFor="let result of searchResults"
-        (click)="selectSearchResult(result)"
-        class="flex items-center space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-      >
-        <img
-          [src]="result.thumbnail || 'assets/images/default-song.png'"
-          [alt]="result.title"
-          class="w-10 h-10 rounded-lg object-cover"
-        />
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {{ result.title }}
-          </p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-            {{ result.artist }}
-          </p>
-        </div>
-        <i class="fas fa-play text-purple-500 text-xs"></i>
-      </div>
-    </div>
-  </div>
 </ion-header>
+
 <ion-content>
   <ion-modal #modal trigger="openModal" (willPresent)="onWillPresent()">
     <ng-template>
@@ -92,66 +36,78 @@ mode="md"
       </ion-content>
     </ng-template>
   </ion-modal>
+
   <ion-router-outlet></ion-router-outlet>
+
+  @if(currentSong){
   <div
-    *ngIf="currentSong"
-    class="mini-player fixed bottom-16 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 z-40"
+    class="mini-player fixed bottom-[--h-bottom-tabs] left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40"
   >
-    <div class="flex items-center space-x-3">
-      <!-- Song Info -->
-      <img
-        [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
-        [alt]="currentSong.title"
-        class="w-12 h-12 rounded-lg object-cover"
-      />
+    <div class="p-3">
+      <div class="flex items-center space-x-3">
+        <!-- Player Controls -->
+        <div class="flex items-center space-x-4">
+          <button
+            (click)="previousSong()"
+            class="text-gray-600 dark:text-gray-300"
+          >
+            <i class="fas fa-step-backward"></i>
+          </button>
 
-      <div class="flex-1 min-w-0" (click)="openFullPlayer()">
-        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-          {{ currentSong.title }}
-        </p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
-          {{ currentSong.artist }}
-        </p>
-      </div>
+          <button
+            (click)="togglePlayPause()"
+            class="bg-purple-500 rounded-full flex items-center justify-center text-white relative"
+          >
+            <img
+              [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
+              [alt]="currentSong.title"
+              class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
+            />
+            <i
+              class="absolute transition-opacity duration-300 opacity-60 hover:opacity-100"
+              [ngClass]="isPlaying ? 'fas fa-pause' : 'fas fa-play'"
+            ></i>
+          </button>
 
-      <!-- Player Controls -->
-      <div class="flex items-center space-x-4">
-        <button
-          (click)="previousSong()"
-          class="text-gray-600 dark:text-gray-300"
-        >
-          <i class="fas fa-step-backward"></i>
-        </button>
+          <button (click)="nextSong()" class="text-gray-600 dark:text-gray-300">
+            <i class="fas fa-step-forward"></i>
+          </button>
+        </div>
 
-        <button
-          (click)="togglePlayPause()"
-          class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white"
-        >
-          <i [class]="isPlaying ? 'fas fa-pause' : 'fas fa-play'"></i>
-        </button>
+        <div class="flex-1 min-w-0" (click)="openFullPlayer()">
+          <marquee behavior="scroll" direction="left" scrollamount="5" loop="infinite"
+         onmouseover="this.stop()" onmouseout="this.start()" class="text-sm font-medium text-gray-900 dark:text-white truncate">
+            {{ currentSong.title }}
+          </marquee>
+          <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+            {{ currentSong.artist }}
+          </p>
+        </div>
 
-        <button (click)="nextSong()" class="text-gray-600 dark:text-gray-300">
-          <i class="fas fa-step-forward"></i>
-        </button>
+        <!-- Player Controls -->
+        <div class="h-full">
+          <div
+            class="flex flex-col !justify-end items-center text-gray-900 dark:text-gray-400 mt-2"
+          >
+          <i class="fa-solid fa-list-ul fa-lg"></i>
+          </div>
+        </div>
       </div>
     </div>
-
     <!-- Progress Bar -->
-    <div class="mt-2">
-      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
         <div
           class="bg-purple-500 h-1 rounded-full transition-all duration-300"
           [style.width.%]="progressPercentage"
         ></div>
       </div>
-    </div>
   </div>
+  }
 </ion-content>
-<ion-footer mode="md">
-  <ion-toolbar >
-    <div
-      class="bottom-tabs bg-white dark:bg-gray-800 h__bottom__tabs w-full"
-    >
+
+<ion-footer mode="md" >
+  <ion-toolbar>
+    <div class="bottom-tabs bg-white dark:bg-gray-800 h__bottom__tabs w-full">
       <div class="flex justify-between items-center h-full !w-full py-1 px-2">
         <a
           routerLink="/tabs/list"

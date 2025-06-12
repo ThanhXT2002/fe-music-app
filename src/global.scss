@@ -219,6 +219,20 @@
   }
 }
 
+@layer utilities{
+  .shadow-purple-glow {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.4);
+  }
+
+  .shadow-purple-glow-light {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.2);
+  }
+
+  .shadow-purple-glow-strong {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.6);
+  }
+}
+
 /* Scrollbar customization */
 ::-webkit-scrollbar {
   width: 6px;
