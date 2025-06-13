@@ -5,6 +5,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
 import { Song } from '../../interfaces/song.interface';
 import { ModalController, IonicModule } from '@ionic/angular';
+import { ThemeService } from 'src/app/services/theme.service';
 
 @Component({
   selector: 'app-player',
@@ -18,6 +19,7 @@ export class PlayerPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   private router = inject(Router);
   private modalCtrl = inject(ModalController);
+  private themeService = inject(ThemeService);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -60,10 +62,18 @@ export class PlayerPage implements OnInit, OnDestroy {
   ngOnInit() {
     // Initialize volume from audio service
     this.volume.set(this.audioPlayerService.getVolume());
+     this.setPlayerThemeColor();
   }
 
   ngOnDestroy() {
     // Cleanup if needed
+    this.themeService.updateHeaderThemeColor(this.themeService.isDarkMode());
+  }
+
+  private setPlayerThemeColor() {
+    // Chọn indigo-900 (#312e81) - màu cuối của gradient
+    // Đây là màu đẹp nhất và phù hợp với theme tối
+    this.themeService.setPageHeaderThemeColor('#312e81');
   }
 
   closeModal() {

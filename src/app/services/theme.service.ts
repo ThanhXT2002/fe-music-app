@@ -115,7 +115,7 @@ export class ThemeService {
   }
 
   //header theme color
-  private updateHeaderThemeColor(isDark: boolean) {
+  public updateHeaderThemeColor(isDark: boolean) {
     const themeColor = isDark ? '#1f2937' : '#ffffff'; // Hoặc màu bạn muốn
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
