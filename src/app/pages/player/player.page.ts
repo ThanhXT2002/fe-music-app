@@ -213,36 +213,4 @@ export class PlayerPage implements OnInit, OnDestroy {
     if (vol < 0.5) return 'volume-down';
     return 'volume-up';
   }
-
-  // Mock lyrics - replace with actual lyrics service
-  private getMockLyrics(): string {
-    return `[Verse 1]
-Sample lyrics for demonstration
-This would be fetched from a lyrics API
-Based on the current song
-
-[Chorus]
-Music brings us together
-In this beautiful weather
-Dancing through the night
-Everything feels so right
-
-[Verse 2]
-More lyrics would appear here
-As the song progresses clear
-Real-time synchronization
-Brings musical sensation
-
-[Bridge]
-The melody flows
-As the rhythm grows
-Feel the beat inside
-Let the music guide
-
-[Chorus]
-Music brings us together
-In this beautiful weather
-Dancing through the night
-Everything feels so right`;
-  }
 }
