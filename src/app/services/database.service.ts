@@ -3,6 +3,7 @@ import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacito
 import { Capacitor } from '@capacitor/core';
 import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
+import { RefreshService } from './refresh.service';
 
 /**
  * Service quản lý cơ sở dữ liệu SQLite cho ứng dụng nhạc
@@ -25,7 +26,10 @@ export class DatabaseService {
   // Platform hiện tại
   private platform: string;
 
-  constructor(indexedDBService: IndexedDBService) {
+  constructor(
+    indexedDBService: IndexedDBService,
+    private refreshService: RefreshService
+  ) {
     this.indexedDB = indexedDBService;
     this.platform = Capacitor.getPlatform();
     // Khởi tạo database khi service được tạo
@@ -535,7 +539,7 @@ export class DatabaseService {
           [newFavoriteStatus ? 1 : 0, songId]
         );
       }
-
+      this.refreshService.triggerRefresh();
       return newFavoriteStatus;
     } catch (error) {
       console.error('Error toggling favorite:', error);
