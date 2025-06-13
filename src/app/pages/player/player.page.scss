@@ -29,9 +29,7 @@
     transform: rotate(360deg);
   }
 }
-.album-art.playing {
-  animation: spin 20s linear infinite;
-}
+
 
 /* Interactive elements */
 .progress-bar {
@@ -183,14 +181,6 @@ input[type="range"]::-moz-range-thumb {
   }
 }
 
-/* Accessibility */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  .album-art.playing {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
 
 /* Safe area support */
 @supports (padding: env(safe-area-inset-top)) {
