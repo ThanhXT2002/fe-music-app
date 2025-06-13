@@ -155,10 +155,14 @@ export class PlayerPage implements OnInit, OnDestroy {
     } else {
       this.updateProgress(event);
     }
-  }
-  onProgressEnd(event: MouseEvent | TouchEvent) {
+  }  onProgressEnd(event: MouseEvent | TouchEvent) {
     if (this.isDragging()) {
-      this.updateProgress(event);
+      // Only update progress if event has valid currentTarget
+      if (event.currentTarget && typeof (event.currentTarget as HTMLElement).getBoundingClientRect === 'function') {
+        this.updateProgress(event);
+      }
+      // Otherwise use the current tempProgress value (already set by global events)
+
       const newTime = (this.tempProgress() / 100) * this.duration();
 
       console.log(`🎯 Drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(1)}%)`);
@@ -195,7 +199,6 @@ export class PlayerPage implements OnInit, OnDestroy {
     document.removeEventListener('touchmove', this.onGlobalTouchMove);
     document.removeEventListener('touchend', this.onGlobalTouchEnd);
   }
-
   // Global event handlers for better drag experience
   private onGlobalMouseMove = (event: MouseEvent) => {
     if (this.isDragging()) {
@@ -203,10 +206,9 @@ export class PlayerPage implements OnInit, OnDestroy {
       this.updateProgressFromGlobalEvent(event);
     }
   };
-
   private onGlobalMouseUp = (event: MouseEvent) => {
     if (this.isDragging()) {
-      this.onProgressEnd(event);
+      this.finishDrag();
     }
   };
 
@@ -219,41 +221,99 @@ export class PlayerPage implements OnInit, OnDestroy {
 
   private onGlobalTouchEnd = (event: TouchEvent) => {
     if (this.isDragging()) {
-      this.onProgressEnd(event);
+      this.finishDrag();
     }
   };
 
+  private finishDrag() {
+    if (!this.isDragging()) return;
+
+    const newTime = (this.tempProgress() / 100) * this.duration();
+    console.log(`🎯 Finish drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(1)}%)`);
+
+    // Perform seek with proper error handling
+    this.audioPlayerService
+      .seek(newTime)
+      .then(() => {
+        console.log('✅ Drag seek completed');
+      })
+      .catch((error) => {
+        console.error('❌ Drag seek failed:', error);
+        // Reset to current position on error
+        const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+        this.tempProgress.set(currentProgress);
+      })
+      .finally(() => {
+        this.isDragging.set(false);
+        this.cleanupGlobalListeners();
+      });
+  }
   private calculateProgress(event: MouseEvent | TouchEvent): number {
     const target = event.currentTarget as HTMLElement;
+    if (!target || typeof target.getBoundingClientRect !== 'function') {
+      console.warn('Invalid target for calculateProgress');
+      return 0;
+    }
+
     const rect = target.getBoundingClientRect();
-    const clientX =
-      'touches' in event ? event.touches[0].clientX : event.clientX;
-    return Math.max(
-      0,
-      Math.min(100, ((clientX - rect.left) / rect.width) * 100)
-    );
+    let clientX: number;
+
+    if ('touches' in event) {
+      // TouchEvent
+      if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+      } else if (event.changedTouches && event.changedTouches.length > 0) {
+        // Use changedTouches for touchend event
+        clientX = event.changedTouches[0].clientX;
+      } else {
+        console.warn('No touch coordinates available');
+        return 0;
+      }
+    } else {
+      // MouseEvent
+      clientX = event.clientX;
+    }
+
+    const progress = ((clientX - rect.left) / rect.width) * 100;
+    return Math.max(0, Math.min(100, progress));
   }
 
   private updateProgress(event: MouseEvent | TouchEvent) {
     const progress = this.calculateProgress(event);
     this.tempProgress.set(progress);
   }
-
   private updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
     // Find the progress container element
     const progressContainer = document.querySelector(
       '[data-progress-container]'
     ) as HTMLElement;
-    if (!progressContainer) return;
+    if (!progressContainer) {
+      console.warn('Progress container not found');
+      return;
+    }
 
     const rect = progressContainer.getBoundingClientRect();
-    const clientX =
-      'touches' in event ? event.touches[0].clientX : event.clientX;
-    const progress = Math.max(
-      0,
-      Math.min(100, ((clientX - rect.left) / rect.width) * 100)
-    );
-    this.tempProgress.set(progress);
+    let clientX: number;
+
+    if ('touches' in event) {
+      // TouchEvent
+      if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0].clientX;
+      } else if (event.changedTouches && event.changedTouches.length > 0) {
+        // Use changedTouches for touchend event
+        clientX = event.changedTouches[0].clientX;
+      } else {
+        console.warn('No touch coordinates available in global event');
+        return;
+      }
+    } else {
+      // MouseEvent
+      clientX = event.clientX;
+    }
+
+    const progress = ((clientX - rect.left) / rect.width) * 100;
+    const clampedProgress = Math.max(0, Math.min(100, progress));
+    this.tempProgress.set(clampedProgress);
   }
   async toggleFavorite() {
     const song = this.currentSong();
