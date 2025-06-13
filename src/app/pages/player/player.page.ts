@@ -100,7 +100,7 @@ export class PlayerPage implements OnInit, OnDestroy {
 
   toggleRepeat() {
     this.audioPlayerService.toggleRepeat();
-  }  // Enhanced Progress bar interaction
+  } // Enhanced Progress bar interaction
   onProgressClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -108,7 +108,9 @@ export class PlayerPage implements OnInit, OnDestroy {
     const progress = this.calculateProgress(event);
     const newTime = (progress / 100) * this.duration();
 
-    console.log(`🎯 Click seek to: ${newTime.toFixed(2)}s (${progress.toFixed(1)}%)`);
+    console.log(
+      `🎯 Click seek to: ${newTime.toFixed(2)}s (${progress.toFixed(1)}%)`
+    );
 
     // Immediate UI feedback
     this.tempProgress.set(progress);
@@ -123,8 +125,11 @@ export class PlayerPage implements OnInit, OnDestroy {
       })
       .catch((error) => {
         console.error('❌ Click seek failed:', error);
-        this.isDragging.set(false);        // Reset to current position on error
-        const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+        this.isDragging.set(false); // Reset to current position on error
+        const currentProgress =
+          this.duration() > 0
+            ? (this.currentTime() / this.duration()) * 100
+            : 0;
         this.tempProgress.set(currentProgress);
       });
   }
@@ -155,17 +160,26 @@ export class PlayerPage implements OnInit, OnDestroy {
     } else {
       this.updateProgress(event);
     }
-  }  onProgressEnd(event: MouseEvent | TouchEvent) {
+  }
+  onProgressEnd(event: MouseEvent | TouchEvent) {
     if (this.isDragging()) {
       // Only update progress if event has valid currentTarget
-      if (event.currentTarget && typeof (event.currentTarget as HTMLElement).getBoundingClientRect === 'function') {
+      if (
+        event.currentTarget &&
+        typeof (event.currentTarget as HTMLElement).getBoundingClientRect ===
+          'function'
+      ) {
         this.updateProgress(event);
       }
       // Otherwise use the current tempProgress value (already set by global events)
 
       const newTime = (this.tempProgress() / 100) * this.duration();
 
-      console.log(`🎯 Drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(1)}%)`);
+      console.log(
+        `🎯 Drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(
+          1
+        )}%)`
+      );
 
       // Perform seek with proper error handling
       this.audioPlayerService
@@ -176,7 +190,10 @@ export class PlayerPage implements OnInit, OnDestroy {
         .catch((error) => {
           console.error('❌ Drag seek failed:', error);
           // Reset to current position on error
-          const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+          const currentProgress =
+            this.duration() > 0
+              ? (this.currentTime() / this.duration()) * 100
+              : 0;
           this.tempProgress.set(currentProgress);
         })
         .finally(() => {
@@ -229,7 +246,11 @@ export class PlayerPage implements OnInit, OnDestroy {
     if (!this.isDragging()) return;
 
     const newTime = (this.tempProgress() / 100) * this.duration();
-    console.log(`🎯 Finish drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(1)}%)`);
+    console.log(
+      `🎯 Finish drag seek to: ${newTime.toFixed(
+        2
+      )}s (${this.tempProgress().toFixed(1)}%)`
+    );
 
     // Perform seek with proper error handling
     this.audioPlayerService
@@ -240,7 +261,10 @@ export class PlayerPage implements OnInit, OnDestroy {
       .catch((error) => {
         console.error('❌ Drag seek failed:', error);
         // Reset to current position on error
-        const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+        const currentProgress =
+          this.duration() > 0
+            ? (this.currentTime() / this.duration()) * 100
+            : 0;
         this.tempProgress.set(currentProgress);
       })
       .finally(() => {
