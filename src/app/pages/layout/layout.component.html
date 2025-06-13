@@ -27,14 +27,10 @@
     </button>
   </div>
 </ion-header>
-
 <ion-content>
-
-  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+   <ion-refresher slot="fixed"  (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
-
-  
   <ion-modal #modal trigger="openModal" (willPresent)="onWillPresent()">
     <ng-template>
       <ion-content>
@@ -44,8 +40,8 @@
   </ion-modal>
 
   <ion-router-outlet></ion-router-outlet>
-
-  @if(currentSong){
+</ion-content>
+@if(currentSong){
   <div
     class="mini-player fixed  left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40"
     [ngClass]="bottomPosition"
@@ -114,7 +110,6 @@
       </div>
   </div>
   }
-</ion-content>
 
 <ion-footer mode="md" >
   <ion-toolbar>
