@@ -1,4 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  signal,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AudioPlayerService } from '../../services/audio-player.service';
@@ -9,9 +16,9 @@ import { ThemeService } from 'src/app/services/theme.service';
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule,IonicModule],
+  imports: [CommonModule, IonicModule],
   templateUrl: './player.page.html',
-  styleUrls: ['./player.page.scss']
+  styleUrls: ['./player.page.scss'],
 })
 export class PlayerPage implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
@@ -29,10 +36,12 @@ export class PlayerPage implements OnInit, OnDestroy {
   isShuffling = this.audioPlayerService.isShuffling;
   repeatMode = this.audioPlayerService.repeatModeSignal;
   currentIndex = this.audioPlayerService.currentIndex;
-
   // UI state signals
   isDragging = signal(false);
   tempProgress = signal(0);
+  hoverProgress = signal(-1); // -1 means not hovering
+  isHoveringProgress = signal(false);
+  bufferProgress = this.audioPlayerService.bufferProgress;
 
   // Computed values
   progress = computed(() => {
@@ -52,13 +61,17 @@ export class PlayerPage implements OnInit, OnDestroy {
   });
 
   durationTime = computed(() => this.formatTime(this.duration()));
-
   ngOnInit() {
     this.setPlayerThemeColor();
+    this.setupBufferTracking();
   }
-
   ngOnDestroy() {
     this.themeService.updateHeaderThemeColor(this.themeService.isDarkMode());
+    this.cleanupGlobalListeners();
+  }
+  private setupBufferTracking() {
+    // Theo dõi buffer progress thông qua audio service
+    // Sẽ được cập nhật qua signals từ audio service
   }
 
   private setPlayerThemeColor() {
@@ -87,16 +100,53 @@ export class PlayerPage implements OnInit, OnDestroy {
 
   toggleRepeat() {
     this.audioPlayerService.toggleRepeat();
+  } // Enhanced Progress bar interaction
+  onProgressClick(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const progress = this.calculateProgress(event);
+    const newTime = (progress / 100) * this.duration();
+
+    // Immediate UI feedback
+    this.tempProgress.set(progress);
+    this.isDragging.set(true);
+
+    // Perform seek
+    this.audioPlayerService
+      .seek(newTime)
+      .then(() => {
+        this.isDragging.set(false);
+      })
+      .catch(() => {
+        this.isDragging.set(false);
+      });
   }
 
-  // Progress bar interaction
   onProgressStart(event: MouseEvent | TouchEvent) {
+    event.preventDefault();
     this.isDragging.set(true);
+    this.isHoveringProgress.set(true);
     this.updateProgress(event);
+
+    // Add global event listeners for better tracking
+    document.addEventListener('mousemove', this.onGlobalMouseMove, {
+      passive: false,
+    });
+    document.addEventListener('mouseup', this.onGlobalMouseUp);
+    document.addEventListener('touchmove', this.onGlobalTouchMove, {
+      passive: false,
+    });
+    document.addEventListener('touchend', this.onGlobalTouchEnd);
   }
 
   onProgressMove(event: MouseEvent | TouchEvent) {
-    if (this.isDragging()) {
+    if (!this.isDragging()) {
+      // Show hover preview
+      this.isHoveringProgress.set(true);
+      const progress = this.calculateProgress(event);
+      this.hoverProgress.set(progress);
+    } else {
       this.updateProgress(event);
     }
   }
@@ -105,11 +155,88 @@ export class PlayerPage implements OnInit, OnDestroy {
     if (this.isDragging()) {
       this.updateProgress(event);
       const newTime = (this.tempProgress() / 100) * this.duration();
-      this.audioPlayerService.seek(newTime);
-      this.isDragging.set(false);
+
+      // Perform seek with error handling
+      this.audioPlayerService.seek(newTime).finally(() => {
+        this.isDragging.set(false);
+        this.cleanupGlobalListeners();
+      });
     }
   }
 
+  onProgressLeave() {
+    if (!this.isDragging()) {
+      this.isHoveringProgress.set(false);
+      this.hoverProgress.set(-1);
+    }
+  }
+
+  private cleanupGlobalListeners() {
+    document.removeEventListener('mousemove', this.onGlobalMouseMove);
+    document.removeEventListener('mouseup', this.onGlobalMouseUp);
+    document.removeEventListener('touchmove', this.onGlobalTouchMove);
+    document.removeEventListener('touchend', this.onGlobalTouchEnd);
+  }
+
+  // Global event handlers for better drag experience
+  private onGlobalMouseMove = (event: MouseEvent) => {
+    if (this.isDragging()) {
+      event.preventDefault();
+      this.updateProgressFromGlobalEvent(event);
+    }
+  };
+
+  private onGlobalMouseUp = (event: MouseEvent) => {
+    if (this.isDragging()) {
+      this.onProgressEnd(event);
+    }
+  };
+
+  private onGlobalTouchMove = (event: TouchEvent) => {
+    if (this.isDragging()) {
+      event.preventDefault();
+      this.updateProgressFromGlobalEvent(event);
+    }
+  };
+
+  private onGlobalTouchEnd = (event: TouchEvent) => {
+    if (this.isDragging()) {
+      this.onProgressEnd(event);
+    }
+  };
+
+  private calculateProgress(event: MouseEvent | TouchEvent): number {
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const clientX =
+      'touches' in event ? event.touches[0].clientX : event.clientX;
+    return Math.max(
+      0,
+      Math.min(100, ((clientX - rect.left) / rect.width) * 100)
+    );
+  }
+
+  private updateProgress(event: MouseEvent | TouchEvent) {
+    const progress = this.calculateProgress(event);
+    this.tempProgress.set(progress);
+  }
+
+  private updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
+    // Find the progress container element
+    const progressContainer = document.querySelector(
+      '[data-progress-container]'
+    ) as HTMLElement;
+    if (!progressContainer) return;
+
+    const rect = progressContainer.getBoundingClientRect();
+    const clientX =
+      'touches' in event ? event.touches[0].clientX : event.clientX;
+    const progress = Math.max(
+      0,
+      Math.min(100, ((clientX - rect.left) / rect.width) * 100)
+    );
+    this.tempProgress.set(progress);
+  }
   async toggleFavorite() {
     const song = this.currentSong();
     if (song) {
@@ -122,14 +249,6 @@ export class PlayerPage implements OnInit, OnDestroy {
         console.error('Error toggling favorite:', error);
       }
     }
-  }
-
-  private updateProgress(event: MouseEvent | TouchEvent) {
-    const target = event.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const clientX = 'touches' in event ? event.touches[0].clientX : event.clientX;
-    const progress = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
-    this.tempProgress.set(progress);
   }
 
   // Utility methods

@@ -25,7 +25,6 @@ export class AudioPlayerService {
   public playbackState = this._playbackState.asReadonly();
   private updateInterval?: number;
   private audioCache = new Map<string, string>(); // Cache cho blob URLs
-
   // Additional signals for PlayerPage
   currentSong = signal<Song | null>(null);
   currentTime = signal<number>(0);
@@ -35,6 +34,7 @@ export class AudioPlayerService {
   repeatModeSignal = signal<'none' | 'one' | 'all'>('none');
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
+  bufferProgress = signal<number>(0);
 
   constructor(private databaseService: DatabaseService) {
     this.setupAudioEventListeners();
@@ -206,11 +206,9 @@ export class AudioPlayerService {
   destroy() {
     this.stopTimeUpdate();
     this.audio.pause();
-    this.audio.src = '';
-    this.clearAudioCache(); // Clear cache khi destroy
+    this.audio.src = '';    this.clearAudioCache(); // Clear cache khi destroy
   }
 
-  // Rest of the methods remain the same...
   private setupAudioEventListeners() {
     this.audio.addEventListener('loadedmetadata', () => {
       this._playbackState.update(state => ({
@@ -224,6 +222,15 @@ export class AudioPlayerService {
         ...state,
         currentTime: this.audio.currentTime
       }));
+    });
+
+    // Buffer progress tracking
+    this.audio.addEventListener('progress', () => {
+      this.updateBufferProgress();
+    });
+
+    this.audio.addEventListener('loadedmetadata', () => {
+      this.updateBufferProgress();
     });
 
     this.audio.addEventListener('ended', () => {
@@ -256,6 +263,14 @@ export class AudioPlayerService {
         isPaused: false
       }));
     });
+  }
+
+  private updateBufferProgress() {
+    if (this.audio.buffered.length > 0 && this.audio.duration > 0) {
+      const buffered = this.audio.buffered.end(this.audio.buffered.length - 1);
+      const bufferPercent = (buffered / this.audio.duration) * 100;
+      this.bufferProgress.set(Math.min(100, bufferPercent));
+    }
   }
 
   private setupSignalUpdates() {
