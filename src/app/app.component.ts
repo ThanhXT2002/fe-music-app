@@ -12,6 +12,8 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { DatabaseService } from './services/database.service';
+import { AppLifecycleService } from './services/app-lifecycle.service';
+import { PlaybackRestoreService } from './services/playback-restore.service';
 
 @Component({
   selector: 'app-root',
@@ -20,14 +22,14 @@ import { DatabaseService } from './services/database.service';
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
-
-  constructor(
+  private destroy$ = new Subject<void>();  constructor(
     private pwaService: PWAService,
     private themeService: ThemeService,
     private safeAreaService: SafeAreaService,
     private platform: Platform,
-    private dbService: DatabaseService
+    private dbService: DatabaseService,
+    private appLifecycleService: AppLifecycleService,
+    private playbackRestoreService: PlaybackRestoreService
   ) {}
 
 
@@ -65,11 +67,27 @@ export class AppComponent implements OnInit, OnDestroy {
       await StatusBar.setBackgroundColor({ color: '#00000000' });
 
       console.log('✅ StatusBar configured');
-
-      // No need to manage splash screen here anymore - SplashActivity handles it
+    // No need to manage splash screen here anymore - SplashActivity handles it
     }
     this.safeAreaService.applyToContent();
+
+    // Check for saved playback state and show restore prompt if available
+    // await this.checkForPlaybackRestore();
   }
+
+  // private async checkForPlaybackRestore(): Promise<void> {
+  //   try {
+  //     // Wait a bit for the UI to be ready
+  //     await new Promise(resolve => setTimeout(resolve, 1000));
+
+  //     const hasSavedState = await this.playbackRestoreService.checkForSavedState();
+  //     if (hasSavedState) {
+  //       await this.playbackRestoreService.showRestoreToast();
+  //     }
+  //   } catch (error) {
+  //     console.error('Error checking for playback restore:', error);
+  //   }
+  // }
 
 
 }

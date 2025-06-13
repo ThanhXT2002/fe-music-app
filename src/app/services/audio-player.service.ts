@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Song, PlaybackState } from '../interfaces/song.interface';
+import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
 
 @Injectable({
@@ -39,6 +40,8 @@ export class AudioPlayerService {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
+    // Phục hồi trạng thái phát nhạc khi khởi tạo
+    this.restorePlaybackState();
   }
 
   // 🆕 Method để load audio với ngrok bypass
@@ -435,6 +438,11 @@ export class AudioPlayerService {
           ...state,
           currentTime: this.audio.currentTime
         }));
+
+        // Save state mỗi 30 giây khi đang phát nhạc
+        if (Math.floor(this.audio.currentTime) % 30 === 0) {
+          this.savePlaybackState();
+        }
       }
     }, 1000);
   }
@@ -556,5 +564,125 @@ export class AudioPlayerService {
 
   async clearCache(): Promise<void> {
     this.clearAudioCache();
+  }
+
+  // 🆕 Save current playback state to localStorage
+  savePlaybackState(): void {
+    try {
+      const state = this._playbackState();
+      const savedState: SavedPlaybackState = {
+        currentSong: state.currentSong ? {
+          id: state.currentSong.id,
+          title: state.currentSong.title,
+          artist: state.currentSong.artist,
+          url: state.currentSong.audioUrl,
+          thumbnail: state.currentSong.thumbnail,
+          duration: state.currentSong.duration
+        } : null,
+        currentTime: state.currentTime,
+        isPlaying: false, // Luôn save là false để không tự động play khi restore
+        volume: state.volume,
+        isShuffling: state.isShuffled,
+        repeatMode: state.repeatMode,
+        queue: state.currentPlaylist.map(song => ({
+          id: song.id,
+          title: song.title,
+          artist: song.artist,
+          url: song.audioUrl,
+          thumbnail: song.thumbnail,
+          duration: song.duration
+        })),
+        currentIndex: state.currentIndex,
+        savedAt: Date.now()
+      };
+
+      localStorage.setItem('savedPlaybackState', JSON.stringify(savedState));
+      console.log('✅ Playback state saved');
+    } catch (error) {
+      console.error('❌ Error saving playback state:', error);
+    }
+  }
+
+  // 🆕 Restore playback state from localStorage
+  async restorePlaybackState(): Promise<void> {
+    try {
+      const saved = localStorage.getItem('savedPlaybackState');
+      if (!saved) return;
+
+      const savedState: SavedPlaybackState = JSON.parse(saved);
+
+      // Chỉ restore nếu save không quá 7 ngày
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 ngày
+      if (Date.now() - savedState.savedAt > maxAge) {
+        localStorage.removeItem('savedPlaybackState');
+        return;
+      }
+
+      console.log('🔄 Restoring playback state...');
+
+      if (savedState.currentSong && savedState.queue.length > 0) {        // Convert back to Song objects
+        const playlist: Song[] = savedState.queue.map(item => ({
+          id: item.id,
+          title: item.title,
+          artist: item.artist,
+          audioUrl: item.url,
+          thumbnail: item.thumbnail,
+          duration: item.duration,
+          album: '',
+          genre: '',
+          isFavorite: false,
+          addedDate: new Date(),
+          isDownloaded: false
+        }));
+
+        // Update state
+        this._playbackState.update(state => ({
+          ...state,          currentSong: {
+            id: savedState.currentSong!.id,
+            title: savedState.currentSong!.title,
+            artist: savedState.currentSong!.artist,
+            audioUrl: savedState.currentSong!.url,
+            thumbnail: savedState.currentSong!.thumbnail,
+            duration: savedState.currentSong!.duration,
+            album: '',
+            genre: '',
+            isFavorite: false,
+            addedDate: new Date(),
+            isDownloaded: false
+          },
+          currentPlaylist: playlist,
+          currentIndex: savedState.currentIndex,
+          volume: savedState.volume,
+          isShuffling: savedState.isShuffling,
+          repeatMode: savedState.repeatMode,
+          currentTime: savedState.currentTime,
+          isPlaying: false // Không tự động play
+        }));
+
+        // Load audio source nhưng không play
+        try {
+          const audioUrl = await this.loadAudioWithBypass(savedState.currentSong.url);
+          this.audio.src = audioUrl;
+          await this.audio.load();
+
+          // Seek đến vị trí đã lưu
+          if (savedState.currentTime > 0) {
+            this.audio.currentTime = savedState.currentTime;
+          }
+
+          console.log('✅ Playback state restored:', savedState.currentSong.title);
+        } catch (error) {
+          console.error('❌ Error loading saved audio:', error);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error restoring playback state:', error);
+      localStorage.removeItem('savedPlaybackState');
+    }
+  }
+
+  // 🆕 Clear saved state
+  clearSavedState(): void {
+    localStorage.removeItem('savedPlaybackState');
   }
 }
