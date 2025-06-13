@@ -92,13 +92,13 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
               <p class="text-gray-500 dark:text-gray-400">No songs found in this album</p>
             </div>
 
-            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-              <app-song-item
+            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">              <app-song-item
                 [song]="song"
                 [showAlbum]="false"
                 [playlist]="songs"
                 [index]="i"
-                (play)="onSongPlay($event)">
+                (play)="onSongPlay($event)"
+                (openPlayer)="onOpenPlayer()">
               </app-song-item>
             </div>
           </div>
@@ -187,6 +187,11 @@ export class AlbumDetailPage implements OnInit {
 
   async onSongPlay(event: { song: Song; playlist: Song[]; index: number }) {
     await this.audioPlayerService.setPlaylist(event.playlist, event.index);
+  }
+
+  onOpenPlayer() {
+    // Method này được gọi khi click vào song đang active
+    console.log('Opening player page...');
   }
 
   formatDuration(seconds: number): string {

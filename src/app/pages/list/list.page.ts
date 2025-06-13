@@ -217,6 +217,12 @@ export class ListPage implements OnInit, OnDestroy {
     console.log('Show menu for:', song.title);
   }
 
+  onOpenPlayer() {
+    // Method này được gọi khi click vào song đang active
+    // Không cần làm gì thêm vì Router.navigate đã được gọi trong component
+    console.log('Opening player page...');
+  }
+
   viewArtist(artist: any) {
     // TODO: Navigate to artist detail page
     console.log('View artist:', artist.name);

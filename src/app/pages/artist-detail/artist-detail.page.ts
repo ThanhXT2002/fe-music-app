@@ -101,13 +101,13 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
             </div>
 
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-                <app-song-item
+              <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">                <app-song-item
                   [song]="song"
                   [showArtist]="false"
                   [playlist]="songs"
                   [index]="i"
-                  (play)="onSongPlay($event)">
+                  (play)="onSongPlay($event)"
+                  (openPlayer)="onOpenPlayer()">
                 </app-song-item>
               </div>
             </div>
@@ -279,21 +279,27 @@ export class ArtistDetailPage implements OnInit {
     await this.audioPlayerService.setPlaylist(event.playlist, event.index);
   }
 
-  goToAlbum(album: Album) {
-    this.router.navigate(['/album', album.id]);
+  onOpenPlayer() {
+    // Method này được gọi khi click vào song đang active
+    console.log('Opening player page...');
   }
 
   setTab(tab: string) {
     this.selectedTab = tab;
   }
 
+  goToAlbum(album: Album) {
+    this.router.navigate(['/album', album.id]);
+  }
+
   formatDuration(seconds: number): string {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}h ${minutes}m`;
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
-    return `${minutes}m`;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   }
 }

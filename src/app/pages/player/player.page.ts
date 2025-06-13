@@ -143,9 +143,20 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private setPlayerThemeColor() {
     this.themeService.setPageHeaderThemeColor('#312e81');
   }
-
   closeModal() {
-    this.modalCtrl.dismiss();
+    // Check if we're in a modal context or navigated directly
+    this.modalCtrl.getTop().then(modal => {
+      if (modal) {
+        // We're in a modal, dismiss it
+        this.modalCtrl.dismiss();
+      } else {
+        // We're in a direct navigation, go back using router
+        this.router.navigate(['/tabs'], { replaceUrl: true });
+      }
+    }).catch(() => {
+      // Fallback to router navigation if modalCtrl fails
+      this.router.navigate(['/tabs'], { replaceUrl: true });
+    });
   }
 
   togglePlayPause() {
