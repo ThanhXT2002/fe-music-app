@@ -9,13 +9,14 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
 import { IonContent, IonHeader, IonToolbar, IonTitle } from "@ionic/angular/standalone";
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 
 @Component({
   selector: 'app-list',
   templateUrl: './list.page.html',
   styleUrls: ['./list.page.scss'],
   standalone: true,
-  imports: [ CommonModule, SongItemComponent]
+  imports: [ CommonModule, SongItemComponent, ScrollingModule]
 })
 export class ListPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();

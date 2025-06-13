@@ -15,21 +15,32 @@
     </div>
   </div>
   <!-- Content -->
-  <div class="flex-1 h-full" >
+  <div class="flex-1 h-full">
     <div class="p-4">
       <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-       {{tabTitle}}
-        @if(activeTab == 'all'){
-           ({{ allSongs.length }})
-        }
+        {{tabTitle}} @if(activeTab == 'all'){ ({{ allSongs.length }}) }
       </h2>
     </div>
-    <div class="overflow-y-auto  h-full" #scrollContainer>
+    <div class="overflow-y-auto h-full" #scrollContainer>
       <div class="px-4">
         <!-- All Songs -->
-      <div *ngIf="activeTab === 'all'">
-        <div class="space-y-2">
-          <app-song-item
+        <div *ngIf="activeTab === 'all'">
+          <div class="space-y-2">
+            <cdk-virtual-scroll-viewport itemSize="80" class="h-96 w-full">
+              <app-song-item
+                *cdkVirtualFor="let song of allSongs;
+                        let index = index;
+                        trackBy: trackBySongId"
+                [song]="song"
+                [index]="index"
+                [playlist]="allSongs"
+                (play)="playSong($event)"
+                (showMenu)="showSongMenu($event)"
+                (toggleFavorite)="toggleFavorite($event)"
+              >
+              </app-song-item>
+            </cdk-virtual-scroll-viewport>
+            <!-- <app-song-item
             *ngFor="let song of allSongs; let i = index; trackBy: trackBySongId"
             [song]="song"
             [playlist]="allSongs"
@@ -38,92 +49,90 @@
             (showMenu)="showSongMenu($event)"
             (toggleFavorite)="toggleFavorite($event)"
           >
-          </app-song-item>
+          </app-song-item> -->
+          </div>
         </div>
-      </div>
 
-      <!-- Recently Played -->
-      <div *ngIf="activeTab === 'recent'">
-        <div class="space-y-2">
-          <app-song-item
-            *ngFor="let song of recentSongs; let i = index; trackBy: trackBySongId"
-            [song]="song"
-            [playlist]="recentSongs"
-            [index]="i"
-            (play)="playSong($event)"
-            (showMenu)="showSongMenu($event)"
-            (toggleFavorite)="toggleFavorite($event)"
-          >
-          </app-song-item>
-        </div>
-        <div *ngIf="recentSongs.length === 0" class="text-center py-12">
-          <i
-            class="fas fa-history text-4xl text-gray-300 dark:text-gray-600 mb-4"
-          ></i>
-          <p class="text-gray-500 dark:text-gray-400">
-            Chưa có bài hát nào được nghe gần đây
-          </p>
-        </div>
-      </div>
-
-      <!-- Artists -->
-      <div *ngIf="activeTab === 'artists'">
-        <div class="grid grid-cols-2 gap-4">
-          <div
-            *ngFor="let artist of artists"
-            (click)="viewArtist(artist)"
-            class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          >
-            <div
-              class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-3"
+        <!-- Recently Played -->
+        <div *ngIf="activeTab === 'recent'">
+          <div class="space-y-2">
+            <app-song-item
+              *ngFor="let song of recentSongs; let i = index; trackBy: trackBySongId"
+              [song]="song"
+              [playlist]="recentSongs"
+              [index]="i"
+              (play)="playSong($event)"
+              (showMenu)="showSongMenu($event)"
+              (toggleFavorite)="toggleFavorite($event)"
             >
-              <i class="fa-solid fa-music text-white text-2xl"></i>
-            </div>
-            <h3
-              class="font-medium text-gray-900 dark:text-white text-center truncate"
-            >
-              {{ artist.name }}
-            </h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
-              {{ artist.songCount }} bài hát
+            </app-song-item>
+          </div>
+          <div *ngIf="recentSongs.length === 0" class="text-center py-12">
+            <i
+              class="fas fa-history text-4xl text-gray-300 dark:text-gray-600 mb-4"
+            ></i>
+            <p class="text-gray-500 dark:text-gray-400">
+              Chưa có bài hát nào được nghe gần đây
             </p>
           </div>
         </div>
-        <div *ngIf="artists.length === 0" class="text-center py-12">
-          <i
-            class="fas fa-microphone text-4xl text-gray-300 dark:text-gray-600 mb-4"
-          ></i>
-          <p class="text-gray-500 dark:text-gray-400">Chưa có nghệ sĩ nào</p>
-        </div>
-      </div>
 
-      <!-- Favorites -->
-      <div *ngIf="activeTab === 'favorites'">
-        <div class="space-y-2">
-          <app-song-item
-            *ngFor="let song of favoriteSongs; let i = index; trackBy: trackBySongId"
-            [song]="song"
-            [playlist]="favoriteSongs"
-            [index]="i"
-            (play)="playSong($event)"
-            (showMenu)="showSongMenu($event)"
-            (toggleFavorite)="toggleFavorite($event)"
-          >
-          </app-song-item>
+        <!-- Artists -->
+        <div *ngIf="activeTab === 'artists'">
+          <div class="grid grid-cols-2 gap-4">
+            <div
+              *ngFor="let artist of artists"
+              (click)="viewArtist(artist)"
+              class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <div
+                class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-3"
+              >
+                <i class="fa-solid fa-music text-white text-2xl"></i>
+              </div>
+              <h3
+                class="font-medium text-gray-900 dark:text-white text-center truncate"
+              >
+                {{ artist.name }}
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
+                {{ artist.songCount }} bài hát
+              </p>
+            </div>
+          </div>
+          <div *ngIf="artists.length === 0" class="text-center py-12">
+            <i
+              class="fas fa-microphone text-4xl text-gray-300 dark:text-gray-600 mb-4"
+            ></i>
+            <p class="text-gray-500 dark:text-gray-400">Chưa có nghệ sĩ nào</p>
+          </div>
         </div>
-        <div *ngIf="favoriteSongs.length === 0" class="text-center py-12">
-          <i
-            class="fas fa-heart text-4xl text-gray-300 dark:text-gray-600 mb-4"
-          ></i>
-          <p class="text-gray-500 dark:text-gray-400">
-            Chưa có bài hát yêu thích nào
-          </p>
-        </div>
-      </div>
-      </div>
-      <div class="h-[195px]">
 
+        <!-- Favorites -->
+        <div *ngIf="activeTab === 'favorites'">
+          <div class="space-y-2">
+            <app-song-item
+              *ngFor="let song of favoriteSongs; let i = index; trackBy: trackBySongId"
+              [song]="song"
+              [playlist]="favoriteSongs"
+              [index]="i"
+              (play)="playSong($event)"
+              (showMenu)="showSongMenu($event)"
+              (toggleFavorite)="toggleFavorite($event)"
+            >
+            </app-song-item>
+          </div>
+          <div *ngIf="favoriteSongs.length === 0" class="text-center py-12">
+            <i
+              class="fas fa-heart text-4xl text-gray-300 dark:text-gray-600 mb-4"
+            ></i>
+            <p class="text-gray-500 dark:text-gray-400">
+              Chưa có bài hát yêu thích nào
+            </p>
+          </div>
+        </div>
       </div>
+      <div class="h-[195px]"></div>
     </div>
   </div>
 </div>

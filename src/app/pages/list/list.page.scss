@@ -1,7 +1,16 @@
 .scrollbar-hide {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    .scrollbar-hide::-webkit-scrollbar {
-      display: none;
-    }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+cdk-virtual-scroll-viewport {
+  height: calc(100vh - 200px); // Điều chỉnh theo header/footer
+  width: 100%;
+}
+
+.cdk-virtual-scroll-content-wrapper {
+  width: 100%;
+}
