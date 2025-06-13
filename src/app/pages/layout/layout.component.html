@@ -54,7 +54,7 @@
       <div class="flex items-center space-x-4">
         <button
           (click)="previousSong()"
-          class="text-gray-600 dark:text-gray-300"
+          class="text-gray-300"
         >
           <i class="fas fa-step-backward"></i>
         </button>
@@ -78,7 +78,7 @@
           ></i>
         </button>
 
-        <button (click)="nextSong()" class="text-gray-600 dark:text-gray-300">
+        <button (click)="nextSong()" class="text-gray-300">
           <i class="fas fa-step-forward"></i>
         </button>
       </div>
@@ -90,19 +90,18 @@
           scrollamount="4"
           scrolldelay="0"
           loop="infinite"
-          class="text-sm font-medium text-gray-900 dark:text-white"
+          class="text-sm font-medium text-white"
         >
           {{ currentSong.title }}
         </marquee>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+        <p class="text-xs text-gray-400 truncate">
           {{ currentSong.artist }}
         </p>
       </div>
 
-      <!-- Player Controls -->
       <div class="h-full">
         <div
-          class="flex flex-col !justify-end items-center text-gray-900 dark:text-gray-400 mt-2"
+          class="flex flex-col !justify-end items-center text-gray-400 mt-2"
         >
           <i class="fa-solid fa-list-ul fa-lg"></i>
         </div>
