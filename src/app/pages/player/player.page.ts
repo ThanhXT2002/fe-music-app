@@ -69,7 +69,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   });
 
   durationTime = computed(() => this.formatTime(this.duration()));
-    ngOnInit() {
+
+  ngOnInit() {
     this.setPlayerThemeColor();
     this.setupBufferTracking();
   }
@@ -420,11 +421,18 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   // Utility methods
   formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  if (!seconds || isNaN(seconds)) return '0:00';
+
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  } else {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
+}
 
   getRepeatColor(): string {
     return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-gray-400';
