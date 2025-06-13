@@ -100,7 +100,7 @@ export class PlayerPage implements OnInit, OnDestroy {
 
   toggleRepeat() {
     this.audioPlayerService.toggleRepeat();
-  } // Enhanced Progress bar interaction
+  }  // Enhanced Progress bar interaction
   onProgressClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -108,18 +108,24 @@ export class PlayerPage implements OnInit, OnDestroy {
     const progress = this.calculateProgress(event);
     const newTime = (progress / 100) * this.duration();
 
+    console.log(`🎯 Click seek to: ${newTime.toFixed(2)}s (${progress.toFixed(1)}%)`);
+
     // Immediate UI feedback
     this.tempProgress.set(progress);
     this.isDragging.set(true);
 
-    // Perform seek
+    // Perform seek with proper error handling
     this.audioPlayerService
       .seek(newTime)
       .then(() => {
+        console.log('✅ Click seek completed');
         this.isDragging.set(false);
       })
-      .catch(() => {
-        this.isDragging.set(false);
+      .catch((error) => {
+        console.error('❌ Click seek failed:', error);
+        this.isDragging.set(false);        // Reset to current position on error
+        const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+        this.tempProgress.set(currentProgress);
       });
   }
 
@@ -150,17 +156,29 @@ export class PlayerPage implements OnInit, OnDestroy {
       this.updateProgress(event);
     }
   }
-
   onProgressEnd(event: MouseEvent | TouchEvent) {
     if (this.isDragging()) {
       this.updateProgress(event);
       const newTime = (this.tempProgress() / 100) * this.duration();
 
-      // Perform seek with error handling
-      this.audioPlayerService.seek(newTime).finally(() => {
-        this.isDragging.set(false);
-        this.cleanupGlobalListeners();
-      });
+      console.log(`🎯 Drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(1)}%)`);
+
+      // Perform seek with proper error handling
+      this.audioPlayerService
+        .seek(newTime)
+        .then(() => {
+          console.log('✅ Drag seek completed');
+        })
+        .catch((error) => {
+          console.error('❌ Drag seek failed:', error);
+          // Reset to current position on error
+          const currentProgress = this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+          this.tempProgress.set(currentProgress);
+        })
+        .finally(() => {
+          this.isDragging.set(false);
+          this.cleanupGlobalListeners();
+        });
     }
   }
 
