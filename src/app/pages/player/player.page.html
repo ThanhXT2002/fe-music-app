@@ -1,5 +1,6 @@
 <!-- Main Player Container -->
 <div
+#modalContent
   class="player-container h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white relative overflow-hidden"
 >
   <!-- Background Album Art -->
@@ -14,7 +15,7 @@
   </div>
 
   <!-- Header -->
-  <div class="relative z-10 flex items-center justify-between p-4">
+  <div class="relative z-10 flex items-center justify-between p-4 pt-6">
     <button
       (click)="closeModal()"
       class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"

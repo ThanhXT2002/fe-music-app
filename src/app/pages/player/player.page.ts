@@ -2,15 +2,18 @@ import {
   Component,
   OnInit,
   OnDestroy,
+  AfterViewInit,
   inject,
   signal,
   computed,
+  ViewChild,
+  ElementRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
-import { ModalController, IonicModule } from '@ionic/angular';
+import { ModalController, IonicModule,Gesture, GestureController } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
 
 @Component({
@@ -20,12 +23,13 @@ import { ThemeService } from 'src/app/services/theme.service';
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss'],
 })
-export class PlayerPage implements OnInit, OnDestroy {
+export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private router = inject(Router);
   private modalCtrl = inject(ModalController);
   private themeService = inject(ThemeService);
+  private gestureCtrl = inject(GestureController);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -42,6 +46,10 @@ export class PlayerPage implements OnInit, OnDestroy {
   hoverProgress = signal(-1); // -1 means not hovering
   isHoveringProgress = signal(false);
   bufferProgress = this.audioPlayerService.bufferProgress;
+
+  @ViewChild('modalContent', { read: ElementRef }) modalContent!: ElementRef;
+
+  private swipeGesture!: Gesture;
 
   // Computed values
   progress = computed(() => {
@@ -61,14 +69,71 @@ export class PlayerPage implements OnInit, OnDestroy {
   });
 
   durationTime = computed(() => this.formatTime(this.duration()));
-  ngOnInit() {
+    ngOnInit() {
     this.setPlayerThemeColor();
     this.setupBufferTracking();
   }
+
+  ngAfterViewInit() {
+    // Delay để đảm bảo DOM đã render hoàn toàn
+    setTimeout(() => {
+      this.createSwipeGesture();
+    }, 100);
+  }
+
   ngOnDestroy() {
     this.themeService.updateHeaderThemeColor(this.themeService.isDarkMode());
     this.cleanupGlobalListeners();
+    if (this.swipeGesture) {
+      this.swipeGesture.destroy();
+    }
+  }  private createSwipeGesture() {
+    if (!this.modalContent?.nativeElement) {
+      return;
+    }
+
+    try {
+      this.swipeGesture = this.gestureCtrl.create({
+        el: this.modalContent.nativeElement,
+        threshold: 15,
+        gestureName: 'swipe-down',
+        direction: 'y',
+        onMove: (ev) => this.onSwipeMove(ev),
+        onEnd: (ev) => this.onSwipeEnd(ev),
+      });
+      this.swipeGesture.enable();
+    } catch (error) {
+      console.error('Error creating swipe gesture:', error);
+    }
+  }  private onSwipeMove(ev: any) {
+    // Chỉ cho phép vuốt xuống từ đầu trang (deltaY > 0 và startY gần top)
+    if (ev.deltaY > 0 && ev.startY < 100) {
+      const translateY = Math.min(ev.deltaY, 300); // Giới hạn khoảng cách tối đa
+      this.modalContent.nativeElement.style.transform = `translateY(${translateY}px)`;
+      this.modalContent.nativeElement.style.transition = 'none';
+    }
   }
+  private onSwipeEnd(ev: any) {
+    const threshold = 80; // Khoảng cách vuốt tối thiểu để đóng modal
+
+    if (ev.deltaY > threshold && ev.startY < 100) {
+      // Đóng modal nếu vuốt đủ xa từ đầu trang
+      this.modalContent.nativeElement.style.transition = 'transform 0.3s ease';
+      this.modalContent.nativeElement.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        this.closeModal();
+      }, 300);
+    } else {
+      // Trở về vị trí ban đầu nếu không đủ xa
+      this.modalContent.nativeElement.style.transition = 'transform 0.3s ease';
+      this.modalContent.nativeElement.style.transform = 'translateY(0px)';
+
+      setTimeout(() => {
+        this.modalContent.nativeElement.style.transition = '';
+      }, 300);
+    }
+  }
+
   private setupBufferTracking() {
     // Theo dõi buffer progress thông qua audio service
     // Sẽ được cập nhật qua signals từ audio service
