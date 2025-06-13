@@ -4,11 +4,12 @@ import { Router } from '@angular/router';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
 import { Song } from '../../interfaces/song.interface';
+import { ModalController, IonicModule } from '@ionic/angular';
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule,IonicModule],
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss']
 })
@@ -16,6 +17,7 @@ export class PlayerPage implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private router = inject(Router);
+  private modalCtrl = inject(ModalController);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -64,8 +66,8 @@ export class PlayerPage implements OnInit, OnDestroy {
     // Cleanup if needed
   }
 
-  goBack() {
-    this.router.navigate(['/tabs/list']);
+  closeModal() {
+    this.modalCtrl.dismiss();
   }
 
   togglePlayPause() {

@@ -24,6 +24,7 @@ import {
 import { SearchComponent } from 'src/app/components/search/search.component';
 import { Platform } from '@ionic/angular';
 import { RefreshService } from 'src/app/services/refresh.service';
+import { PlayerPage } from '../player/player.page';
 
 @Component({
   selector: 'app-layout',
@@ -67,10 +68,25 @@ export class LayoutComponent implements OnDestroy {
       ? 'bottom-[90px]'
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
-  @ViewChild('nav') private nav!: IonNav;
+  @ViewChild('navSearch') private navSearch!: IonNav;
+  @ViewChild('navPlayer') private navPlayer!: IonNav;
+  @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
+  @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
 
-  onWillPresent() {
-    this.nav.setRoot(SearchComponent);
+  onWillPresentSearch() {
+    this.navSearch.setRoot(SearchComponent);
+  }
+
+  onWillPresentPlayer() {
+    this.navPlayer.setRoot(PlayerPage);
+  }
+
+  openSearchModal() {
+    this.searchModal.present();
+  }
+
+  openPlayerModal() {
+    this.playerModal.present();
   }
 
   async handleRefresh(event: CustomEvent) {
@@ -123,6 +139,7 @@ export class LayoutComponent implements OnDestroy {
   openFullPlayer() {
     this.router.navigate(['/player']);
   }
+
 
   toggleSearch() {
     if (!this.showSearch) {
