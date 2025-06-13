@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { RefreshService } from './refresh.service';
 
 // Define DownloadTask interface directly in this file
 export interface DownloadTask {
@@ -35,7 +36,8 @@ export class DownloadService {
 
   constructor(
     private http: HttpClient,
-    private databaseService: DatabaseService
+    private databaseService: DatabaseService,
+     private refreshService: RefreshService
   ) {
     this.loadDownloadsFromStorage();
   }
@@ -425,6 +427,7 @@ export class DownloadService {
       if (success) {
         // Đánh dấu đã download trong search history
         await this.databaseService.markAsDownloaded(songData.id);
+        this.refreshService.triggerRefresh();
         console.log('✅ Song saved to database:', songData.title);
       } else {
         console.error('❌ Failed to save song to database');
