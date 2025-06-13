@@ -13,7 +13,7 @@ export interface ThemePreferences {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ThemeService {
   private _preferences = signal<ThemePreferences>({
@@ -25,7 +25,7 @@ export class ThemeService {
     notifications: true,
     backgroundPlay: true,
     storageLocation: '/storage/music',
-    cacheSize: 500
+    cacheSize: 500,
   });
 
   // Public readonly signals
@@ -49,7 +49,9 @@ export class ThemeService {
         this._preferences.set(preferences);
       } else {
         // Check system preference for initial dark mode
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const prefersDark =
+          window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (prefersDark) {
           this.updatePreferences({ darkMode: true });
         }
@@ -61,7 +63,10 @@ export class ThemeService {
 
   private savePreferences() {
     try {
-      localStorage.setItem('theme-preferences', JSON.stringify(this._preferences()));
+      localStorage.setItem(
+        'theme-preferences',
+        JSON.stringify(this._preferences())
+      );
     } catch (error) {
       console.warn('Failed to save theme preferences:', error);
     }
@@ -74,6 +79,8 @@ export class ThemeService {
     } else {
       htmlElement.classList.remove('dark');
     }
+
+    this.updateHeaderThemeColor(isDark);
   }
 
   public updatePreferences(updates: Partial<ThemePreferences>) {
@@ -102,8 +109,25 @@ export class ThemeService {
       notifications: true,
       backgroundPlay: true,
       storageLocation: '/storage/music',
-      cacheSize: 500
+      cacheSize: 500,
     });
     this.savePreferences();
+  }
+
+  //header theme color
+  private updateHeaderThemeColor(isDark: boolean) {
+    const themeColor = isDark ? '#1f2937' : '#ffffff'; // Hoặc màu bạn muốn
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', themeColor);
+    }
+  }
+
+  // Thêm method public để các page khác có thể set màu riêng
+  public setPageHeaderThemeColor(color: string) {
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', color);
+    }
   }
 }
