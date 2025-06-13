@@ -25,7 +25,6 @@ export class AudioPlayerService {
   public playbackState = this._playbackState.asReadonly();
   private updateInterval?: number;
   private audioCache = new Map<string, string>(); // Cache cho blob URLs
-
   // Additional signals for PlayerPage
   currentSong = signal<Song | null>(null);
   currentTime = signal<number>(0);
@@ -35,6 +34,7 @@ export class AudioPlayerService {
   repeatModeSignal = signal<'none' | 'one' | 'all'>('none');
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
+  bufferProgress = signal<number>(0);
 
   constructor(private databaseService: DatabaseService) {
     this.setupAudioEventListeners();
@@ -206,11 +206,9 @@ export class AudioPlayerService {
   destroy() {
     this.stopTimeUpdate();
     this.audio.pause();
-    this.audio.src = '';
-    this.clearAudioCache(); // Clear cache khi destroy
+    this.audio.src = '';    this.clearAudioCache(); // Clear cache khi destroy
   }
 
-  // Rest of the methods remain the same...
   private setupAudioEventListeners() {
     this.audio.addEventListener('loadedmetadata', () => {
       this._playbackState.update(state => ({
@@ -224,6 +222,15 @@ export class AudioPlayerService {
         ...state,
         currentTime: this.audio.currentTime
       }));
+    });
+
+    // Buffer progress tracking
+    this.audio.addEventListener('progress', () => {
+      this.updateBufferProgress();
+    });
+
+    this.audio.addEventListener('loadedmetadata', () => {
+      this.updateBufferProgress();
     });
 
     this.audio.addEventListener('ended', () => {
@@ -257,7 +264,30 @@ export class AudioPlayerService {
       }));
     });
   }
+  private updateBufferProgress() {
+    try {
+      if (this.audio.buffered.length > 0 && this.audio.duration > 0) {
+        // Get the last buffered range (most relevant)
+        const lastBufferIndex = this.audio.buffered.length - 1;
+        const bufferedEnd = this.audio.buffered.end(lastBufferIndex);
+        const bufferPercent = (bufferedEnd / this.audio.duration) * 100;
 
+        // Only update if there's a meaningful change
+        const currentBuffer = this.bufferProgress();
+        const newBuffer = Math.min(100, Math.max(0, bufferPercent));
+
+        if (Math.abs(newBuffer - currentBuffer) > 0.5) {
+          this.bufferProgress.set(newBuffer);
+          console.log(`📊 Buffer: ${newBuffer.toFixed(1)}% (${bufferedEnd.toFixed(1)}s / ${this.audio.duration.toFixed(1)}s)`);
+        }
+      } else {
+        // Reset buffer if no data
+        this.bufferProgress.set(0);
+      }
+    } catch (error) {
+      console.warn('Buffer progress update failed:', error);
+    }
+  }
   private setupSignalUpdates() {
     setInterval(() => {
       const state = this._playbackState();
@@ -269,6 +299,9 @@ export class AudioPlayerService {
       this.repeatModeSignal.set(state.repeatMode);
       this.queue.set(state.currentPlaylist);
       this.currentIndex.set(state.currentIndex);
+
+      // Update buffer progress more frequently
+      this.updateBufferProgress();
     }, 100);
   }
 
@@ -291,15 +324,56 @@ export class AudioPlayerService {
       await this.resume();
     }
   }
-
   seekTo(time: number) {
     if (this.audio.duration) {
-      this.audio.currentTime = Math.max(0, Math.min(time, this.audio.duration));
+      const clampedTime = Math.max(0, Math.min(time, this.audio.duration));
+      this.audio.currentTime = clampedTime;
+
+      // Force update state immediately
+      this._playbackState.update(state => ({
+        ...state,
+        currentTime: clampedTime
+      }));
+
+      // Update signal immediately
+      this.currentTime.set(clampedTime);
+
+      console.log(`🎯 Seeking to: ${clampedTime.toFixed(2)}s / ${this.audio.duration.toFixed(2)}s`);
     }
   }
 
   async seek(time: number) {
-    this.seekTo(time);
+    const wasPlaying = this.isPlayingSignal();
+
+    try {
+      // Pause if playing to prevent audio glitches during seek
+      if (wasPlaying && !this.audio.paused) {
+        console.log('🔄 Pausing for seek...');
+        await this.audio.pause();
+      }
+
+      // Perform seek
+      this.seekTo(time);
+
+      // Wait a bit for seek to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Resume if was playing
+      if (wasPlaying) {
+        console.log('▶️ Resuming after seek...');
+        try {
+          await this.audio.play();
+        } catch (playError) {
+          console.warn('Failed to resume after seek:', playError);
+        }
+      }
+
+      console.log('✅ Seek completed successfully');
+
+    } catch (error) {
+      console.error('❌ Seek failed:', error);
+      throw error;
+    }
   }
 
   setVolume(volume: number) {
