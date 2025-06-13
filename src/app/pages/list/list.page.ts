@@ -7,6 +7,8 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { ListPageStateService } from '../../services/list-page-state.service';
 import { SongItemComponent } from '../../components/shared/song-item.component';
 import { IonContent, IonHeader, IonToolbar, IonTitle } from "@ionic/angular/standalone";
+import { RefreshService } from 'src/app/services/refresh.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-list',
@@ -16,6 +18,7 @@ import { IonContent, IonHeader, IonToolbar, IonTitle } from "@ionic/angular/stan
   imports: [ CommonModule, SongItemComponent]
 })
 export class ListPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef;
 
   tabs = [
@@ -30,7 +33,8 @@ export class ListPage implements OnInit, OnDestroy {
   constructor(
     private databaseService: DatabaseService,
     private audioPlayerService: AudioPlayerService,
-    private stateService: ListPageStateService
+    private stateService: ListPageStateService,
+    private refreshService: RefreshService
   ) {}
 
   // Use getters to access state reactively
@@ -57,6 +61,8 @@ export class ListPage implements OnInit, OnDestroy {
   get artists() {
     return this.stateService.artists;
   }
+
+
   async ngOnInit() {
     // Restore scroll position if available
     setTimeout(() => {
@@ -69,6 +75,13 @@ export class ListPage implements OnInit, OnDestroy {
     if (!this.stateService.isDataLoaded) {
       await this.loadData();
     }
+
+     this.refreshService.refresh$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        console.log('Received refresh signal in HomePage');
+         this.loadData();
+      });
   }
 
   ngOnDestroy() {
@@ -76,6 +89,9 @@ export class ListPage implements OnInit, OnDestroy {
     if (this.scrollContainer) {
       this.stateService.setScrollPosition(this.scrollContainer.nativeElement.scrollTop);
     }
+
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onTabChange(tab: any) {

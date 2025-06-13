@@ -3,23 +3,45 @@ import { CommonModule } from '@angular/common';
 import {
   RouterLink,
   RouterLinkActive,
-  Router,
+  Router
 } from '@angular/router';
 import { Song } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Subject } from 'rxjs';
 import { SearchService } from 'src/app/services/search.service';
 import { FormsModule } from '@angular/forms';
-import {  IonHeader, IonContent, IonRouterOutlet, IonToolbar, IonFooter, IonModal,
-  IonNav,  } from "@ionic/angular/standalone";
+import {
+  IonHeader,
+  IonContent,
+  IonRouterOutlet,
+  IonToolbar,
+  IonFooter,
+  IonModal,
+  IonNav,
+  IonRefresher,
+  IonRefresherContent,
+} from '@ionic/angular/standalone';
 import { SearchComponent } from 'src/app/components/search/search.component';
 import { Platform } from '@ionic/angular';
-
-
+import { RefreshService } from 'src/app/services/refresh.service';
 
 @Component({
   selector: 'app-layout',
-  imports: [ IonFooter, IonToolbar, IonRouterOutlet, IonContent, IonHeader, CommonModule, RouterLink, RouterLinkActive, FormsModule,IonModal, IonNav,],
+  imports: [
+    IonRefresher,
+    IonFooter,
+    IonToolbar,
+    IonRouterOutlet,
+    IonContent,
+    IonHeader,
+    CommonModule,
+    RouterLink,
+    RouterLinkActive,
+    FormsModule,
+    IonModal,
+    IonNav,
+    IonRefresherContent,
+  ],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
@@ -30,6 +52,7 @@ export class LayoutComponent implements OnDestroy {
   private router = inject(Router);
   private searchService = inject(SearchService);
   private platform = inject(Platform);
+ private refreshService = inject(RefreshService);
 
   showSearch = false;
   isVisible = false;
@@ -39,12 +62,34 @@ export class LayoutComponent implements OnDestroy {
   currentSong: Song | null = null;
   isPlaying = false;
   progressPercentage = 0;
-  bottomPosition:string=  this.platform.is('ios') && this.platform.is('pwa')  ? 'bottom-[90px]' : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
+  bottomPosition: string =
+    this.platform.is('ios') && this.platform.is('pwa')
+      ? 'bottom-[90px]'
+      : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
   @ViewChild('nav') private nav!: IonNav;
 
   onWillPresent() {
     this.nav.setRoot(SearchComponent);
+  }
+
+  async handleRefresh(event: CustomEvent) {
+    // Tạo loading
+    // const loading = await this.loadingCtrl.create({
+    //   message: 'Đang làm mới...',
+    //   spinner: 'crescent',
+    //   duration: 1500
+    // });
+
+    // await loading.present();
+
+    setTimeout(() => {
+      // Trigger refresh cho tất cả page đang subscribe
+      this.refreshService.triggerRefresh();
+
+      // Complete refresher
+      (event.target as HTMLIonRefresherElement).complete();
+    }, 1500);
   }
 
   // Move effect to field initializer để tránh lỗi injection context
@@ -80,20 +125,20 @@ export class LayoutComponent implements OnDestroy {
   }
 
   toggleSearch() {
-  if (!this.showSearch) {
-    // Mở: cho hiện luôn và áp hiệu ứng
-    this.isVisible = true;
-    setTimeout(() => {
-      this.showSearch = true;
-    }, 10); // delay nhỏ để áp class `slide-down`
-  } else {
-    // Đóng: áp hiệu ứng trước rồi ẩn hẳn
-    this.showSearch = false;
-    setTimeout(() => {
-      this.isVisible = false;
-    }, 300); // chờ hiệu ứng `slide-up` xong rồi mới ẩn
+    if (!this.showSearch) {
+      // Mở: cho hiện luôn và áp hiệu ứng
+      this.isVisible = true;
+      setTimeout(() => {
+        this.showSearch = true;
+      }, 10); // delay nhỏ để áp class `slide-down`
+    } else {
+      // Đóng: áp hiệu ứng trước rồi ẩn hẳn
+      this.showSearch = false;
+      setTimeout(() => {
+        this.isVisible = false;
+      }, 300); // chờ hiệu ứng `slide-up` xong rồi mới ẩn
+    }
   }
-}
 
   async onSearchInput() {
     if (this.searchQuery.trim().length < 2) {
