@@ -1,12 +1,14 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonIcon, IonProgressBar, IonSpinner } from '@ionic/angular/standalone';
+import { IonButton, IonIcon, IonProgressBar, IonSpinner, ModalController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { download, cloudDownload, checkmarkCircle, closeCircle, pause, play } from 'ionicons/icons';
+import { download, cloudDownload, checkmarkCircle, closeCircle, pause, play, time } from 'ionicons/icons';
 
 import { Song, DataSong } from '../../interfaces/song.interface';
 import { DownloadService } from '../../services/download.service';
 import { DatabaseService } from '../../services/database.service';
+import { BackgroundDownloadService } from '../../services/background-download.service';
+import { DownloadSchedulerComponent } from '../download-scheduler/download-scheduler.component';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
@@ -14,16 +16,27 @@ import { Subject, takeUntil } from 'rxjs';
   template: `
     <div class="download-button-container">
       <!-- Not Downloaded State -->
-      <ion-button
-        *ngIf="downloadStatus === 'none'"
-        fill="outline"
-        size="small"
-        (click)="onDownloadClick()"
-        [disabled]="isLoading"
-        class="download-btn">
-        <ion-icon name="download" slot="start"></ion-icon>
-        Download
-      </ion-button>
+      <div *ngIf="downloadStatus === 'none'" class="download-options flex items-center space-x-2">
+        <ion-button
+          fill="outline"
+          size="small"
+          (click)="onDownloadClick()"
+          [disabled]="isLoading"
+          class="download-btn">
+          <ion-icon name="download" slot="start"></ion-icon>
+          Download
+        </ion-button>
+
+        <ion-button
+          fill="clear"
+          size="small"
+          (click)="onOpenScheduler()"
+          [disabled]="isLoading"
+          class="schedule-btn">
+          <ion-icon name="time" slot="start"></ion-icon>
+          Schedule
+        </ion-button>
+      </div>
 
       <!-- Downloading State -->
       <div
@@ -68,6 +81,17 @@ import { Subject, takeUntil } from 'rxjs';
         <ion-icon name="cloud-download" slot="start"></ion-icon>
         Retry
       </ion-button>
+
+      <!-- Scheduled Download State -->
+      <ion-button
+        *ngIf="downloadStatus === 'scheduled'"
+        fill="outline"
+        size="small"
+        (click)="onOpenScheduler()"
+        class="scheduled-btn">
+        <ion-icon name="time" slot="start"></ion-icon>
+        Scheduled
+      </ion-button>
     </div>
   `,
   styles: [`
@@ -75,6 +99,10 @@ import { Subject, takeUntil } from 'rxjs';
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .download-options {
+      min-width: 120px;
     }
 
     .downloading-container {
@@ -100,6 +128,10 @@ import { Subject, takeUntil } from 'rxjs';
     .cancel-btn {
       --color: var(--ion-color-medium);
     }
+
+    .scheduled-btn {
+      --color: var(--ion-color-warning);
+    }
   `],
   imports: [CommonModule, IonButton, IonIcon, IonSpinner],
   standalone: true
@@ -115,7 +147,7 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
   @Output() downloadFailed = new EventEmitter<string>();
   @Output() downloadCancelled = new EventEmitter<void>();
 
-  downloadStatus: 'none' | 'downloading' | 'completed' | 'failed' = 'none';
+  downloadStatus: 'none' | 'downloading' | 'completed' | 'failed' | 'scheduled' = 'none';
   downloadProgress = 0;
   isLoading = false;
 
@@ -124,9 +156,11 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
   constructor(
     private downloadService: DownloadService,
     private databaseService: DatabaseService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private modalController: ModalController,
+    private backgroundDownloadService: BackgroundDownloadService
   ) {
-    addIcons({ download, cloudDownload, checkmarkCircle, closeCircle, pause, play });
+    addIcons({ download, cloudDownload, checkmarkCircle, closeCircle, pause, play, time });
   }
 
   ngOnInit() {
@@ -194,6 +228,28 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
     this.downloadProgress = 0;
     await this.onDownloadClick();
   }
+  async onOpenScheduler() {
+    if (!this.youtubeData) {
+      console.error('No YouTube data provided for scheduling');
+      return;
+    }
+
+    const modal = await this.modalController.create({
+      component: DownloadSchedulerComponent,
+      componentProps: {
+        songData: this.youtubeData
+      }
+    });
+
+    modal.onDidDismiss().then((data) => {
+      if (data.role === 'success') {
+        this.downloadStatus = 'scheduled';
+        this.cdr.markForCheck();
+      }
+    });
+
+    await modal.present();
+  }
 
   /**
    * Get icon name based on download status
@@ -206,6 +262,8 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
         return 'checkmark-circle';
       case 'failed':
         return 'close-circle';
+      case 'scheduled':
+        return 'time';
       default:
         return 'download';
     }
@@ -222,6 +280,8 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
         return 'danger';
       case 'downloading':
         return 'medium';
+      case 'scheduled':
+        return 'warning';
       default:
         return 'primary';
     }
@@ -246,5 +306,12 @@ export class DownloadButtonComponent implements OnInit, OnDestroy {
    */
   get isFailed(): boolean {
     return this.downloadStatus === 'failed';
+  }
+
+  /**
+   * Check if download is scheduled
+   */
+  get isScheduled(): boolean {
+    return this.downloadStatus === 'scheduled';
   }
 }

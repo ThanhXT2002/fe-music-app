@@ -1,0 +1,238 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Analytics Dashboard</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshData()">
+        <ion-icon name="refresh"></ion-icon>
+      </ion-button>
+      <ion-button (click)="exportReport()">
+        <ion-icon name="download"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="dashboard-container" *ngIf="!isLoading; else loadingTemplate">
+
+    <!-- System Health Overview -->
+    <ion-card *ngIf="systemHealth">
+      <ion-card-header>
+        <ion-card-title>System Health</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="health-grid">
+          <div class="health-item">
+            <h3>Overall</h3>
+            <ion-badge [color]="getHealthColor(systemHealth.overall === 'excellent' ? 100 : systemHealth.overall === 'good' ? 80 : systemHealth.overall === 'fair' ? 60 : 40)">
+              {{ systemHealth.overall | titlecase }}
+            </ion-badge>
+          </div>
+          <div class="health-item">
+            <h3>Download</h3>
+            <ion-badge [color]="systemHealth.download.status === 'healthy' ? 'success' : systemHealth.download.status === 'degraded' ? 'warning' : 'danger'">
+              {{ systemHealth.download.status | titlecase }}
+            </ion-badge>
+            <p>Success Rate: {{ systemHealth.download.successRate }}%</p>
+            <p>Avg Speed: {{ formatSpeed(systemHealth.download.avgSpeed) }}</p>
+          </div>
+          <div class="health-item">
+            <h3>Storage</h3>
+            <ion-badge [color]="systemHealth.storage.status === 'healthy' ? 'success' : systemHealth.storage.status === 'warning' ? 'warning' : 'danger'">
+              {{ systemHealth.storage.status | titlecase }}
+            </ion-badge>
+            <p>Usage: {{ systemHealth.storage.usagePercent }}%</p>
+            <p>Free: {{ formatBytes(systemHealth.storage.freeSpace) }}</p>
+          </div>
+          <div class="health-item">
+            <h3>Performance</h3>
+            <ion-badge [color]="systemHealth.performance.status === 'healthy' ? 'success' : systemHealth.performance.status === 'degraded' ? 'warning' : 'danger'">
+              {{ systemHealth.performance.status | titlecase }}
+            </ion-badge>
+            <p>Memory: {{ formatBytes(systemHealth.performance.memoryUsage) }}</p>
+            <p>Error Rate: {{ systemHealth.performance.errorRate }}%</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Active Alerts -->
+    <ion-card *ngIf="activeAlerts.length > 0">
+      <ion-card-header>
+        <ion-card-title>Active Alerts ({{ activeAlerts.length }})</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let alert of activeAlerts">
+            <ion-icon
+              [name]="alert.severity === 'critical' ? 'warning' : alert.severity === 'high' ? 'alert' : 'information-circle'"
+              [color]="getAlertColor(alert.severity)"
+              slot="start">
+            </ion-icon>
+            <ion-label>
+              <h3>{{ alert.message }}</h3>
+              <p>{{ alert.timestamp | date:'short' }}</p>
+              <p>Severity: {{ alert.severity | titlecase }}</p>
+            </ion-label>
+            <ion-buttons slot="end">
+              <ion-button size="small" (click)="acknowledgeAlert(alert.id)">
+                <ion-icon name="checkmark"></ion-icon>
+              </ion-button>
+              <ion-button size="small" (click)="clearAlert(alert.id)">
+                <ion-icon name="close"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Analytics Summary -->
+    <ion-card *ngIf="analyticsReport">
+      <ion-card-header>
+        <ion-card-title>Download Analytics</ion-card-title>
+        <ion-card-subtitle>
+          {{ analyticsReport.timeRange.start | date:'short' }} - {{ analyticsReport.timeRange.end | date:'short' }}
+        </ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="analytics-grid">
+          <div class="metric-card">
+            <h3>{{ analyticsReport.downloads.total }}</h3>
+            <p>Total Downloads</p>
+          </div>
+          <div class="metric-card">
+            <h3>{{ analyticsReport.downloads.successRate.toFixed(1) }}%</h3>
+            <p>Success Rate</p>
+          </div>
+          <div class="metric-card">
+            <h3>{{ formatSpeed(analyticsReport.downloads.avgDownloadSpeed) }}</h3>
+            <p>Avg Speed</p>
+          </div>
+          <div class="metric-card">
+            <h3>{{ formatBytes(analyticsReport.downloads.totalDataDownloaded) }}</h3>
+            <p>Total Data</p>
+          </div>
+        </div>
+
+        <!-- Charts would go here if chart library is available -->
+        <div class="charts-container" *ngIf="successRateData">
+          <!-- Placeholder for charts -->
+          <div class="chart-placeholder">
+            <h4>Success Rate Distribution</h4>
+            <p>Successful: {{ analyticsReport.downloads.successful }}</p>
+            <p>Failed: {{ analyticsReport.downloads.failed }}</p>
+            <p>Cancelled: {{ analyticsReport.downloads.cancelled }}</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Storage Analytics -->
+    <ion-card *ngIf="analyticsReport">
+      <ion-card-header>
+        <ion-card-title>Storage Usage</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="storage-metrics">
+          <div class="storage-item">
+            <h4>Current Usage</h4>
+            <p>{{ formatBytes(analyticsReport.storage.currentUsage) }}</p>
+          </div>
+          <div class="storage-item">
+            <h4>Peak Usage</h4>
+            <p>{{ formatBytes(analyticsReport.storage.peakUsage) }}</p>
+          </div>
+          <div class="storage-item">
+            <h4>Cleanup Frequency</h4>
+            <p>{{ analyticsReport.storage.cleanupFrequency }} times</p>
+          </div>
+          <div class="storage-item">
+            <h4>Wasted Space</h4>
+            <p>{{ formatBytes(analyticsReport.storage.wastedSpace) }}</p>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Performance Metrics -->
+    <ion-card *ngIf="analyticsReport">
+      <ion-card-header>
+        <ion-card-title>Performance Metrics</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="performance-metrics">
+          <div class="perf-item">
+            <h4>Avg Start Time</h4>
+            <p>{{ analyticsReport.performance.avgStartTime.toFixed(0) }}ms</p>
+          </div>
+          <div class="perf-item">
+            <h4>Fastest Download</h4>
+            <p>{{ analyticsReport.performance.fastestDownload.toFixed(0) }}ms</p>
+          </div>
+          <div class="perf-item">
+            <h4>Slowest Download</h4>
+            <p>{{ analyticsReport.performance.slowestDownload.toFixed(0) }}ms</p>
+          </div>
+          <div class="perf-item">
+            <h4>Avg Memory Usage</h4>
+            <p>{{ formatBytes(analyticsReport.performance.memoryUsageAvg) }}</p>
+          </div>
+        </div>
+
+        <!-- Error Frequency -->
+        <div class="error-frequency" *ngIf="analyticsReport.performance.errorFrequency">
+          <h4>Error Types</h4>
+          <ion-list>
+            <ion-item *ngFor="let error of analyticsReport.performance.errorFrequency | keyvalue">
+              <ion-label>
+                <h3>{{ error.key }}</h3>
+                <p>{{ error.value }} occurrences</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Usage Patterns -->
+    <ion-card *ngIf="analyticsReport">
+      <ion-card-header>
+        <ion-card-title>Usage Patterns</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <!-- Popular Hours -->
+        <div class="pattern-section">
+          <h4>Popular Download Hours</h4>
+          <div class="pattern-list">
+            <div *ngFor="let hour of analyticsReport.patterns.popularHours | keyvalue" class="pattern-item">
+              <span>{{ hour.key }}:00</span>
+              <span>{{ hour.value }} downloads</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network Preference -->
+        <div class="pattern-section">
+          <h4>Network Preference</h4>
+          <div class="pattern-list">
+            <div *ngFor="let network of analyticsReport.patterns.networkPreference | keyvalue" class="pattern-item">
+              <span>{{ network.key | titlecase }}</span>
+              <span>{{ network.value }}%</span>
+            </div>
+          </div>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+  </div>
+
+  <!-- Loading Template -->
+  <ng-template #loadingTemplate>
+    <div class="loading-container">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading analytics data...</p>
+    </div>
+  </ng-template>
+
+</ion-content>

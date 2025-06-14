@@ -30,6 +30,7 @@ import {
 import { DatabaseService } from '../../services/database.service';
 import { IndexedDBService } from '../../services/indexeddb.service';
 import { DownloadService } from '../../services/download.service';
+import { AnalyticsService } from '../../services/analytics.service';
 import { Platform } from '@ionic/angular';
 
 interface StorageStats {
@@ -273,17 +274,17 @@ export class StorageManagementComponent implements OnInit {
 
   isLoading = false;
   platform: string;
-
   constructor(
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private downloadService: DownloadService,
+    private analyticsService: AnalyticsService,
     private platformService: Platform,
     private alertController: AlertController,
     private toastController: ToastController,
     private cdr: ChangeDetectorRef
   ) {
-    this.platform = this.platformService.is('hybrid') ? 'native' : 'web';    addIcons({
+    this.platform = this.platformService.is('hybrid') ? 'native' : 'web';addIcons({
       saveOutline,
       downloadOutline,
       trashOutline,
@@ -456,13 +457,14 @@ export class StorageManagementComponent implements OnInit {
       this.isLoading = false;
     }
   }
-
   private async performClearAllDownloads() {
     try {
       this.isLoading = true;
+      const startTime = Date.now();
 
       // Clear all downloaded songs
       const downloadedSongs = await this.databaseService.getSongsByDownloadStatus('completed');
+      let totalClearedSize = 0;
 
       for (const song of downloadedSongs) {
         // Clear blob data if web platform
@@ -476,7 +478,12 @@ export class StorageManagementComponent implements OnInit {
         // Reset download status
         await this.databaseService.updateSongDownloadStatus(song.id, 'none', 0);
         await this.databaseService.updateSongBlobIds(song.id, undefined, undefined);
-      }
+      }      // Track storage cleanup
+      await this.analyticsService.trackStorageUsage(
+        true,
+        'manual_cleanup',
+        totalClearedSize
+      );
 
       await this.loadStorageStats();
       await this.loadDownloadStats();

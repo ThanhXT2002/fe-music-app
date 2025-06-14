@@ -121,14 +121,22 @@ export interface YouTubeDownloadResponse {
 }
 
 export interface DataSong {
-  id:string;
+  id: string;
   title: string;
   artist: string;
+  channelTitle?: string; // for notification display
   duration?: number;
   duration_formatted: string;
   thumbnail_url: string;
   audio_url: string;
   keywords?: string[];
+
+  // Additional metadata for thumbnails
+  thumbnails?: {
+    default?: { url: string; width: number; height: number };
+    medium?: { url: string; width: number; height: number };
+    high?: { url: string; width: number; height: number };
+  };
 }
 
 export interface SearchHistoryItem {

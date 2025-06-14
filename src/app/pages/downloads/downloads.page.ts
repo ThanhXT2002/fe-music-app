@@ -16,13 +16,28 @@ import { finalize, firstValueFrom, tap } from 'rxjs';
 // Import new components
 import { DownloadButtonComponent } from '../../components/shared/download-button.component';
 import { StorageManagementComponent } from '../../components/storage-management/storage-management.component';
+import { DownloadQueueComponent } from '../../components/download-queue/download-queue.component';
+import { DownloadSchedulerComponent } from '../../components/download-scheduler/download-scheduler.component';
+import { NotificationCenterComponent } from '../../components/notification-center/notification-center.component';
+import { AnalyticsDashboardComponent } from '../../components/analytics-dashboard/analytics-dashboard.component';
+import { BackgroundDownloadService } from '../../services/background-download.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-downloads',
   templateUrl: './downloads.page.html',
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, DownloadButtonComponent, StorageManagementComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DownloadButtonComponent,
+    StorageManagementComponent,
+    DownloadQueueComponent,
+    DownloadSchedulerComponent,
+    NotificationCenterComponent,
+    AnalyticsDashboardComponent
+  ],
 })
 export class DownloadsPage implements OnInit {
 
@@ -32,6 +47,8 @@ export class DownloadsPage implements OnInit {
   private clipboardService = inject(ClipboardService);
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
+  private backgroundDownloadService = inject(BackgroundDownloadService);
+  private notificationService = inject(NotificationService);
 
   searchQuery = signal('');
   searchResults = signal<DataSong[]>([]);
