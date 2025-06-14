@@ -2,6 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Song, PlaybackState } from '../interfaces/song.interface';
 import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
+import { DownloadService } from './download.service';
 
 @Injectable({
   providedIn: 'root'
@@ -36,7 +37,10 @@ export class AudioPlayerService {
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
 
-  constructor(private databaseService: DatabaseService) {
+  constructor(
+    private databaseService: DatabaseService,
+    private downloadService: DownloadService
+  ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
@@ -124,10 +128,9 @@ export class AudioPlayerService {
       }
     } catch (error) {
       console.error('Error preloading audio:', error);
-    }
-  }
+    }  }
 
-  // 🔄 Modified playSong method
+  // 🔄 Modified playSong method với blob support
   async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
     try {
       console.log('🎵 Playing song:', song.title);
@@ -139,8 +142,13 @@ export class AudioPlayerService {
         currentIndex: playlist.length > 0 ? index : 0
       }));
 
-      // Load audio với bypass headers
-      const audioUrl = await this.loadAudioWithBypass(song.audioUrl);
+      // Sử dụng DownloadService để lấy audio source (hỗ trợ blob cho PWA)
+      const audioUrl = await this.downloadService.getAudioSource(song);
+
+      // Cleanup previous blob URL if exists
+      if (this.audio.src && this.audio.src.startsWith('blob:')) {
+        this.downloadService.cleanupBlobUrl(this.audio.src);
+      }
 
       // Set audio source và play
       this.audio.src = audioUrl;
@@ -149,6 +157,9 @@ export class AudioPlayerService {
 
       // Preload next song (optional optimization)
       this.preloadNextSong();
+
+      // Add to recently played
+      await this.databaseService.addToRecentlyPlayed(song.id);
 
     } catch (error) {
       console.error('❌ Error playing song:', error);
@@ -758,5 +769,49 @@ export class AudioPlayerService {
   // 🆕 Clear saved state
   clearSavedState(): void {
     localStorage.removeItem('savedPlaybackState');
+  }
+
+  // === THUMBNAIL METHODS ===
+
+  /**
+   * Lấy thumbnail source với blob support
+   * @param song - Song object
+   * @returns Promise<string> - Thumbnail URL hoặc blob URL
+   */
+  async getThumbnailSource(song: Song): Promise<string> {
+    return await this.downloadService.getThumbnailSource(song);
+  }
+
+  /**
+   * Kiểm tra xem bài hát có sẵn offline không
+   * @param song - Song object
+   * @returns boolean
+   */
+  isOfflineAvailable(song: Song): boolean {
+    return this.downloadService.isOfflineAvailable(song);
+  }
+
+  // === CLEANUP METHODS ===
+
+  /**
+   * Cleanup khi component bị destroy
+   */
+  cleanup(): void {
+    // Cleanup blob URLs
+    if (this.audio.src && this.audio.src.startsWith('blob:')) {
+      this.downloadService.cleanupBlobUrl(this.audio.src);
+    }
+
+    // Clear cache
+    this.audioCache.forEach(url => {
+      if (url.startsWith('blob:')) {
+        this.downloadService.cleanupBlobUrl(url);
+      }
+    });
+    this.audioCache.clear();
+
+    // Stop audio
+    this.audio.pause();
+    this.audio.src = '';
   }
 }

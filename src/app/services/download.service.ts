@@ -3,8 +3,10 @@ import { BehaviorSubject, catchError, Observable } from 'rxjs';
 import { Song, DataSong, YouTubeDownloadResponse } from '../interfaces/song.interface';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { DatabaseService } from './database.service';
+import { IndexedDBService } from './indexeddb.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
+import { Platform } from '@ionic/angular';
 import { RefreshService } from './refresh.service';
 import { environment } from 'src/environments/environment';
 
@@ -22,6 +24,10 @@ export interface DownloadTask {
   addedAt: Date;
   // Thêm thông tin từ API
   songData?: DataSong;
+  // Blob support for PWA
+  audioBlobId?: string;
+  thumbnailBlobId?: string;
+  isWebDownload?: boolean;
 }
 
 
@@ -34,14 +40,17 @@ export class DownloadService {
 
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
-
   private activeDownloads = new Map<string, any>();
+  private platform: string;
 
   constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
-     private refreshService: RefreshService
+    private indexedDBService: IndexedDBService,
+    private platformService: Platform,
+    private refreshService: RefreshService
   ) {
+    this.platform = this.platformService.is('hybrid') ? 'native' : 'web';
     this.loadDownloadsFromStorage();
   }
 
@@ -473,10 +482,96 @@ export class DownloadService {
     });
   }
 
+  // === HELPER METHODS ===
+
+  /**
+   * Lấy stream URL từ YouTube video ID
+   * @param videoId - YouTube video ID
+   * @returns Promise<string | null> - Stream URL hoặc null nếu thất bại
+   */
+  private async getStreamUrl(videoId: string): Promise<string | null> {
+    try {
+      const response = await this.http.post<any>(`${this.apiUrl}/stream`, {
+        videoId: videoId
+      }).toPromise();
+
+      if (response && response.streamUrl) {
+        return response.streamUrl;
+      }
+
+      console.error('No stream URL in response');
+      return null;
+    } catch (error) {
+      console.error('Error getting stream URL:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Tạo tên file an toàn cho hệ thống
+   * @param title - Tên bài hát
+   * @param artist - Tên nghệ sĩ
+   * @returns string - Tên file đã được format
+   */
+  private generateFileName(title: string, artist: string): string {
+    const cleanTitle = this.sanitizeFileName(title);
+    const cleanArtist = this.sanitizeFileName(artist);
+    const fileName = `${cleanArtist} - ${cleanTitle}`;
+
+    // Giới hạn độ dài tên file
+    const maxLength = 100;
+    const truncated = fileName.length > maxLength
+      ? fileName.substring(0, maxLength)
+      : fileName;
+
+    return `${truncated}.mp3`;
+  }
+
+  /**
+   * Làm sạch tên file, loại bỏ ký tự không hợp lệ
+   * @param fileName - Tên file gốc
+   * @returns string - Tên file đã được làm sạch
+   */
+  private sanitizeFileName(fileName: string): string {
+    return fileName
+      .replace(/[<>:"/\\|?*]/g, '_') // Thay thế ký tự không hợp lệ
+      .replace(/\s+/g, ' ') // Thay thế nhiều khoảng trắng thành 1
+      .trim();
+  }
+
+  /**
+   * Chuyển đổi dữ liệu YouTube thành Song object
+   * @param data - Dữ liệu từ YouTube API
+   * @param filePath - Đường dẫn file hoặc URL
+   * @returns Song object
+   */
+  private youtubeDataToSong(data: DataSong, filePath: string): Song {
+    return {
+      id: data.id,
+      title: data.title,
+      artist: data.artist,
+      album: undefined,
+      duration: data.duration || 0,
+      duration_formatted: data.duration_formatted,
+      thumbnail: data.thumbnail_url,
+      audioUrl: data.audio_url,
+      filePath: filePath,
+      addedDate: new Date(),
+      isFavorite: false,
+      genre: this.extractGenreFromKeywords(data.keywords || []),
+
+      // Default values for new fields
+      downloadStatus: 'none',
+      downloadProgress: 0,
+      fileSize: 0,
+      isOfflineAvailable: false
+    };
+  }
+
   /**
    * Trích xuất genre từ keywords
    * @param keywords - Mảng từ khóa
-   * @returns string | undefined
+   * @returns string hoặc undefined
    */
   private extractGenreFromKeywords(keywords: string[]): string | undefined {
     if (!keywords || keywords.length === 0) return undefined;
@@ -514,7 +609,7 @@ export class DownloadService {
       }
     }
 
-    return 'Nhạc Trẻ';
+    return undefined;
   }
 
   private generateId(): string {
@@ -581,4 +676,457 @@ export class DownloadService {
     return patterns.some((pattern) => pattern.test(url));
   }
 
+  // === CROSS-PLATFORM DOWNLOAD METHODS ===
+
+  /**
+   * Download bài hát với hỗ trợ cross-platform (PWA + Native)
+   * @param youtubeData - Dữ liệu bài hát từ YouTube API
+   * @returns Promise<boolean> - true nếu download thành công
+   */
+  async downloadSongCrossPlatform(youtubeData: DataSong): Promise<boolean> {
+    try {
+      console.log('🚀 Starting cross-platform download:', youtubeData.title);
+
+      // Cập nhật trạng thái download trong database
+      await this.databaseService.updateSongDownloadStatus(youtubeData.id, 'downloading', 0);
+
+      if (this.platform === 'native') {
+        return await this.downloadForNative(youtubeData);
+      } else {
+        return await this.downloadForWeb(youtubeData);
+      }
+    } catch (error) {
+      console.error('❌ Error in cross-platform download:', error);
+      await this.databaseService.updateSongDownloadStatus(youtubeData.id, 'failed', 0);
+      return false;
+    }
+  }
+
+  /**
+   * Download cho native platform (iOS/Android)
+   * @param youtubeData - Dữ liệu bài hát
+   */
+  private async downloadForNative(youtubeData: DataSong): Promise<boolean> {
+    try {
+      console.log('📱 Native download starting...');
+
+      // 1. Lấy stream URL
+      const streamUrl = await this.getStreamUrl(youtubeData.id);
+      if (!streamUrl) {
+        throw new Error('Không thể lấy stream URL');
+      }
+
+      // 2. Download audio file
+      const fileName = this.generateFileName(youtubeData.title, youtubeData.artist);
+      const filePath = await this.downloadFileNative(streamUrl, fileName);
+
+      if (!filePath) {
+        throw new Error('Không thể download file');
+      }      // 3. Download thumbnail (optional)
+      let thumbnailPath: string | undefined;
+      if (youtubeData.thumbnail_url) {
+        const downloadedPath = await this.downloadThumbnailNative(youtubeData.thumbnail_url, youtubeData.id);
+        thumbnailPath = downloadedPath || undefined;
+      }
+
+      // 4. Lưu vào database
+      const song = this.youtubeDataToSong(youtubeData, filePath);
+      song.downloadStatus = 'completed';
+      song.isOfflineAvailable = true;
+      song.downloadedAt = new Date();
+
+      const success = await this.databaseService.addSong(song);
+
+      if (success) {
+        await this.databaseService.updateSongDownloadStatus(youtubeData.id, 'completed', 100);
+        console.log('✅ Native download completed successfully');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('❌ Native download failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Download cho web platform (PWA)
+   * @param youtubeData - Dữ liệu bài hát
+   */
+  private async downloadForWeb(youtubeData: DataSong): Promise<boolean> {
+    try {
+      console.log('🌐 Web/PWA download starting...');
+
+      // 1. Lấy stream URL
+      const streamUrl = await this.getStreamUrl(youtubeData.id);
+      if (!streamUrl) {
+        throw new Error('Không thể lấy stream URL');
+      }
+
+      // 2. Download audio blob
+      const audioBlob = await this.downloadMediaToBlob(streamUrl, youtubeData.id, 'audio');
+      if (!audioBlob) {
+        throw new Error('Không thể download audio blob');
+      }
+
+      // 3. Download thumbnail blob
+      let thumbnailBlob: Blob | null = null;
+      if (youtubeData.thumbnail_url) {
+        thumbnailBlob = await this.downloadMediaToBlob(youtubeData.thumbnail_url, youtubeData.id, 'thumbnail');
+      }
+
+      // 4. Lưu blobs vào IndexedDB
+      const audioBlobId = await this.saveAudioBlob(audioBlob, youtubeData.id);
+      let thumbnailBlobId: string | undefined;
+
+      if (thumbnailBlob) {
+        thumbnailBlobId = await this.saveThumbnailBlob(thumbnailBlob, youtubeData.id);
+      }
+
+      // 5. Lưu metadata vào database
+      const song = this.youtubeDataToSong(youtubeData, streamUrl); // streamUrl as fallback
+      song.audioBlobId = audioBlobId;
+      song.thumbnailBlobId = thumbnailBlobId;
+      song.downloadStatus = 'completed';
+      song.isOfflineAvailable = true;
+      song.downloadedAt = new Date();
+      song.fileSize = audioBlob.size + (thumbnailBlob?.size || 0);
+
+      const success = await this.databaseService.addSong(song);
+
+      if (success) {
+        await this.databaseService.updateSongDownloadStatus(youtubeData.id, 'completed', 100);
+        await this.databaseService.updateSongBlobIds(youtubeData.id, audioBlobId, thumbnailBlobId);
+        console.log('✅ Web/PWA download completed successfully');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('❌ Web/PWA download failed:', error);
+      return false;
+    }
+  }
+
+  // === NATIVE DOWNLOAD METHODS ===
+
+  /**
+   * Download file cho native platform
+   * @param url - URL để download
+   * @param fileName - Tên file
+   * @returns Promise<string | null> - Đường dẫn file hoặc null
+   */
+  private async downloadFileNative(url: string, fileName: string): Promise<string | null> {
+    try {
+      // Đảm bảo thư mục Music tồn tại
+      await this.ensureMusicDirectoryExists();
+
+      // Download file using fetch (tương thích hơn CapacitorHttp)
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const base64String = this.arrayBufferToBase64(arrayBuffer);
+
+      // Lưu file vào Documents/Music/
+      const result = await Filesystem.writeFile({
+        path: `Music/${fileName}`,
+        data: base64String,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8
+      });
+
+      return result.uri;
+    } catch (error) {
+      console.error('Error downloading file native:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Download thumbnail cho native platform
+   * @param thumbnailUrl - URL thumbnail
+   * @param songId - ID bài hát
+   * @returns Promise<string | null> - Đường dẫn thumbnail
+   */
+  private async downloadThumbnailNative(thumbnailUrl: string, songId: string): Promise<string | null> {
+    try {
+      const response = await fetch(thumbnailUrl);
+      if (!response.ok) return null;
+
+      const arrayBuffer = await response.arrayBuffer();
+      const base64String = this.arrayBufferToBase64(arrayBuffer);
+
+      // Xác định extension từ content-type
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const extension = contentType.includes('png') ? 'png' : 'jpg';
+      const fileName = `thumbnail_${songId}.${extension}`;
+
+      // Lưu thumbnail
+      const result = await Filesystem.writeFile({
+        path: `Music/thumbnails/${fileName}`,
+        data: base64String,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8
+      });
+
+      return result.uri;
+    } catch (error) {
+      console.error('Error downloading thumbnail native:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Đảm bảo thư mục Music tồn tại
+   */
+  private async ensureMusicDirectoryExists(): Promise<void> {
+    try {
+      await Filesystem.mkdir({
+        path: 'Music',
+        directory: Directory.Documents,
+        recursive: true
+      });
+
+      await Filesystem.mkdir({
+        path: 'Music/thumbnails',
+        directory: Directory.Documents,
+        recursive: true
+      });    } catch (error: any) {
+      // Bỏ qua lỗi nếu thư mục đã tồn tại
+      if (!error?.message?.includes('exists')) {
+        console.error('Error creating music directory:', error);
+      }
+    }
+  }
+
+  // === WEB/PWA DOWNLOAD METHODS ===
+
+  /**
+   * Download media thành blob cho web platform
+   * @param url - URL để download
+   * @param songId - ID bài hát
+   * @param type - Loại media: 'audio' | 'thumbnail'
+   * @returns Promise<Blob | null> - Blob data hoặc null
+   */
+  private async downloadMediaToBlob(url: string, songId: string, type: 'audio' | 'thumbnail'): Promise<Blob | null> {
+    try {
+      console.log(`📥 Downloading ${type} blob:`, url);
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      console.log(`✅ ${type} blob downloaded:`, blob.size, 'bytes');
+
+      return blob;
+    } catch (error) {
+      console.error(`Error downloading ${type} blob:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Lưu audio blob vào IndexedDB
+   * @param blob - Audio blob
+   * @param songId - ID bài hát
+   * @returns Promise<string> - Audio blob ID
+   */
+  private async saveAudioBlob(blob: Blob, songId: string): Promise<string> {
+    const audioBlobId = this.generateBlobId(songId, 'audio');
+
+    const success = await this.indexedDBService.saveBlobToIndexedDB(
+      audioBlobId,
+      blob,
+      'audio',
+      songId,
+      blob.type || 'audio/mpeg'
+    );
+
+    if (!success) {
+      throw new Error('Failed to save audio blob');
+    }
+
+    console.log(`✅ Audio blob saved with ID: ${audioBlobId}`);
+    return audioBlobId;
+  }
+
+  /**
+   * Lưu thumbnail blob vào IndexedDB
+   * @param blob - Thumbnail blob
+   * @param songId - ID bài hát
+   * @returns Promise<string> - Thumbnail blob ID
+   */
+  private async saveThumbnailBlob(blob: Blob, songId: string): Promise<string> {
+    const thumbnailBlobId = this.generateBlobId(songId, 'thumbnail');
+
+    const success = await this.indexedDBService.saveBlobToIndexedDB(
+      thumbnailBlobId,
+      blob,
+      'thumbnail',
+      songId,
+      blob.type || 'image/jpeg'
+    );
+
+    if (!success) {
+      throw new Error('Failed to save thumbnail blob');
+    }
+
+    console.log(`✅ Thumbnail blob saved with ID: ${thumbnailBlobId}`);
+    return thumbnailBlobId;
+  }
+
+  /**
+   * Tạo unique blob ID
+   * @param songId - ID bài hát
+   * @param type - Loại blob
+   * @returns string - Blob ID
+   */
+  private generateBlobId(songId: string, type: 'audio' | 'thumbnail'): string {
+    return `${type}_${songId}_${Date.now()}`;
+  }
+
+  // === BLOB RETRIEVAL METHODS ===
+
+  /**
+   * Lấy audio source cho playback (hỗ trợ cả native file và web blob)
+   * @param song - Song object
+   * @returns Promise<string> - URL hoặc blob URL để phát nhạc
+   */
+  async getAudioSource(song: Song): Promise<string> {
+    try {
+      if (this.platform === 'native') {
+        // Trên native, sử dụng file path nếu có
+        if (song.filePath && song.isOfflineAvailable) {
+          return song.filePath;
+        }
+        // Fallback to stream URL
+        return song.audioUrl;
+      } else {
+        // Trên web, ưu tiên blob nếu có
+        if (song.audioBlobId && song.isOfflineAvailable) {
+          const blob = await this.indexedDBService.getBlobFromIndexedDB(song.audioBlobId);
+          if (blob) {
+            return URL.createObjectURL(blob);
+          }
+        }
+        // Fallback to stream URL
+        return song.audioUrl;
+      }
+    } catch (error) {
+      console.error('Error getting audio source:', error);
+      return song.audioUrl; // Fallback
+    }
+  }
+
+  /**
+   * Lấy thumbnail source (hỗ trợ cả native file và web blob)
+   * @param song - Song object
+   * @returns Promise<string> - URL hoặc blob URL cho thumbnail
+   */
+  async getThumbnailSource(song: Song): Promise<string> {
+    try {
+      if (this.platform === 'web' && song.thumbnailBlobId && song.isOfflineAvailable) {
+        // Trên web, sử dụng blob nếu có
+        const blob = await this.indexedDBService.getBlobFromIndexedDB(song.thumbnailBlobId);
+        if (blob) {
+          return URL.createObjectURL(blob);
+        }
+      }
+
+      // Fallback to original thumbnail URL
+      return song.thumbnail || '/assets/default-thumbnail.png';
+    } catch (error) {
+      console.error('Error getting thumbnail source:', error);
+      return song.thumbnail || '/assets/default-thumbnail.png';
+    }
+  }
+
+  /**
+   * Kiểm tra xem bài hát có sẵn offline không
+   * @param song - Song object
+   * @returns boolean - true nếu có thể phát offline
+   */
+  isOfflineAvailable(song: Song): boolean {
+    if (this.platform === 'native') {
+      return !!(song.filePath && song.isOfflineAvailable);
+    } else {
+      return !!(song.audioBlobId && song.isOfflineAvailable);
+    }
+  }
+
+  /**
+   * Cleanup blob URLs để tránh memory leak
+   * @param blobUrl - Blob URL cần cleanup
+   */
+  cleanupBlobUrl(blobUrl: string): void {
+    if (blobUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }
+
+  // === PROGRESS TRACKING ===
+  /**
+   * Cập nhật progress download cho database
+   * @param songId - ID bài hát
+   * @param progress - Progress (0-100)
+   */
+  async updateDatabaseDownloadProgress(songId: string, progress: number): Promise<void> {
+    try {
+      await this.databaseService.updateSongDownloadStatus(songId, 'downloading', progress);
+      console.log(`📊 Download progress: ${songId} - ${progress}%`);
+    } catch (error) {
+      console.error('Error updating download progress:', error);
+    }
+  }
+
+  /**
+   * Hoàn thành download
+   * @param songId - ID bài hát
+   */
+  async onDownloadComplete(songId: string): Promise<void> {
+    try {
+      await this.databaseService.updateSongDownloadStatus(songId, 'completed', 100);
+      console.log(`✅ Download completed: ${songId}`);
+
+      // Trigger refresh để UI cập nhật
+      this.refreshService.triggerRefresh();
+    } catch (error) {
+      console.error('Error completing download:', error);
+    }
+  }
+
+  /**
+   * Báo lỗi download
+   * @param songId - ID bài hát
+   * @param error - Error message
+   */
+  async onDownloadFailed(songId: string, error: string): Promise<void> {
+    try {
+      await this.databaseService.updateSongDownloadStatus(songId, 'failed', 0);
+      console.error(`❌ Download failed: ${songId} - ${error}`);
+    } catch (err) {
+      console.error('Error marking download as failed:', err);
+    }  }
+
+  /**
+   * Chuyển ArrayBuffer thành Base64 string
+   * @param buffer - ArrayBuffer
+   * @returns string - Base64 string
+   */
+  private arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
+  // ...existing code...
 }

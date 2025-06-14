@@ -7,12 +7,13 @@ import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ThemeService } from '../../services/theme.service';
 import { InstallPromptComponent } from "../../components/install-prompt/install-prompt.component";
+import { StorageManagementComponent } from '../../components/storage-management/storage-management.component';
 
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, InstallPromptComponent],
+  imports: [CommonModule, FormsModule, InstallPromptComponent, StorageManagementComponent],
   templateUrl: './settings.page.html'
 })
 export class SettingsPage implements OnInit {
@@ -117,7 +118,6 @@ export class SettingsPage implements OnInit {
       console.error('Error exporting data:', error);
     }
   }
-
   async logout() {
     try {
       await this.authService.logout();
@@ -125,5 +125,12 @@ export class SettingsPage implements OnInit {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  }
+
+  // === STORAGE MANAGEMENT ===
+
+  onStorageCleared(event: any) {
+    console.log('Storage cleared from settings:', event);
+    // Could show a toast notification here
   }
 }

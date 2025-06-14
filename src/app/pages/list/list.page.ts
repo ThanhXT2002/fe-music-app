@@ -6,6 +6,7 @@ import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ListPageStateService } from '../../services/list-page-state.service';
 import { SongItemComponent } from '../../components/shared/song-item.component';
+import { StorageManagementComponent } from '../../components/storage-management/storage-management.component';
 import { IonContent, IonHeader, IonToolbar, IonTitle } from "@ionic/angular/standalone";
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';
@@ -15,15 +16,15 @@ import { Subject, takeUntil } from 'rxjs';
   templateUrl: './list.page.html',
   styleUrls: ['./list.page.scss'],
   standalone: true,
-  imports: [ CommonModule, SongItemComponent]
+  imports: [ CommonModule, SongItemComponent, StorageManagementComponent]
 })
 export class ListPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   @ViewChild('scrollContainer', { static: true }) scrollContainer!: ElementRef;
-
   tabs = [
     { id: 'all', icon: 'fas fa-music', title: 'Tất cả bài hát', label: 'Tất cả' },
     { id: 'recent', icon: 'fas fa-clock', title: 'Bài hát gần đây', label: 'Gần đây' },
+    { id: 'offline', icon: 'fas fa-download', title: 'Bài hát offline', label: 'Offline' },
     { id: 'artists', icon: 'fas fa-user-music', title: 'Danh sách nghệ sĩ', label: 'Nghệ sĩ' },
     { id: 'favorites', icon: 'fas fa-heart', title: 'Bài hát yêu thích', label: 'Yêu thích' }
   ];
@@ -53,9 +54,12 @@ export class ListPage implements OnInit, OnDestroy {
   get recentSongs() {
     return this.stateService.recentSongs;
   }
-
   get favoriteSongs() {
     return this.stateService.favoriteSongs;
+  }
+
+  get offlineSongs() {
+    return this.stateService.offlineSongs;
   }
 
   get artists() {
@@ -103,7 +107,6 @@ export class ListPage implements OnInit, OnDestroy {
       this.loadData();
     }
   }
-
   async loadData() {
     try {
       // Load all songs
@@ -115,6 +118,9 @@ export class ListPage implements OnInit, OnDestroy {
       // Load favorite songs
       const favoriteSongs = await this.databaseService.getFavoriteSongs();
 
+      // Load offline songs
+      const offlineSongs = await this.databaseService.getOfflineSongs();
+
       // Group songs by artists
       const artists = this.groupSongsByArtists(allSongs);
 
@@ -123,6 +129,7 @@ export class ListPage implements OnInit, OnDestroy {
         allSongs,
         recentSongs,
         favoriteSongs,
+        offlineSongs,
         artists
       });
     } catch (error) {
@@ -227,9 +234,25 @@ export class ListPage implements OnInit, OnDestroy {
     // TODO: Navigate to artist detail page
     console.log('View artist:', artist.name);
   }
-
   trackBySongId(index: number, song: Song): string {
     return song.id;
+  }
+
+  // === STORAGE MANAGEMENT ===
+
+  onStorageCleared(event: any) {
+    console.log('Storage cleared:', event);
+    // Refresh the offline songs list
+    this.loadOfflineSongs();
+  }
+
+  private async loadOfflineSongs() {
+    try {
+      const offlineSongs = await this.databaseService.getOfflineSongs();
+      this.stateService.setOfflineSongs(offlineSongs);
+    } catch (error) {
+      console.error('Error loading offline songs:', error);
+    }
   }
 }
 

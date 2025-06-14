@@ -8,13 +8,14 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
 import { finalize, tap } from 'rxjs';
 import { DownloadService } from 'src/app/services/download.service';
+import { DownloadButtonComponent } from '../../components/shared/download-button.component';
 
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DownloadButtonComponent],
 })
 export class SearchPage implements OnInit {
   downloadService = inject(DownloadService);
@@ -30,9 +31,8 @@ export class SearchPage implements OnInit {
   isClipboardLoading = signal<boolean>(false);
   private clipboardRetryCount = 0; // Thêm counter
   private readonly MAX_CLIPBOARD_RETRIES = 2; // Giới hạn retry
-
   ngOnInit() {
-
+    this.loadDownloadHistory();
   }
 
 async onSearchInput(event: any) {
@@ -277,5 +277,42 @@ private async showManualPasteAlert() {
         searchInput.select();
       }
     }, 300);
+  }
+
+  // === DOWNLOAD EVENT HANDLERS ===
+
+  onDownloadStarted(result: DataSong) {
+    console.log('Download started for:', result.title);
+    // Optionally update UI or show feedback
+  }
+
+  onDownloadCompleted(result: DataSong) {
+    console.log('Download completed for:', result.title);
+    // Refresh download history or show success message
+    this.loadDownloadHistory();
+  }
+
+  onDownloadFailed(result: DataSong, error: string) {
+    console.error('Download failed for:', result.title, error);
+    // Show error message to user
+    this.showAlert('Download Failed', `Failed to download "${result.title}": ${error}`);
+  }
+  private async showAlert(header: string, message: string) {
+    const alert = await this.alertController.create({
+      header,
+      message,
+      buttons: ['OK']
+    });
+    await alert.present();
+  }  private async loadDownloadHistory() {
+    try {
+      const downloadedSongs = await this.databaseService.getOfflineSongs();
+      this.downloadHistory.set(downloadedSongs);
+    } catch (error) {
+      console.error('Error loading download history:', error);
+    }
+  }
+  playDownloadedSong(song: Song) {
+    this.audioPlayerService.playSong(song);
   }
 }

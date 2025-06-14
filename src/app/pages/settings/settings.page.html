@@ -125,9 +125,7 @@
                 <span>100 MB</span>
                 <span>2 GB</span>
               </div>
-            </div>
-
-            <!-- Storage Info -->
+            </div>            <!-- Storage Info -->
             <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
               <div class="flex justify-between items-center">
                 <span class="text-gray-600 dark:text-gray-400">Total Storage</span>
@@ -137,6 +135,16 @@
                 <span class="text-gray-600 dark:text-gray-400">Cache Size</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ storageInfo().cacheSize }}</span>
               </div>
+            </div>
+
+            <!-- Advanced Storage Management -->
+            <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
+              <h4 class="font-medium text-gray-900 dark:text-white mb-3">
+                <i class="fas fa-database mr-2"></i> Download Management
+              </h4>
+              <app-storage-management
+                (storageCleared)="onStorageCleared($event)">
+              </app-storage-management>
             </div>
           </div>
         </div>

@@ -21,7 +21,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/angular/standalone';
-import { SearchComponent } from 'src/app/components/search/search.component';
+import { SearchComponent } from 'src/app/components/search(trash)/search.component';
 import { Platform } from '@ionic/angular';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';

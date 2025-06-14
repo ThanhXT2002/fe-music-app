@@ -85,8 +85,7 @@ export class DatabaseService {
   private async createTables() {
     if (!this.db) return;
 
-    const queries = [
-      `CREATE TABLE IF NOT EXISTS songs (
+    const queries = [      `CREATE TABLE IF NOT EXISTS songs (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         artist TEXT NOT NULL,
@@ -98,7 +97,14 @@ export class DatabaseService {
         filePath TEXT,
         addedDate TEXT NOT NULL,
         isFavorite INTEGER DEFAULT 0,
-        genre TEXT
+        genre TEXT,
+        audioBlobId TEXT,
+        thumbnailBlobId TEXT,
+        downloadStatus TEXT DEFAULT 'none',
+        downloadProgress INTEGER DEFAULT 0,
+        fileSize INTEGER DEFAULT 0,
+        downloadedAt TEXT,
+        isOfflineAvailable INTEGER DEFAULT 0
       );`,
 
       // Bảng album - lưu thông tin về các album nhạc
@@ -174,7 +180,18 @@ export class DatabaseService {
       // Index để tối ưu performance
       `CREATE INDEX IF NOT EXISTS idx_search_history_date ON search_history(searchedAt DESC);`,
       `CREATE INDEX IF NOT EXISTS idx_search_history_song ON search_history(songId);`,
-      `CREATE INDEX IF NOT EXISTS idx_search_history_downloaded ON search_history(isDownloaded);`
+      `CREATE INDEX IF NOT EXISTS idx_search_history_downloaded ON search_history(isDownloaded);`,
+
+      // Bảng lưu trữ media blobs cho PWA offline support
+      `CREATE TABLE IF NOT EXISTS media_blobs (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        mimeType TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        createdAt TEXT NOT NULL,
+        songId TEXT,
+        FOREIGN KEY (songId) REFERENCES songs(id) ON DELETE CASCADE
+      );`
 
     ];
 
@@ -400,8 +417,7 @@ export class DatabaseService {
    * Chuyển đổi dữ liệu từ database rows thành đối tượng Song
    * @param rows - Mảng các row từ database
    * @returns Song[] - Mảng các đối tượng Song
-   */
-  private mapRowsToSongs(rows: any[]): Song[] {
+   */  private mapRowsToSongs(rows: any[]): Song[] {
     return rows.map(row => ({
       id: row.id,
       title: row.title,
@@ -415,6 +431,15 @@ export class DatabaseService {
       addedDate: new Date(row.addedDate),
       isFavorite: row.isFavorite === 1, // Chuyển integer thành boolean
       genre: row.genre,
+
+      // Blob support fields
+      audioBlobId: row.audioBlobId || null,
+      thumbnailBlobId: row.thumbnailBlobId || null,
+      downloadStatus: row.downloadStatus || 'none',
+      downloadProgress: row.downloadProgress || 0,
+      fileSize: row.fileSize || 0,
+      downloadedAt: row.downloadedAt ? new Date(row.downloadedAt) : null,
+      isOfflineAvailable: row.isOfflineAvailable === 1,
     }));
   }
 
@@ -459,6 +484,7 @@ export class DatabaseService {
         await this.db.run('DELETE FROM playlist_songs');
         await this.db.run('DELETE FROM recently_played');
         await this.db.run('DELETE FROM search_history');
+        await this.db.run('DELETE FROM media_blobs');
 
         console.log('All data cleared successfully');
         return true;
@@ -1190,5 +1216,300 @@ export class DatabaseService {
     }
 
     return undefined;
+  }
+
+  // === DOWNLOAD MANAGEMENT METHODS ===
+
+  /**
+   * Cập nhật trạng thái download của bài hát
+   * @param songId - ID của bài hát
+   * @param status - Trạng thái download: 'none' | 'downloading' | 'completed' | 'failed'
+   * @param progress - Tiến độ download (0-100)
+   */
+  async updateSongDownloadStatus(songId: string, status: string, progress?: number): Promise<boolean> {
+    if (!this.isDbReady) return false;
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const songData = await this.indexedDB.get('songs', songId);
+        if (songData) {
+          songData.downloadStatus = status;
+          if (progress !== undefined) {
+            songData.downloadProgress = progress;
+          }
+          if (status === 'completed') {
+            songData.downloadedAt = new Date().toISOString();
+            songData.isOfflineAvailable = 1;
+          }
+          await this.indexedDB.put('songs', songData);
+          return true;
+        }
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return false;
+
+        let query = 'UPDATE songs SET downloadStatus = ?';
+        const params: any[] = [status];
+
+        if (progress !== undefined) {
+          query += ', downloadProgress = ?';
+          params.push(progress);
+        }
+
+        if (status === 'completed') {
+          query += ', downloadedAt = ?, isOfflineAvailable = 1';
+          params.push(new Date().toISOString());
+        }
+
+        query += ' WHERE id = ?';
+        params.push(songId);
+
+        await this.db.run(query, params);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating download status:', error);
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Cập nhật blob IDs cho bài hát
+   * @param songId - ID của bài hát
+   * @param audioBlobId - ID của audio blob
+   * @param thumbnailBlobId - ID của thumbnail blob
+   */
+  async updateSongBlobIds(songId: string, audioBlobId?: string, thumbnailBlobId?: string): Promise<boolean> {
+    if (!this.isDbReady) return false;
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const songData = await this.indexedDB.get('songs', songId);
+        if (songData) {
+          if (audioBlobId) songData.audioBlobId = audioBlobId;
+          if (thumbnailBlobId) songData.thumbnailBlobId = thumbnailBlobId;
+          await this.indexedDB.put('songs', songData);
+          return true;
+        }
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return false;
+
+        let query = 'UPDATE songs SET ';
+        const params: any[] = [];
+        const updates: string[] = [];
+
+        if (audioBlobId) {
+          updates.push('audioBlobId = ?');
+          params.push(audioBlobId);
+        }
+
+        if (thumbnailBlobId) {
+          updates.push('thumbnailBlobId = ?');
+          params.push(thumbnailBlobId);
+        }
+
+        if (updates.length === 0) return false;
+
+        query += updates.join(', ') + ' WHERE id = ?';
+        params.push(songId);
+
+        await this.db.run(query, params);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error updating blob IDs:', error);
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Lấy danh sách bài hát theo trạng thái download
+   * @param status - Trạng thái download cần lọc
+   */
+  async getSongsByDownloadStatus(status: string): Promise<Song[]> {
+    if (!this.isDbReady) return [];
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const allSongs = await this.indexedDB.getAll('songs');
+        const filtered = allSongs.filter(song => song.downloadStatus === status);
+        return this.mapRowsToSongs(filtered);
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return [];
+        const result = await this.db.query(
+          'SELECT * FROM songs WHERE downloadStatus = ? ORDER BY downloadedAt DESC',
+          [status]
+        );
+        return this.mapRowsToSongs(result.values || []);
+      }
+    } catch (error) {
+      console.error('Error getting songs by download status:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Lấy danh sách bài hát có sẵn offline
+   */
+  async getOfflineSongs(): Promise<Song[]> {
+    if (!this.isDbReady) return [];
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const allSongs = await this.indexedDB.getAll('songs');
+        const offline = allSongs.filter(song => song.isOfflineAvailable === 1);
+        return this.mapRowsToSongs(offline);
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return [];
+        const result = await this.db.query(
+          'SELECT * FROM songs WHERE isOfflineAvailable = 1 ORDER BY downloadedAt DESC'
+        );
+        return this.mapRowsToSongs(result.values || []);
+      }
+    } catch (error) {
+      console.error('Error getting offline songs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Lấy thống kê download
+   */
+  async getDownloadStats(): Promise<{
+    totalDownloaded: number;
+    totalSize: number;
+    downloading: number;
+    failed: number;
+  }> {
+    if (!this.isDbReady) {
+      return { totalDownloaded: 0, totalSize: 0, downloading: 0, failed: 0 };
+    }
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const allSongs = await this.indexedDB.getAll('songs');
+        const completed = allSongs.filter(s => s.downloadStatus === 'completed');
+        const downloading = allSongs.filter(s => s.downloadStatus === 'downloading');
+        const failed = allSongs.filter(s => s.downloadStatus === 'failed');
+        const totalSize = completed.reduce((sum, song) => sum + (song.fileSize || 0), 0);
+
+        return {
+          totalDownloaded: completed.length,
+          totalSize,
+          downloading: downloading.length,
+          failed: failed.length
+        };
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return { totalDownloaded: 0, totalSize: 0, downloading: 0, failed: 0 };
+
+        const result = await this.db.query(`
+          SELECT
+            COUNT(CASE WHEN downloadStatus = 'completed' THEN 1 END) as totalDownloaded,
+            COALESCE(SUM(CASE WHEN downloadStatus = 'completed' THEN fileSize ELSE 0 END), 0) as totalSize,
+            COUNT(CASE WHEN downloadStatus = 'downloading' THEN 1 END) as downloading,
+            COUNT(CASE WHEN downloadStatus = 'failed' THEN 1 END) as failed
+          FROM songs
+        `);
+
+        const stats = result.values?.[0];
+        return {
+          totalDownloaded: stats?.totalDownloaded || 0,
+          totalSize: stats?.totalSize || 0,
+          downloading: stats?.downloading || 0,
+          failed: stats?.failed || 0
+        };
+      }
+    } catch (error) {
+      console.error('Error getting download stats:', error);
+      return { totalDownloaded: 0, totalSize: 0, downloading: 0, failed: 0 };
+    }
+  }
+
+  // === USER PREFERENCES METHODS ===
+
+  /**
+   * Lấy giá trị preference của user
+   * @param key - Key của preference
+   */
+  async getUserPreference(key: string): Promise<string | null> {
+    if (!this.isDbReady) return null;
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const pref = await this.indexedDB.get('user_preferences', key);
+        return pref ? pref.value : null;
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return null;
+        const result = await this.db.query('SELECT value FROM user_preferences WHERE key = ?', [key]);
+        return result.values && result.values.length > 0 ? result.values[0].value : null;
+      }
+    } catch (error) {
+      console.error('Error getting user preference:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Lưu preference của user
+   * @param key - Key của preference
+   * @param value - Giá trị cần lưu
+   */
+  async setUserPreference(key: string, value: string): Promise<boolean> {
+    if (!this.isDbReady) return false;
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        const prefData = { key, value };
+        return await this.indexedDB.put('user_preferences', prefData);
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return false;
+        await this.db.run(
+          'INSERT OR REPLACE INTO user_preferences (key, value) VALUES (?, ?)',
+          [key, value]
+        );
+        return true;
+      }
+    } catch (error) {
+      console.error('Error setting user preference:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Xóa preference của user
+   * @param key - Key của preference cần xóa
+   */
+  async deleteUserPreference(key: string): Promise<boolean> {
+    if (!this.isDbReady) return false;
+
+    try {
+      if (this.platform === 'web') {
+        // Sử dụng IndexedDB cho web
+        return await this.indexedDB.delete('user_preferences', key);
+      } else {
+        // Sử dụng SQLite cho native
+        if (!this.db) return false;
+        await this.db.run('DELETE FROM user_preferences WHERE key = ?', [key]);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error deleting user preference:', error);
+      return false;
+    }
   }
 }

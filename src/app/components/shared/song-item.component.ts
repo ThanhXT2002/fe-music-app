@@ -12,11 +12,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Song } from '../../interfaces/song.interface';
-import { IonIcon } from '@ionic/angular/standalone';
+import { IonIcon, IonProgressBar, IonBadge } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
-import { apps } from 'ionicons/icons';
+import { apps, download, cloudDownload, checkmarkCircle, alertCircle } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { DownloadService } from 'src/app/services/download.service';
 
 @Component({
   selector: 'app-song-item',
@@ -66,8 +67,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
             }"
           >
             {{ song.artist }}
-          </p>
-          <p
+          </p>          <p
             class="text-xs"
             [ngClass]="{
               'text-blue-400 dark:text-blue-300': isCurrentSong,
@@ -76,6 +76,35 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
           >
             {{ song.duration_formatted }}
           </p>
+
+          <!-- Download Status Indicator -->
+          <div class="flex items-center space-x-2 mt-1">
+            <!-- Offline Available Badge -->
+            <ion-badge
+              *ngIf="song.isOfflineAvailable"
+              color="success"
+              class="text-xs">
+              <ion-icon name="checkmark-circle" size="small"></ion-icon>
+              <span class="ml-1">Offline</span>
+            </ion-badge>
+
+            <!-- Downloading Progress -->
+            <div *ngIf="song.downloadStatus === 'downloading'" class="flex items-center space-x-1">
+              <ion-badge color="primary" class="text-xs">
+                <ion-icon name="cloud-download" size="small"></ion-icon>
+                <span class="ml-1">{{ song.downloadProgress }}%</span>
+              </ion-badge>
+            </div>
+
+            <!-- Download Failed -->
+            <ion-badge
+              *ngIf="song.downloadStatus === 'failed'"
+              color="danger"
+              class="text-xs">
+              <ion-icon name="alert-circle" size="small"></ion-icon>
+              <span class="ml-1">Failed</span>
+            </ion-badge>
+          </div>
         </div>
         <div class="flex-shrink-0">
           <button
@@ -118,7 +147,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
       }
     `,
   ],
-  imports: [CommonModule, IonIcon],
+  imports: [CommonModule, IonIcon, IonBadge],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -137,13 +166,13 @@ export class SongItemComponent implements OnInit {
   @Output() toggleFavorite = new EventEmitter<Song>();
   @Output() openPlayer = new EventEmitter<void>();
   currentSong: Song | null = null;
-  isPlaying = false;
-  constructor(
+  isPlaying = false;  constructor(
     private audioPlayerService: AudioPlayerService,
+    private downloadService: DownloadService,
     private cdr: ChangeDetectorRef,
     private router: Router
   ) {
-    addIcons({ apps });
+    addIcons({ apps, download, cloudDownload, checkmarkCircle, alertCircle });
 
     // Use effect to reactively update when playback state changes
     effect(() => {

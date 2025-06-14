@@ -6,6 +6,7 @@ interface ListPageState {
   allSongs: Song[];
   recentSongs: Song[];
   favoriteSongs: Song[];
+  offlineSongs: Song[];
   artists: any[];
   isDataLoaded: boolean;
   scrollPosition: number;
@@ -14,12 +15,12 @@ interface ListPageState {
 @Injectable({
   providedIn: 'root'
 })
-export class ListPageStateService {
-  private state = signal<ListPageState>({
+export class ListPageStateService {  private state = signal<ListPageState>({
     activeTab: 'all',
     allSongs: [],
     recentSongs: [],
     favoriteSongs: [],
+    offlineSongs: [],
     artists: [],
     isDataLoaded: false,
     scrollPosition: 0
@@ -37,9 +38,12 @@ export class ListPageStateService {
   get recentSongs() {
     return this.state().recentSongs;
   }
-
   get favoriteSongs() {
     return this.state().favoriteSongs;
+  }
+
+  get offlineSongs() {
+    return this.state().offlineSongs;
   }
 
   get artists() {
@@ -96,11 +100,17 @@ export class ListPageStateService {
       isDataLoaded: loaded
     }));
   }
-
   setScrollPosition(position: number) {
     this.state.update(current => ({
       ...current,
       scrollPosition: position
+    }));
+  }
+
+  setOfflineSongs(offlineSongs: Song[]) {
+    this.state.update(current => ({
+      ...current,
+      offlineSongs
     }));
   }
 
@@ -112,7 +122,6 @@ export class ListPageStateService {
       isDataLoaded: true
     }));
   }
-
   // Reset state (if needed)
   resetState() {
     this.state.set({
@@ -120,6 +129,7 @@ export class ListPageStateService {
       allSongs: [],
       recentSongs: [],
       favoriteSongs: [],
+      offlineSongs: [],
       artists: [],
       isDataLoaded: false,
       scrollPosition: 0

@@ -13,13 +13,16 @@ import {
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
+// Import new components
+import { DownloadButtonComponent } from '../../components/shared/download-button.component';
+import { StorageManagementComponent } from '../../components/storage-management/storage-management.component';
 
 @Component({
   selector: 'app-downloads',
   templateUrl: './downloads.page.html',
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DownloadButtonComponent, StorageManagementComponent],
 })
 export class DownloadsPage implements OnInit {
 
@@ -42,9 +45,9 @@ export class DownloadsPage implements OnInit {
 
   private clipboardRetryCount = 0;
   private readonly MAX_CLIPBOARD_RETRIES = 2;
-
   async ngOnInit() {
     await this.loadSearchHistory();
+    await this.loadDownloadHistory();
 
     // Subscribe to download changes
     this.downloadService.downloads$.subscribe(downloads => {
@@ -372,7 +375,6 @@ export class DownloadsPage implements OnInit {
 
     await alert.present();
   }
-
   private focusSearchInput() {
     setTimeout(() => {
       const searchInput = document.getElementById('searchInput') as HTMLInputElement;
@@ -381,5 +383,81 @@ export class DownloadsPage implements OnInit {
         searchInput.select();
       }
     }, 300);
+  }
+
+  // === CONVERSION UTILITIES ===
+  convertSearchHistoryToDataSong(historyItem: SearchHistoryItem): DataSong {
+    return {
+      id: historyItem.songId || '',
+      title: historyItem.title,
+      artist: historyItem.artist,
+      duration: historyItem.duration,
+      duration_formatted: historyItem.duration_formatted,
+      thumbnail_url: historyItem.thumbnail_url,
+      audio_url: historyItem.audio_url
+    };
+  }
+
+  onDownloadStartedFromHistory(historyItem: SearchHistoryItem) {
+    const dataSong = this.convertSearchHistoryToDataSong(historyItem);
+    this.onDownloadStarted(dataSong);
+  }
+
+  onDownloadCompletedFromHistory(historyItem: SearchHistoryItem) {
+    const dataSong = this.convertSearchHistoryToDataSong(historyItem);
+    this.onDownloadCompleted(dataSong);
+  }
+
+  onDownloadFailedFromHistory(historyItem: SearchHistoryItem, error: string) {
+    const dataSong = this.convertSearchHistoryToDataSong(historyItem);
+    this.onDownloadFailed(dataSong, error);
+  }
+
+  // === DOWNLOAD EVENT HANDLERS ===
+  onDownloadStarted(result: DataSong) {
+    console.log('Download started for:', result.title);
+    // Show toast notification
+    this.showToast(`Downloading "${result.title}"`, 'primary');
+  }
+
+  onDownloadCompleted(result: DataSong) {
+    console.log('Download completed for:', result.title);
+    // Refresh download history and show success message
+    this.loadDownloadHistory();
+    this.showToast(`Download completed: "${result.title}"`, 'success');
+  }
+
+  onDownloadFailed(result: DataSong, error: string) {
+    console.error('Download failed for:', result.title, error);
+    // Show error message to user
+    this.showAlert('Download Failed', `Failed to download "${result.title}": ${error}`);
+  }
+
+  onStorageCleared(event: any) {
+    console.log('Storage cleared:', event);
+    this.loadDownloadHistory();
+    this.loadSearchHistory();
+    this.showToast('Storage cleared successfully', 'success');
+  }
+
+  playDownloadedSong(song: Song) {
+    this.audioPlayerService.playSong(song);
+  }
+
+  private async loadDownloadHistory() {
+    try {
+      const downloadedSongs = await this.databaseService.getOfflineSongs();
+      this.downloadHistory.set(downloadedSongs);
+    } catch (error) {
+      console.error('Error loading download history:', error);
+    }
+  }
+
+  private async showAlert(header: string, message: string) {    const alert = await this.alertController.create({
+      header,
+      message,
+      buttons: ['OK']
+    });
+    await alert.present();
   }
 }

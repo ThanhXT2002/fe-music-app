@@ -4,13 +4,22 @@ export interface Song {
   artist: string;
   album?: string;
   duration: number; // in seconds
-  duration_formatted?: string; // in seconds
+  duration_formatted?: string; // formatted duration (e.g., "3:45")
   thumbnail?: string;
   audioUrl: string;
   filePath?: string | null; // local file path
   addedDate: Date;
   isFavorite: boolean;
   genre?: string;
+
+  // Blob support for PWA offline
+  audioBlobId?: string | null;
+  thumbnailBlobId?: string | null;
+  downloadStatus?: 'none' | 'downloading' | 'completed' | 'failed';
+  downloadProgress?: number; // 0-100
+  fileSize?: number; // in bytes
+  downloadedAt?: Date | null;
+  isOfflineAvailable?: boolean;
 }
 
 export interface Album {
