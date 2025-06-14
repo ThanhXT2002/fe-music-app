@@ -1,8 +1,9 @@
 import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject, catchError, Observable } from 'rxjs';
-import { Song, DataSong, YouTubeDownloadResponse } from '../interfaces/song.interface';
+import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } from '../interfaces/song.interface';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { DatabaseService } from './database.service';
+import { IndexedDBService } from './indexeddb.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { RefreshService } from './refresh.service';
@@ -36,11 +37,11 @@ export class DownloadService {
   public downloads$ = this.downloadsSubject.asObservable();
 
   private activeDownloads = new Map<string, any>();
-
   constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
-     private refreshService: RefreshService
+    private indexedDBService: IndexedDBService,
+    private refreshService: RefreshService
   ) {
     this.loadDownloadsFromStorage();
   }
@@ -264,26 +265,25 @@ export class DownloadService {
     // Sử dụng real download thay vì simulate
     this.realDownload(id, download.url, abortController.signal);
   }
-
   /**
-   * Download thực tế file audio
+   * Download thực tế file audio và thumbnail
    * @param id - ID của download task
-   * @param audioUrl - URL của file audio
+   * @param audioUrl - URL của file audio (không sử dụng nữa, lấy từ songData)
    * @param signal - AbortSignal để cancel download
    */
   private async realDownload(id: string, audioUrl: string, signal: AbortSignal) {
     try {
       const download = this.getDownload(id);
-      if (!download) return;
+      if (!download || !download.songData) return;
 
       console.log('🎵 Starting real download for:', download.title);
 
       if (Capacitor.getPlatform() === 'web') {
-        // Web platform: Không download file, chỉ lưu thông tin vào database
+        // Web platform: Download files và lưu vào IndexedDB
         await this.handleWebDownload(id, signal);
       } else {
-        // Native platform: Download file thực tế
-        await this.handleNativeDownload(id, audioUrl, signal);
+        // Native platform: Download file thực tế vào filesystem
+        await this.handleNativeDownload(id, download.songData.audio_url, signal);
       }
 
     } catch (error) {
@@ -293,23 +293,84 @@ export class DownloadService {
       }
     }
   }
-
   /**
-   * Xử lý download cho web platform
+   * Xử lý download cho web platform - download cả audio và thumbnail
    * @param id - ID của download task
    * @param signal - AbortSignal
    */
   private async handleWebDownload(id: string, signal: AbortSignal) {
-    // Simulate progress cho web
-    for (let progress = 0; progress <= 100; progress += 20) {
+    const download = this.getDownload(id);
+    if (!download || !download.songData) return;
+
+    const { songData } = download;
+    let totalProgress = 0;
+
+    try {
+      // Step 1: Download audio file (60% of total progress)
+      console.log('📥 Downloading audio file...');
+      this.updateDownloadProgress(id, 10, 'downloading');
+
+      const audioResponse = await fetch(songData.audio_url, { signal });
+      if (!audioResponse.ok) {
+        throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+      }
+
+      const audioBlob = await audioResponse.blob();
+      totalProgress = 40;
+      this.updateDownloadProgress(id, totalProgress);
+
+      // Step 2: Download thumbnail (20% of total progress)
+      console.log('📥 Downloading thumbnail...');
+      const thumbResponse = await fetch(songData.thumbnail_url, { signal });
+      if (!thumbResponse.ok) {
+        throw new Error(`Failed to fetch thumbnail: ${thumbResponse.status}`);
+      }
+
+      const thumbnailBlob = await thumbResponse.blob();
+      totalProgress = 60;
+      this.updateDownloadProgress(id, totalProgress);
+
       if (signal.aborted) return;
 
-      await new Promise(resolve => setTimeout(resolve, 300));
-      this.updateDownloadProgress(id, progress);
-    }
+      // Step 3: Save audio to IndexedDB (10% of total progress)
+      console.log('💾 Saving audio to IndexedDB...');
+      const audioSaved = await this.indexedDBService.saveAudioFile(
+        songData.id,
+        audioBlob,
+        audioBlob.type || 'audio/mpeg'
+      );
 
-    // Complete download (không có filePath cho web)
-    await this.completeDownload(id);
+      if (!audioSaved) {
+        throw new Error('Failed to save audio file to IndexedDB');
+      }
+
+      totalProgress = 80;
+      this.updateDownloadProgress(id, totalProgress);
+
+      // Step 4: Save thumbnail to IndexedDB (10% of total progress)
+      console.log('💾 Saving thumbnail to IndexedDB...');
+      const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
+        songData.id,
+        thumbnailBlob,
+        thumbnailBlob.type || 'image/jpeg'
+      );
+
+      if (!thumbnailSaved) {
+        throw new Error('Failed to save thumbnail file to IndexedDB');
+      }
+
+      totalProgress = 100;
+      this.updateDownloadProgress(id, totalProgress);      // Complete download (filePath sẽ là undefined cho web)
+      await this.completeDownload(id, undefined);
+
+      console.log('✅ Web download completed for:', songData.title);
+
+    } catch (error) {
+      if (!signal.aborted) {
+        console.error('Web download error:', error);
+        throw error;
+      }
+    }
   }
 
   /**
@@ -400,7 +461,6 @@ export class DownloadService {
     console.log('✅ File saved to:', result.uri);
     return result.uri;
   }
-
   /**
    * Lưu bài hát vào database
    * @param songData - Data từ API
@@ -421,7 +481,8 @@ export class DownloadService {
         filePath: filePath,
         addedDate: new Date(),
         isFavorite: false,
-        genre: this.extractGenreFromKeywords(songData.keywords || [])
+        genre: this.extractGenreFromKeywords(songData.keywords || []),
+        isDownloaded: true // Đánh dấu đã download
       };
 
       // Lưu vào database

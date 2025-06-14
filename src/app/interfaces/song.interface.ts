@@ -11,6 +11,7 @@ export interface Song {
   addedDate: Date;
   isFavorite: boolean;
   genre?: string;
+  isDownloaded?: boolean; // Đã download file về máy chưa
 }
 
 export interface Album {
@@ -134,4 +135,21 @@ export interface SearchHistoryItem {
   keywords: string[];
   searchedAt: Date;
   isDownloaded: boolean; // Đã download về máy chưa
+}
+
+// Interfaces for offline file storage
+export interface AudioFile {
+  songId: string;
+  blob: Blob;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
+}
+
+export interface ThumbnailFile {
+  songId: string;
+  blob: Blob;
+  mimeType: string;
+  size: number;
+  createdAt: Date;
 }

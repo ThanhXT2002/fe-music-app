@@ -2,6 +2,8 @@ import { Injectable, signal } from '@angular/core';
 import { Song, PlaybackState } from '../interfaces/song.interface';
 import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
+import { IndexedDBService } from './indexeddb.service';
+import { Capacitor } from '@capacitor/core';
 
 @Injectable({
   providedIn: 'root'
@@ -36,34 +38,53 @@ export class AudioPlayerService {
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
 
-  constructor(private databaseService: DatabaseService) {
+  constructor(
+    private databaseService: DatabaseService,
+    private indexedDBService: IndexedDBService
+  ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
   }
-
-  // 🆕 Method để load audio với ngrok bypass
-  private async loadAudioWithBypass(audioUrl: string): Promise<string> {
+  // 🆕 Method để load audio với offline support
+  private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
       // Kiểm tra cache trước
-      if (this.audioCache.has(audioUrl)) {
-        console.log('🎵 Using cached audio:', audioUrl);
-        return this.audioCache.get(audioUrl)!;
+      const cacheKey = song.audioUrl;
+      if (this.audioCache.has(cacheKey)) {
+        console.log('🎵 Using cached audio:', song.title);
+        return this.audioCache.get(cacheKey)!;
       }
 
-      console.log('🔄 Loading audio with bypass headers:', audioUrl);
+      // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform)
+      if (Capacitor.getPlatform() === 'web' && song.isDownloaded) {
+        console.log('🎵 Loading offline audio for:', song.title);
 
-      // 🆕 Retry logic
+        const audioBlob = await this.indexedDBService.getAudioFile(song.id);
+        if (audioBlob) {
+          const audioObjectUrl = URL.createObjectURL(audioBlob);
+          this.audioCache.set(cacheKey, audioObjectUrl);
+          console.log('✅ Offline audio loaded successfully:', song.title);
+          return audioObjectUrl;
+        } else {
+          console.warn('⚠️ Offline audio not found, fallback to streaming:', song.title);
+        }
+      }
+
+      // Fallback: Stream từ URL (native hoặc web không có offline)
+      console.log('🔄 Streaming audio for:', song.title);
+
+      // 🆕 Retry logic cho streaming
       const maxRetries = 2;
       let lastError: any;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`🔄 Attempt ${attempt}/${maxRetries} for:`, audioUrl);
+          console.log(`🔄 Attempt ${attempt}/${maxRetries} for:`, song.title);
 
-          const response = await fetch(audioUrl, {
+          const response = await fetch(song.audioUrl, {
             headers: {
               'ngrok-skip-browser-warning': 'true',
               'User-Agent': 'IonicApp/1.0',
@@ -79,10 +100,10 @@ export class AudioPlayerService {
           const audioObjectUrl = URL.createObjectURL(audioBlob);
 
           // Cache blob URL
-          this.audioCache.set(audioUrl, audioObjectUrl);
+          this.audioCache.set(cacheKey, audioObjectUrl);
 
-          console.log('✅ Audio loaded successfully:', {
-            originalUrl: audioUrl,
+          console.log('✅ Streaming audio loaded successfully:', {
+            title: song.title,
             blobUrl: audioObjectUrl,
             size: `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`,
             attempt: attempt
@@ -109,9 +130,8 @@ export class AudioPlayerService {
     } catch (error) {
       console.error('❌ All attempts failed for audio loading:', error);
 
-      // Fallback: thử load trực tiếp
-      console.log('🔄 Fallback: trying direct load...');
-      return audioUrl;
+      // Final fallback: sử dụng URL trực tiếp
+      console.log('🔄 Final fallback: using direct URL...');      return song.audioUrl;
     }
   }
 
@@ -119,7 +139,7 @@ export class AudioPlayerService {
   async preloadAudio(song: Song): Promise<void> {
     try {
       if (!this.audioCache.has(song.audioUrl)) {
-        await this.loadAudioWithBypass(song.audioUrl);
+        await this.loadAudioWithBypass(song);
         console.log('🎵 Preloaded:', song.title);
       }
     } catch (error) {
@@ -137,10 +157,8 @@ export class AudioPlayerService {
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
-      }));
-
-      // Load audio với bypass headers
-      const audioUrl = await this.loadAudioWithBypass(song.audioUrl);
+      }));      // Load audio với bypass headers
+      const audioUrl = await this.loadAudioWithBypass(song);
 
       // Set audio source và play
       this.audio.src = audioUrl;
@@ -731,11 +749,21 @@ export class AudioPlayerService {
           repeatMode: savedState.repeatMode,
           currentTime: savedState.currentTime,
           isPlaying: false // Không tự động play
-        }));
-
-        // Load audio source nhưng không play
+        }));        // Load audio source nhưng không play
         try {
-          const audioUrl = await this.loadAudioWithBypass(savedState.currentSong.url);
+          // Tạo Song object tạm thời để sử dụng loadAudioWithBypass
+          const tempSong: Song = {
+            id: savedState.currentSong.id,
+            title: savedState.currentSong.title,
+            artist: savedState.currentSong.artist,
+            audioUrl: savedState.currentSong.url,
+            thumbnail: savedState.currentSong.thumbnail,
+            duration: savedState.currentSong.duration,
+            addedDate: new Date(),
+            isFavorite: false
+          };
+
+          const audioUrl = await this.loadAudioWithBypass(tempSong);
           this.audio.src = audioUrl;
           await this.audio.load();
 

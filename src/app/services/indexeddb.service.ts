@@ -10,7 +10,7 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 1;
+  private dbVersion = 2; // Tăng version để trigger upgrade
 
   constructor() {}
 
@@ -40,7 +40,6 @@ export class IndexedDBService {
       };
     });
   }
-
   /**
    * Tạo các object stores (tables)
    */
@@ -51,7 +50,17 @@ export class IndexedDBService {
       songsStore.createIndex('title', 'title', { unique: false });
       songsStore.createIndex('artist', 'artist', { unique: false });
       songsStore.createIndex('addedDate', 'addedDate', { unique: false });
-    }    // Search history store
+      songsStore.createIndex('isDownloaded', 'isDownloaded', { unique: false });
+    } else {
+      // Store đã tồn tại, có thể cần thêm index mới
+      const transaction = db.transaction(['songs'], 'versionchange');
+      const songsStore = transaction.objectStore('songs');
+
+      // Thêm index isDownloaded nếu chưa có
+      if (!songsStore.indexNames.contains('isDownloaded')) {
+        songsStore.createIndex('isDownloaded', 'isDownloaded', { unique: false });
+      }
+    }// Search history store
     if (!db.objectStoreNames.contains('search_history')) {
       const historyStore = db.createObjectStore('search_history', { keyPath: 'songId' });
       historyStore.createIndex('searchedAt', 'searchedAt', { unique: false });
@@ -71,11 +80,23 @@ export class IndexedDBService {
     if (!db.objectStoreNames.contains('playlists')) {
       const playlistsStore = db.createObjectStore('playlists', { keyPath: 'id' });
       playlistsStore.createIndex('name', 'name', { unique: false });
-    }
-
-    // User preferences store
+    }    // User preferences store
     if (!db.objectStoreNames.contains('user_preferences')) {
       db.createObjectStore('user_preferences', { keyPath: 'key' });
+    }
+
+    // Audio files store for offline audio blobs
+    if (!db.objectStoreNames.contains('audioFiles')) {
+      const audioStore = db.createObjectStore('audioFiles', { keyPath: 'songId' });
+      audioStore.createIndex('mimeType', 'mimeType', { unique: false });
+      audioStore.createIndex('createdAt', 'createdAt', { unique: false });
+    }
+
+    // Thumbnail files store for offline thumbnail blobs
+    if (!db.objectStoreNames.contains('thumbnailFiles')) {
+      const thumbStore = db.createObjectStore('thumbnailFiles', { keyPath: 'songId' });
+      thumbStore.createIndex('mimeType', 'mimeType', { unique: false });
+      thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
   }
 
@@ -243,5 +264,158 @@ export class IndexedDBService {
         reject(0);
       };
     });
+  }
+
+  // === OFFLINE FILE MANAGEMENT METHODS ===
+
+  /**
+   * Lưu audio file blob vào IndexedDB
+   * @param songId - ID của bài hát
+   * @param blob - Audio blob
+   * @param mimeType - MIME type của file
+   * @returns Promise<boolean>
+   */
+  async saveAudioFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+    if (!this.db) return false;
+
+    const audioFile = {
+      songId: songId,
+      blob: blob,
+      mimeType: mimeType,
+      size: blob.size,
+      createdAt: new Date()
+    };
+
+    return await this.put('audioFiles', audioFile);
+  }
+
+  /**
+   * Lưu thumbnail file blob vào IndexedDB
+   * @param songId - ID của bài hát
+   * @param blob - Thumbnail blob
+   * @param mimeType - MIME type của file
+   * @returns Promise<boolean>
+   */
+  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+    if (!this.db) return false;
+
+    const thumbnailFile = {
+      songId: songId,
+      blob: blob,
+      mimeType: mimeType,
+      size: blob.size,
+      createdAt: new Date()
+    };
+
+    return await this.put('thumbnailFiles', thumbnailFile);
+  }
+
+  /**
+   * Lấy audio file blob theo songId
+   * @param songId - ID của bài hát
+   * @returns Promise<Blob | null>
+   */
+  async getAudioFile(songId: string): Promise<Blob | null> {
+    if (!this.db) return null;
+
+    const audioFile = await this.get('audioFiles', songId);
+    return audioFile ? audioFile.blob : null;
+  }
+
+  /**
+   * Lấy thumbnail file blob theo songId
+   * @param songId - ID của bài hát
+   * @returns Promise<Blob | null>
+   */
+  async getThumbnailFile(songId: string): Promise<Blob | null> {
+    if (!this.db) return null;
+
+    const thumbnailFile = await this.get('thumbnailFiles', songId);
+    return thumbnailFile ? thumbnailFile.blob : null;
+  }
+
+  /**
+   * Xóa audio file
+   * @param songId - ID của bài hát
+   * @returns Promise<boolean>
+   */
+  async deleteAudioFile(songId: string): Promise<boolean> {
+    if (!this.db) return false;
+    return await this.delete('audioFiles', songId);
+  }
+
+  /**
+   * Xóa thumbnail file
+   * @param songId - ID của bài hát
+   * @returns Promise<boolean>
+   */
+  async deleteThumbnailFile(songId: string): Promise<boolean> {
+    if (!this.db) return false;
+    return await this.delete('thumbnailFiles', songId);
+  }
+
+  /**
+   * Xóa cả audio và thumbnail file của một bài hát
+   * @param songId - ID của bài hát
+   * @returns Promise<boolean>
+   */
+  async deleteAllFiles(songId: string): Promise<boolean> {
+    if (!this.db) return false;
+
+    try {
+      await this.deleteAudioFile(songId);
+      await this.deleteThumbnailFile(songId);
+      return true;
+    } catch (error) {
+      console.error('Error deleting files for song:', songId, error);
+      return false;
+    }
+  }
+
+  /**
+   * Kiểm tra xem bài hát có files offline không
+   * @param songId - ID của bài hát
+   * @returns Promise<{hasAudio: boolean, hasThumbnail: boolean}>
+   */
+  async checkOfflineFiles(songId: string): Promise<{hasAudio: boolean, hasThumbnail: boolean}> {
+    if (!this.db) return {hasAudio: false, hasThumbnail: false};
+
+    try {
+      const audioFile = await this.get('audioFiles', songId);
+      const thumbnailFile = await this.get('thumbnailFiles', songId);
+
+      return {
+        hasAudio: !!audioFile,
+        hasThumbnail: !!thumbnailFile
+      };
+    } catch (error) {
+      console.error('Error checking offline files:', error);
+      return {hasAudio: false, hasThumbnail: false};
+    }
+  }
+
+  /**
+   * Lấy tổng dung lượng storage đã sử dụng
+   * @returns Promise<{audioSize: number, thumbnailSize: number, totalSize: number}>
+   */
+  async getStorageUsage(): Promise<{audioSize: number, thumbnailSize: number, totalSize: number}> {
+    if (!this.db) return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+
+    try {
+      const audioFiles = await this.getAll('audioFiles');
+      const thumbnailFiles = await this.getAll('thumbnailFiles');
+
+      const audioSize = audioFiles.reduce((total, file) => total + (file.size || 0), 0);
+      const thumbnailSize = thumbnailFiles.reduce((total, file) => total + (file.size || 0), 0);
+
+      return {
+        audioSize,
+        thumbnailSize,
+        totalSize: audioSize + thumbnailSize
+      };
+    } catch (error) {
+      console.error('Error getting storage usage:', error);
+      return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+    }
   }
 }

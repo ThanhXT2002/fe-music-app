@@ -85,8 +85,7 @@ export class DatabaseService {
   private async createTables() {
     if (!this.db) return;
 
-    const queries = [
-      `CREATE TABLE IF NOT EXISTS songs (
+    const queries = [      `CREATE TABLE IF NOT EXISTS songs (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         artist TEXT NOT NULL,
@@ -98,7 +97,8 @@ export class DatabaseService {
         filePath TEXT,
         addedDate TEXT NOT NULL,
         isFavorite INTEGER DEFAULT 0,
-        genre TEXT
+        genre TEXT,
+        isDownloaded INTEGER DEFAULT 0
       );`,
 
       // Bảng album - lưu thông tin về các album nhạc
@@ -231,8 +231,7 @@ export class DatabaseService {
   async addSong(song: Song): Promise<boolean> {
     if (!this.isDbReady) return false;
 
-    try {
-      if (this.platform === 'web') {
+    try {      if (this.platform === 'web') {
         // Sử dụng IndexedDB cho web
         const songData = {
           id: song.id,
@@ -246,17 +245,17 @@ export class DatabaseService {
           filePath: song.filePath || null,
           addedDate: song.addedDate.toISOString(),
           isFavorite: song.isFavorite ? 1 : 0,
-          genre: song.genre || null
+          genre: song.genre || null,
+          isDownloaded: song.isDownloaded ? 1 : 0
         };
         return await this.indexedDB.put('songs', songData);
       } else {
         // Sử dụng SQLite cho native
-        if (!this.db) return false;
-        await this.db.run(
+        if (!this.db) return false;        await this.db.run(
           `INSERT OR REPLACE INTO songs
            (id, title, artist, album, duration, duration_formatted, thumbnail_url, audioUrl, filePath,
-            addedDate, isFavorite, genre)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            addedDate, isFavorite, genre, isDownloaded)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             song.id,
             song.title,
@@ -269,7 +268,8 @@ export class DatabaseService {
             song.filePath || null,
             song.addedDate.toISOString(),
             song.isFavorite ? 1 : 0,
-            song.genre || null
+            song.genre || null,
+            song.isDownloaded ? 1 : 0
           ]
         );
         return true;
@@ -400,8 +400,7 @@ export class DatabaseService {
    * Chuyển đổi dữ liệu từ database rows thành đối tượng Song
    * @param rows - Mảng các row từ database
    * @returns Song[] - Mảng các đối tượng Song
-   */
-  private mapRowsToSongs(rows: any[]): Song[] {
+   */  private mapRowsToSongs(rows: any[]): Song[] {
     return rows.map(row => ({
       id: row.id,
       title: row.title,
@@ -415,6 +414,7 @@ export class DatabaseService {
       addedDate: new Date(row.addedDate),
       isFavorite: row.isFavorite === 1, // Chuyển integer thành boolean
       genre: row.genre,
+      isDownloaded: row.isDownloaded === 1 // Chuyển integer thành boolean
     }));
   }
 
