@@ -1,11 +1,12 @@
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { Song, DataSong } from '../interfaces/song.interface';
-import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, catchError, Observable } from 'rxjs';
+import { Song, DataSong, YouTubeDownloadResponse } from '../interfaces/song.interface';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { RefreshService } from './refresh.service';
+import { environment } from 'src/environments/environment';
 
 // Define DownloadTask interface directly in this file
 export interface DownloadTask {
@@ -29,6 +30,8 @@ export interface DownloadTask {
   providedIn: 'root'
 })
 export class DownloadService {
+  private apiUrl = environment.apiUrl;
+
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
 
@@ -552,4 +555,30 @@ export class DownloadService {
       console.error('Failed to load downloads from storage:', error);
     }
   }
+
+  // download youtube video
+  getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
+    const params = new HttpParams().set('url', url);
+    return this.http
+      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, {
+        params,
+      })
+      .pipe(
+        catchError((error) => {
+          console.error('Error downloading from YouTube:', error);
+          throw error;
+        })
+      );
+  }
+
+    validateYoutubeUrl(url: string): boolean {
+    const patterns = [
+      /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/,
+      /^https?:\/\/(www\.)?youtube\.com\/watch\?.*v=[a-zA-Z0-9_-]+/,
+      /^https?:\/\/youtu\.be\/[a-zA-Z0-9_-]+/,
+    ];
+
+    return patterns.some((pattern) => pattern.test(url));
+  }
+
 }

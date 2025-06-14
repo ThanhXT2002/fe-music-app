@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { YoutubeService } from '../../services/youtube.service';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { Song } from '../../interfaces/song.interface';
@@ -25,7 +24,6 @@ interface SearchResult {
   styleUrls: ['./search.component.scss'],
 })
 export class SearchComponent  implements OnInit {
-  private youtubeService = inject(YoutubeService);
   private databaseService = inject(DatabaseService);
   private audioPlayerService = inject(AudioPlayerService);
 

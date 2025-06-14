@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { YoutubeService } from '../../services/youtube.service';
+
 import { DatabaseService } from '../../services/database.service';
 import { DownloadService, DownloadTask } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
@@ -22,9 +22,9 @@ import { finalize, firstValueFrom, tap } from 'rxjs';
   imports: [CommonModule, FormsModule],
 })
 export class DownloadsPage implements OnInit {
-  youtubeService = inject(YoutubeService);
+
   private databaseService = inject(DatabaseService);
-  private downloadService = inject(DownloadService);
+  downloadService = inject(DownloadService);
   private audioPlayerService = inject(AudioPlayerService);
   private clipboardService = inject(ClipboardService);
   private alertController = inject(AlertController);
@@ -60,7 +60,7 @@ export class DownloadsPage implements OnInit {
       return;
     }
 
-    if (this.youtubeService.validateYoutubeUrl(query)) {
+    if (this.downloadService.validateYoutubeUrl(query)) {
       return;
     } else {
       await this.searchHistory(query);
@@ -72,7 +72,7 @@ export class DownloadsPage implements OnInit {
       this.isSearching.set(true);
 
       const response = await firstValueFrom(
-        this.youtubeService.getYoutubeUrlInfo(url)
+        this.downloadService.getYoutubeUrlInfo(url)
       );
 
       if (response.success) {
@@ -244,7 +244,7 @@ export class DownloadsPage implements OnInit {
       return;
     }
 
-    if (this.youtubeService.validateYoutubeUrl(query)) {
+    if (this.downloadService.validateYoutubeUrl(query)) {
       this.processYouTubeUrl(query);
     } else {
       this.searchHistory(query);

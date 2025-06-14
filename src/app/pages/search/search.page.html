@@ -44,8 +44,8 @@
   }  <button
       (click)="onSearchYoutubeUrl()"
       [ngClass]="{
-        'bg-pink-500': youtubeService.validateYoutubeUrl(searchQuery()),
-        'bg-gray-300 bg-opacity-20': !youtubeService.validateYoutubeUrl(searchQuery())
+        'bg-pink-500': downloadService.validateYoutubeUrl(searchQuery()),
+        'bg-gray-300 bg-opacity-20': !downloadService.validateYoutubeUrl(searchQuery())
       }"
       class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
     >
@@ -143,7 +143,7 @@
           ></path>
         </svg>
 
-        @if(youtubeService.validateYoutubeUrl(searchQuery())) {
+        @if(downloadService.validateYoutubeUrl(searchQuery())) {
           <p class="text-gray-600 dark:text-gray-400">Tìm kiếm ngay</p>
           <p class="text-sm text-gray-500 dark:text-gray-500">
             Nhấn nút tìm kiếm để tải video YouTube

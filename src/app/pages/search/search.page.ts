@@ -1,13 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { YoutubeService } from '../../services/youtube.service';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DataSong, Song } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
 import { finalize, tap } from 'rxjs';
+import { DownloadService } from 'src/app/services/download.service';
 
 
 @Component({
@@ -17,7 +17,7 @@ import { finalize, tap } from 'rxjs';
   imports: [CommonModule, FormsModule],
 })
 export class SearchPage implements OnInit {
-  youtubeService = inject(YoutubeService);
+  downloadService = inject(DownloadService);
   private databaseService = inject(DatabaseService);
   private audioPlayerService = inject(AudioPlayerService);
   private clipboardService = inject(ClipboardService);
@@ -45,7 +45,7 @@ async onSearchInput(event: any) {
   }
 
   // Check if the input is a valid YouTube URL
-  if (this.youtubeService.validateYoutubeUrl(query)) {
+  if (this.downloadService.validateYoutubeUrl(query)) {
     // Don't automatically process YouTube URLs - wait for user to click search button
     this.searchResults.set([]);
     return;
@@ -57,7 +57,7 @@ async onSearchInput(event: any) {
 async processYouTubeUrl(url: string) {
   try {
     this.isSearching.set(true);
-    this.youtubeService.getYoutubeUrlInfo(url)
+    this.downloadService.getYoutubeUrlInfo(url)
       .pipe(
         tap(response => {
           if (response.success) {
@@ -148,7 +148,7 @@ onSearchYoutubeUrl(){
   }
 
   // Check if the input is a valid YouTube URL
-  if (this.youtubeService.validateYoutubeUrl(query)) {
+  if (this.downloadService.validateYoutubeUrl(query)) {
     this.processYouTubeUrl(query);
   } else {
     // If not a YouTube URL, perform regular search
