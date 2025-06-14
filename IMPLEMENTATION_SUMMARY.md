@@ -1,5 +1,12 @@
 # Download System Upgrade - Implementation Summary
 
+> **⚠️ UPDATE (June 2025)**: Schedule functionality has been **removed** from the project as it was deemed unnecessary. This includes:
+> - BackgroundDownloadService
+> - DownloadSchedulerComponent 
+> - DownloadQueueComponent
+> - All scheduling-related features from Phase 5
+> - Schedule buttons and UI elements
+
 ## 🎯 Project Goal
 Upgrade the music download system for the Ionic/Angular app to support both native (iOS/Android) and web/PWA platforms, with offline-first capabilities storing audio and thumbnails in IndexedDB (web) or filesystem (native).
 
@@ -142,15 +149,6 @@ this.audioPlayerService.playSong(downloadedSong);
 ```typescript
 // Using AnalyticsDashboardComponent
 <app-analytics-dashboard></app-analytics-dashboard>
-```
-
-### Background Downloads & Notifications
-```typescript
-// Using BackgroundDownloadService
-this.backgroundDownloadService.scheduleDownload(songData, {
-  wifiOnly: true,
-  scheduledTime: new Date(Date.now() + 3600000) // 1 hour later
-});
 ```
 
 ## 🎉 Success Metrics
