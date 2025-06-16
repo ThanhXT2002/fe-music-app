@@ -5,8 +5,7 @@
     [ngClass]="searchHistoryItem().length > 0 ? 'h-2/5' : 'flex-1'"
   >
     <!-- Search Section -->
-    <div class="p-4">
-      <!-- Search Input -->
+    <div class="p-4">      <!-- Search Input -->
       <div class="relative mb-4">
         <input
           #searchInput
@@ -14,6 +13,7 @@
           type="text"
           [value]="searchQuery()"
           (input)="onSearchInput($event)"
+          (paste)="onPaste($event)"
           placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
           class="input w-full pl-10 pr-10 bg-gray-100 dark:bg-gray-700"
         />
