@@ -25,7 +25,10 @@ export class DatabaseService {
   private isDbReady = false;
   // Platform hiện tại
   private platform: string;
-
+  // Flag để track initialization process
+  private isInitializing = false;
+  // Connection name để tránh duplicate
+  private connectionName = DB_XTMUSIC;
   constructor(
     indexedDBService: IndexedDBService,
     private refreshService: RefreshService,
@@ -34,36 +37,182 @@ export class DatabaseService {
     this.indexedDB = indexedDBService;
     this.platform = Capacitor.getPlatform();
     // Khởi tạo database khi service được tạo
-    this.initializeDatabase();
+    this.initializeDatabase().catch(error => {
+      console.error('❌ Failed to initialize database in constructor:', error);
+    });
   }  /**
    * Khởi tạo cơ sở dữ liệu và tạo các bảng cần thiết
    */
   async initializeDatabase() {
-    try {
+    // Tránh duplicate initialization
+    if (this.isInitializing || this.isDbReady) {
+      console.log('🔄 Database already initializing or ready, skipping...');
+      return;
+    }
 
+    this.isInitializing = true;
+
+    try {
       if (this.platform === 'web') {
         await this.indexedDB.initDB();
         this.isDbReady = true;
+        console.log('✅ IndexedDB initialized successfully');
       } else {
         // Sử dụng SQLite cho native platforms
-        // Tạo kết nối database với tên 'xtmusic_db'
+        await this.initializeSQLiteConnection();
+        console.log('✅ SQLite initialized successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing database:', error);
+      this.isDbReady = false;
+
+      // Retry mechanism cho native platform
+      if (this.platform !== 'web') {
+        console.log('🔄 Retrying database initialization...');
+        await this.retryInitialization();
+      }
+
+      throw error;
+    } finally {
+      this.isInitializing = false;
+    }
+  }
+  /**
+   * Khởi tạo SQLite connection với error handling
+   */
+  private async initializeSQLiteConnection() {
+    try {
+      // Kiểm tra xem connection đã tồn tại chưa
+      let connectionExists = false;
+      try {
+        // Thử retrieve connection để kiểm tra xem có tồn tại không
+        const testDb = await this.sqlite.retrieveConnection(this.connectionName, false);
+        if (testDb) {
+          connectionExists = true;
+          this.db = testDb;
+          console.log('🔄 Connection already exists, reusing...');
+        }
+      } catch (retrieveError) {
+        // Connection không tồn tại, sẽ tạo mới
+        connectionExists = false;
+        console.log('🆕 Connection does not exist, will create new...');
+      }
+
+      if (!connectionExists) {
+        console.log('🆕 Creating new connection...');
+        // Tạo connection mới
         this.db = await this.sqlite.createConnection(
-          DB_XTMUSIC,
+          this.connectionName,
           false, // không mã hóa
           'no-encryption',
           1, // phiên bản database
           false
         );
-        // Mở kết nối database
-        await this.db.open();
+      }      // Mở kết nối database (nếu chưa mở)
+      if (this.db) {
+        const isOpen = await this.db.isDBOpen();
+        if (!isOpen.result) {
+          await this.db.open();
+          console.log('📂 Database opened successfully');
+        } else {
+          console.log('📂 Database already open');
+        }
+
         // Tạo các bảng cần thiết
         await this.createTables();
         this.isDbReady = true;
+      } else {
+        throw new Error('Database connection is null');
+      }
+
+    } catch (error) {
+      console.error('❌ SQLite initialization error:', error);
+
+      // Cleanup nếu có lỗi
+      if (this.db) {
+        try {
+          await this.db.close();
+        } catch (closeError) {
+          console.error('❌ Error closing database during cleanup:', closeError);
+        }
+        this.db = null;
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Retry mechanism với exponential backoff
+   */
+  private async retryInitialization(maxRetries: number = 2): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        console.log(`🔄 Retry attempt ${i + 1}/${maxRetries}`);
+
+        // Cleanup trước khi retry
+        await this.cleanupConnections();
+
+        // Đợi một chút trước khi retry
+        await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+
+        await this.initializeSQLiteConnection();
+        console.log(`✅ Retry ${i + 1} successful`);
+        return;
+
+      } catch (error) {
+        console.error(`❌ Retry ${i + 1} failed:`, error);
+
+        if (i === maxRetries - 1) {
+          // Fallback to IndexedDB for critical functionality
+          console.log('🔄 Falling back to IndexedDB mode...');
+          await this.fallbackToIndexedDB();
+        }
+      }
+    }
+  }
+  /**
+   * Cleanup existing connections
+   */
+  private async cleanupConnections(): Promise<void> {
+    try {
+      // Thử retrieve connection để check xem có tồn tại không
+      try {
+        const existingDb = await this.sqlite.retrieveConnection(this.connectionName, false);
+
+        if (existingDb) {
+          console.log('🧹 Cleaning up existing connection...');
+
+          const isOpen = await existingDb.isDBOpen();
+
+          if (isOpen.result) {
+            await existingDb.close();
+          }
+
+          await this.sqlite.closeConnection(this.connectionName, false);
+        }
+      } catch (retrieveError) {
+        // Connection không tồn tại, không cần cleanup
+        console.log('🧹 No existing connection to cleanup');
       }
     } catch (error) {
-      console.error('❌ Error initializing database:', error);
+      console.error('❌ Error during cleanup:', error);
+    }
+  }
+
+  /**
+   * Fallback to IndexedDB if SQLite fails completely
+   */
+  private async fallbackToIndexedDB(): Promise<void> {
+    try {
+      console.log('🔄 Initializing IndexedDB fallback...');
+      await this.indexedDB.initDB();
+      this.isDbReady = true;
+      this.platform = 'web'; // Switch to web mode temporarily
+      console.log('✅ Fallback to IndexedDB successful');
+    } catch (error) {
+      console.error('❌ IndexedDB fallback failed:', error);
       this.isDbReady = false;
-      throw error; // Re-throw để caller có thể handle
     }
   }
 
@@ -697,18 +846,40 @@ export class DatabaseService {
   }
   /**
    * Đóng kết nối database
-   */
-  async closeDatabase(): Promise<void> {
-    if (this.platform === 'web') {
-      // IndexedDB doesn't need explicit closing
-      this.isDbReady = false;
-    } else {
-      // Close SQLite connection for native platforms
-      if (this.db) {
-        await this.db.close();
-        this.db = null;
+   */  async closeDatabase(): Promise<void> {
+    try {
+      if (this.platform === 'web') {
+        // IndexedDB doesn't need explicit closing
         this.isDbReady = false;
+        console.log('📂 IndexedDB connection closed');
+      } else {
+        // Close SQLite connection for native platforms
+        if (this.db) {
+          const isOpen = await this.db.isDBOpen();
+          if (isOpen.result) {
+            await this.db.close();
+            console.log('📂 SQLite connection closed');
+          }
+
+          // Cleanup connection từ SQLite pool
+          try {
+            await this.sqlite.closeConnection(this.connectionName, false);
+            console.log('🧹 SQLite connection removed from pool');
+          } catch (poolError) {
+            console.error('❌ Error removing connection from pool:', poolError);
+          }
+
+          this.db = null;
+        }
+        this.isDbReady = false;
+        this.isInitializing = false;
       }
+    } catch (error) {
+      console.error('❌ Error closing database:', error);
+      // Force reset state even if close failed
+      this.db = null;
+      this.isDbReady = false;
+      this.isInitializing = false;
     }
   }
   /**
@@ -1259,5 +1430,95 @@ export class DatabaseService {
     }
 
     return undefined;
+  }
+
+  /**
+   * Kiểm tra health của database và tự động recovery nếu cần
+   */
+  async checkDatabaseHealth(): Promise<boolean> {
+    try {
+      if (this.platform === 'web') {
+        return this.isDbReady;
+      }
+
+      if (!this.db || !this.isDbReady) {
+        console.log('🏥 Database not ready, attempting recovery...');
+        await this.initializeDatabase();
+        return this.isDbReady;
+      }
+
+      // Test database với một query đơn giản
+      const isOpen = await this.db.isDBOpen();
+      if (!isOpen.result) {
+        console.log('🏥 Database closed unexpectedly, reopening...');
+        await this.db.open();
+        return true;
+      }
+
+      // Test với query
+      try {
+        await this.db.query('SELECT 1');
+        return true;
+      } catch (queryError) {
+        console.error('🏥 Database query test failed:', queryError);
+        await this.recoverDatabase();
+        return this.isDbReady;
+      }
+
+    } catch (error) {
+      console.error('🏥 Database health check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Recovery database khi gặp lỗi
+   */
+  private async recoverDatabase(): Promise<void> {
+    try {
+      console.log('🔧 Starting database recovery...');
+
+      // Đóng connection hiện tại
+      await this.closeDatabase();
+
+      // Đợi một chút
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Khởi tạo lại
+      await this.initializeDatabase();
+
+      console.log('🔧 Database recovery completed');
+    } catch (error) {
+      console.error('🔧 Database recovery failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Wrapper method cho tất cả database operations để auto-retry
+   */
+  private async executeWithRetry<T>(operation: () => Promise<T>, maxRetries: number = 1): Promise<T> {
+    for (let i = 0; i <= maxRetries; i++) {
+      try {
+        // Check health trước khi execute
+        const isHealthy = await this.checkDatabaseHealth();
+        if (!isHealthy && i === maxRetries) {
+          throw new Error('Database not healthy after recovery attempts');
+        }
+
+        return await operation();
+      } catch (error) {
+        console.error(`❌ Database operation failed (attempt ${i + 1}):`, error);
+
+        if (i < maxRetries) {
+          console.log('🔄 Retrying database operation...');
+          await this.recoverDatabase();
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('executeWithRetry: Should not reach here');
   }
 }

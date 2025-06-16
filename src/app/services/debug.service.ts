@@ -8,7 +8,7 @@ export class DebugService {
 
   initEruda(): void {
     // Double check - chỉ load khi là native và development
-    if (Capacitor.isNativePlatform()) {
+    if (!Capacitor.isNativePlatform()) {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/eruda';
       script.onload = () => {

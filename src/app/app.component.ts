@@ -14,6 +14,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { DatabaseService } from './services/database.service';
 import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
+import { PermissionService } from './services/permission.service';
 
 @Component({
   selector: 'app-root',
@@ -29,7 +30,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private platform: Platform,
     private dbService: DatabaseService,
     private appLifecycleService: AppLifecycleService,
-    private playbackRestoreService: PlaybackRestoreService
+    private playbackRestoreService: PlaybackRestoreService,
+    private permissionService: PermissionService
   ) {}
 
 
@@ -43,19 +45,33 @@ export class AppComponent implements OnInit, OnDestroy {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
   }
-
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Đóng database connection khi app destroy
+    this.cleanupDatabase();
   }
-  async initializeApp() {
+
+  /**
+   * Cleanup database khi app destroy
+   */
+  private async cleanupDatabase() {
+    try {
+      await this.dbService.closeDatabase();
+      console.log('🧹 App cleanup: Database closed successfully');
+    } catch (error) {
+      console.error('❌ App cleanup: Failed to close database:', error);
+    }
+  }  async initializeApp() {
     await this.platform.ready();
 
     // Khởi tạo database ngay sau khi platform ready
-    try {
-      await this.dbService.initializeDatabase();
-    } catch (error) {
-      console.error('❌ Failed to initialize database:', error);
+    await this.initializeDatabaseWithRetry();
+
+    // Request permissions for native platforms
+    if (Capacitor.isNativePlatform()) {
+      await this.requestNativePermissions();
     }
 
     if (Capacitor.isNativePlatform()) {
@@ -69,6 +85,48 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Check for saved playback state and show restore prompt if available
     // await this.checkForPlaybackRestore();
+  }
+
+  /**
+   * Request native permissions
+   */
+  private async requestNativePermissions(): Promise<void> {
+    try {
+      console.log('🔐 Requesting native permissions...');
+      const success = await this.permissionService.requestAllPermissions();
+
+      if (success) {
+        console.log('✅ All critical permissions granted');
+      } else {
+        console.warn('⚠️ Some permissions were denied - app may have limited functionality');
+      }
+    } catch (error) {
+      console.error('❌ Error requesting permissions:', error);
+    }
+  }
+
+  /**
+   * Khởi tạo database với retry mechanism
+   */
+  private async initializeDatabaseWithRetry(maxRetries: number = 3): Promise<void> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        console.log(`🔄 Database initialization attempt ${i + 1}/${maxRetries}`);
+        await this.dbService.initializeDatabase();
+        console.log('✅ Database initialized successfully');
+        return;
+      } catch (error) {
+        console.error(`❌ Database initialization attempt ${i + 1} failed:`, error);
+
+        if (i < maxRetries - 1) {
+          // Đợi trước khi retry
+          await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+        } else {
+          console.error('❌ All database initialization attempts failed');
+          // App vẫn có thể chạy mà không có database, nhưng với functionality hạn chế
+        }
+      }
+    }
   }
 
   // private async checkForPlaybackRestore(): Promise<void> {
