@@ -29,7 +29,6 @@ import { SafeAreaService } from './app/services/safe-area.service';
 import { DebugService } from './app/services/debug.service';
 import { APP_INITIALIZER } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
-import { ngrokInterceptor } from './app/interceptors/ngrok.interceptor';
 
 
 function initializeDebug(debugService: DebugService) {
@@ -43,7 +42,7 @@ bootstrapApplication(AppComponent, {
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor,ngrokInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     importProvidersFrom(BrowserAnimationsModule),
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),

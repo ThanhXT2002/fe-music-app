@@ -74,7 +74,6 @@ export class SettingsPage implements OnInit {
 
   async savePreferences() {
     // ThemeService tự động save preferences, không cần implement
-    console.log('Saving preferences:', this.preferences());
   }
 
   storageInfo() {
@@ -112,7 +111,6 @@ export class SettingsPage implements OnInit {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      console.log('Data exported successfully');
     } catch (error) {
       console.error('Error exporting data:', error);
     }

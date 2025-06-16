@@ -185,10 +185,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     const progress = this.calculateProgress(event);
     const newTime = (progress / 100) * this.duration();
 
-    console.log(
-      `🎯 Click seek to: ${newTime.toFixed(2)}s (${progress.toFixed(1)}%)`
-    );
-
     // Immediate UI feedback
     this.tempProgress.set(progress);
     this.isDragging.set(true);
@@ -196,10 +192,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     // Perform seek with proper error handling
     this.audioPlayerService
       .seek(newTime)
-      .then(() => {
-        console.log('✅ Click seek completed');
-        this.isDragging.set(false);
-      })
       .catch((error) => {
         console.error('❌ Click seek failed:', error);
         this.isDragging.set(false); // Reset to current position on error
@@ -252,18 +244,9 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
       const newTime = (this.tempProgress() / 100) * this.duration();
 
-      console.log(
-        `🎯 Drag seek to: ${newTime.toFixed(2)}s (${this.tempProgress().toFixed(
-          1
-        )}%)`
-      );
-
       // Perform seek with proper error handling
       this.audioPlayerService
         .seek(newTime)
-        .then(() => {
-          console.log('✅ Drag seek completed');
-        })
         .catch((error) => {
           console.error('❌ Drag seek failed:', error);
           // Reset to current position on error
@@ -323,18 +306,10 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     if (!this.isDragging()) return;
 
     const newTime = (this.tempProgress() / 100) * this.duration();
-    console.log(
-      `🎯 Finish drag seek to: ${newTime.toFixed(
-        2
-      )}s (${this.tempProgress().toFixed(1)}%)`
-    );
 
     // Perform seek with proper error handling
     this.audioPlayerService
       .seek(newTime)
-      .then(() => {
-        console.log('✅ Drag seek completed');
-      })
       .catch((error) => {
         console.error('❌ Drag seek failed:', error);
         // Reset to current position on error

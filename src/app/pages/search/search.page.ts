@@ -62,8 +62,6 @@ async processYouTubeUrl(url: string) {
         tap(response => {
           if (response.success) {
             const song = response.data;
-            console.log('YouTube song info duration_formatted:', song.duration_formatted);
-
             // Convert API response to search result format
             const result: DataSong = {
               id: song.id,

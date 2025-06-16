@@ -281,7 +281,6 @@ export class ArtistDetailPage implements OnInit {
 
   onOpenPlayer() {
     // Method này được gọi khi click vào song đang active
-    console.log('Opening player page...');
   }
 
   setTab(tab: string) {

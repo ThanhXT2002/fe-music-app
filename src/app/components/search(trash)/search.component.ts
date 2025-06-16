@@ -140,8 +140,6 @@ export class SearchComponent  implements OnInit {
 
       // Refresh download history
       await this.loadDownloadHistory();
-
-      console.log('Song downloaded successfully:', song.title);
     } catch (error) {
       console.error('Download error:', error);
       // Reset downloading state on error

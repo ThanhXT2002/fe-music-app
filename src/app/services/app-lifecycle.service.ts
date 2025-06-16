@@ -17,34 +17,28 @@ export class AppLifecycleService {
     App.addListener('appStateChange', ({ isActive }) => {
       if (!isActive) {
         // App đang chuyển sang background - lưu trạng thái
-        console.log('📱 App going to background, saving playback state...');
         this.audioPlayerService.savePlaybackState();
       }
     });
-
     // Lắng nghe khi app bị terminate
     App.addListener('backButton', () => {
-      console.log('📱 App terminating, saving playback state...');
       this.audioPlayerService.savePlaybackState();
     });
 
     // Lắng nghe beforeunload cho web
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
-        console.log('🌐 Web page unloading, saving playback state...');
         this.audioPlayerService.savePlaybackState();
       });
 
       // Lắng nghe pagehide cho PWA/mobile browsers
       window.addEventListener('pagehide', () => {
-        console.log('🌐 Page hiding, saving playback state...');
         this.audioPlayerService.savePlaybackState();
       });
 
       // Lắng nghe visibilitychange
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-          console.log('🌐 Page hidden, saving playback state...');
           this.audioPlayerService.savePlaybackState();
         }
       });

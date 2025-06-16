@@ -11,9 +11,4 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'www', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 PWA Server running at http://localhost:${PORT}`);
-  console.log('📱 Open this URL in your browser to test PWA features');
-  console.log('💡 Use Chrome DevTools > Application > Service Workers to inspect');
-  console.log('🔧 Use Chrome DevTools > Lighthouse to test PWA score');
-});
+

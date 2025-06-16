@@ -31,7 +31,6 @@ export class OfflineMediaService {
         if (thumbnailBlob) {
           const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
           this.thumbnailCache.set(cacheKey, thumbnailUrl);
-          console.log('🖼️ Using offline thumbnail for:', songId);
           return thumbnailUrl;
         }
       } catch (error) {

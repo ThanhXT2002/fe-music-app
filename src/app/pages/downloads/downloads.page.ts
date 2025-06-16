@@ -119,11 +119,8 @@ export class DownloadsPage implements OnInit {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
-
       // Bắt đầu download
       const downloadId = await this.downloadService.downloadSong(songData);
-      console.log('Started download with ID:', downloadId);
-
       await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
 
     } catch (error) {

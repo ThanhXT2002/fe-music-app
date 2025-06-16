@@ -39,4 +39,3 @@ const prodEnvContent = `export const environment = {
 // Write both environment files
 fs.writeFileSync('./src/environments/environment.ts', devEnvContent);
 fs.writeFileSync('./src/environments/environment.prod.ts', prodEnvContent);
-console.log('Environment files generated successfully (development and production)');

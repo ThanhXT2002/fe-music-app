@@ -37,10 +37,6 @@ export class InstallPromptComponent implements OnInit {
     //   this.showPrompt = true;
     // }
 
-    // Debug info
-    console.log('Install prompt component initialized');
-    console.log('Can install:', this.installService.canInstall());
-    console.log('Is standalone:', this.installService.isRunningStandalone());
 
     // Kiểm tra định kỳ xem đã có thể install chưa
     this.checkInstallAvailability();
@@ -51,7 +47,6 @@ export class InstallPromptComponent implements OnInit {
       if (this.installService.canInstall() && !this.installService.isRunningStandalone()) {
         this.showPrompt = true;
         clearInterval(checkInterval);
-        console.log('Install prompt now available!');
       }
     }, 500);
 
@@ -67,21 +62,12 @@ export class InstallPromptComponent implements OnInit {
   }
 
   async installApp() {
-    console.log('Install button clicked');
-    console.log('Can install before:', this.installService.canInstall());
-
     const result = await this.installService.install();
-    console.log('Install result:', result);
-
     if (result === 'accepted') {
-      console.log('User accepted the install prompt');
       this.showPrompt = false;
     } else if (result === 'dismissed') {
-      console.log('User dismissed the install prompt');
       // Không ẩn button, để user có thể thử lại
     } else {
-      // not-available - hiển thị hướng dẫn manual
-      console.log('Install not available, showing manual instructions');
       this.showManualInstallInstructions();
     }
   }

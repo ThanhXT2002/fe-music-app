@@ -62,7 +62,6 @@ export class DownloadService {
     );
 
     if (existingTask) {
-      console.log('Song already downloaded:', songData.title);
       return existingTask.id;
     }
 
@@ -276,8 +275,6 @@ export class DownloadService {
       const download = this.getDownload(id);
       if (!download || !download.songData) return;
 
-      console.log('🎵 Starting real download for:', download.title);
-
       if (Capacitor.getPlatform() === 'web') {
         // Web platform: Download files và lưu vào IndexedDB
         await this.handleWebDownload(id, signal);
@@ -307,7 +304,6 @@ export class DownloadService {
 
     try {
       // Step 1: Download audio file (60% of total progress)
-      console.log('📥 Downloading audio file...');
       this.updateDownloadProgress(id, 10, 'downloading');
 
       const audioResponse = await fetch(songData.audio_url, { signal });
@@ -320,7 +316,6 @@ export class DownloadService {
       this.updateDownloadProgress(id, totalProgress);
 
       // Step 2: Download thumbnail (20% of total progress)
-      console.log('📥 Downloading thumbnail...');
       const thumbResponse = await fetch(songData.thumbnail_url, { signal });
       if (!thumbResponse.ok) {
         throw new Error(`Failed to fetch thumbnail: ${thumbResponse.status}`);
@@ -333,7 +328,6 @@ export class DownloadService {
       if (signal.aborted) return;
 
       // Step 3: Save audio to IndexedDB (10% of total progress)
-      console.log('💾 Saving audio to IndexedDB...');
       const audioSaved = await this.indexedDBService.saveAudioFile(
         songData.id,
         audioBlob,
@@ -348,7 +342,6 @@ export class DownloadService {
       this.updateDownloadProgress(id, totalProgress);
 
       // Step 4: Save thumbnail to IndexedDB (10% of total progress)
-      console.log('💾 Saving thumbnail to IndexedDB...');
       const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
         songData.id,
         thumbnailBlob,
@@ -362,8 +355,6 @@ export class DownloadService {
       totalProgress = 100;
       this.updateDownloadProgress(id, totalProgress);      // Complete download (filePath sẽ là undefined cho web)
       await this.completeDownload(id, undefined);
-
-      console.log('✅ Web download completed for:', songData.title);
 
     } catch (error) {
       if (!signal.aborted) {
@@ -460,8 +451,6 @@ export class DownloadService {
       directory: Directory.Documents,
       encoding: Encoding.UTF8
     });
-
-    console.log('✅ File saved to:', result.uri);
     return result.uri;
   }
 
@@ -473,7 +462,7 @@ export class DownloadService {
     if (!download.thumbnail || !download.songData) return;
 
     try {
-      console.log('📸 Downloading thumbnail for native:', download.title);
+
       const response = await fetch(download.thumbnail);
 
       if (!response.ok) {
@@ -489,10 +478,8 @@ export class DownloadService {
         thumbnailBlob.type || 'image/jpeg'
       );
 
-      if (saved) {
-        console.log('✅ Thumbnail saved for native:', download.title);
-      } else {
-        console.warn('⚠️ Failed to save thumbnail for native:', download.title);
+      if (!saved) {
+       console.warn('⚠️ Failed to save thumbnail for native:', download.title);
       }
 
     } catch (error) {
@@ -531,7 +518,6 @@ export class DownloadService {
         // Đánh dấu đã download trong search history
         await this.databaseService.markAsDownloaded(songData.id);
         this.refreshService.triggerRefresh();
-        console.log('✅ Song saved to database:', songData.title);
       } else {
         console.error('❌ Failed to save song to database');
       }

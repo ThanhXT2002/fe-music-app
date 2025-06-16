@@ -37,10 +37,7 @@ export class AuthService {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
-
     const result = await signInWithPopup(this.auth, provider);
-    console.log('Google login result:', result);
-    console.log('Google login result user:', result.user);
     return result.user;
   }
 
@@ -49,7 +46,6 @@ export class AuthService {
     if (user) {
       try {
         // forceRefresh = true để đảm bảo token mới nhất
-        console.log('Getting ID token for user:', user.getIdToken(true));
         return await user.getIdToken(true);
       } catch (error) {
         console.error('Error getting ID token:', error);

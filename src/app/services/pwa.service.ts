@@ -22,9 +22,7 @@ export class PWAService {
   }
 
   checkForUpdates() {
-    this.swUpdate.checkForUpdate().then(() => {
-      console.log('Checking for updates...');
-    }).catch(err => {
+    this.swUpdate.checkForUpdate().then().catch(err => {
       console.error('Error checking for updates:', err);
     });
   }

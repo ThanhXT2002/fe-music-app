@@ -40,20 +40,12 @@ export class DatabaseService {
    */
   async initializeDatabase() {
     try {
-      console.log('🚀 Starting database initialization...');
-      console.log('Platform:', this.platform);
 
       if (this.platform === 'web') {
-        // Sử dụng IndexedDB cho web platform
-        console.log('📱 Web platform detected, initializing IndexedDB...');
         await this.indexedDB.initDB();
         this.isDbReady = true;
-        console.log('✅ IndexedDB initialized successfully');
       } else {
         // Sử dụng SQLite cho native platforms
-        console.log('📱 Native platform detected, initializing SQLite...');
-
-        console.log('🔗 Creating database connection...');
         // Tạo kết nối database với tên 'xtmusic_db'
         this.db = await this.sqlite.createConnection(
           DB_XTMUSIC,
@@ -62,16 +54,11 @@ export class DatabaseService {
           1, // phiên bản database
           false
         );
-
-        console.log('🔓 Opening database...');
         // Mở kết nối database
         await this.db.open();
-
-        console.log('🏗️ Creating tables...');
         // Tạo các bảng cần thiết
         await this.createTables();
         this.isDbReady = true;
-        console.log('✅ SQLite initialized successfully');
       }
     } catch (error) {
       console.error('❌ Error initializing database:', error);
@@ -467,8 +454,6 @@ export class DatabaseService {
           'INSERT OR REPLACE INTO thumbnail_files (songId, blob, mimeType, createdAt) VALUES (?, ?, ?, ?)',
           [songId, uint8Array, mimeType, new Date().toISOString()]
         );
-
-        console.log('✅ Thumbnail saved to SQLite:', songId);
         return true;
       }
     } catch (error) {
@@ -537,7 +522,6 @@ export class DatabaseService {
         await this.indexedDB.clear('songs');
         await this.indexedDB.clear('search_history');
         await this.indexedDB.clear('recently_played');
-        console.log('All data cleared successfully');
         return true;
       } else {
         // Sử dụng SQLite cho native
@@ -549,8 +533,6 @@ export class DatabaseService {
         await this.db.run('DELETE FROM playlist_songs');
         await this.db.run('DELETE FROM recently_played');
         await this.db.run('DELETE FROM search_history');
-
-        console.log('All data cleared successfully');
         return true;
       }
     } catch (error) {
@@ -737,7 +719,6 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
 
     try {
-      console.log('Adding to search history:', youtubeData);
       if (this.platform === 'web') {
         // Sử dụng IndexedDB cho web
         const historyData = {
@@ -1125,13 +1106,11 @@ export class DatabaseService {
       if (this.platform === 'web') {
         // Sử dụng IndexedDB cho web
         await this.indexedDB.clear('search_history');
-        console.log('Search history cleared successfully');
         return true;
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return false;
         await this.db.run('DELETE FROM search_history');
-        console.log('Search history cleared successfully');
         return true;
       }
     } catch (error) {

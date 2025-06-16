@@ -54,27 +54,22 @@ export class AudioPlayerService {
       // Kiểm tra cache trước
       const cacheKey = song.audioUrl;
       if (this.audioCache.has(cacheKey)) {
-        console.log('🎵 Using cached audio:', song.title);
         return this.audioCache.get(cacheKey)!;
       }
 
       // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform)
       if (Capacitor.getPlatform() === 'web' && song.isDownloaded) {
-        console.log('🎵 Loading offline audio for:', song.title);
+
 
         const audioBlob = await this.indexedDBService.getAudioFile(song.id);
         if (audioBlob) {
           const audioObjectUrl = URL.createObjectURL(audioBlob);
           this.audioCache.set(cacheKey, audioObjectUrl);
-          console.log('✅ Offline audio loaded successfully:', song.title);
           return audioObjectUrl;
         } else {
           console.warn('⚠️ Offline audio not found, fallback to streaming:', song.title);
         }
       }
-
-      // Fallback: Stream từ URL (native hoặc web không có offline)
-      console.log('🔄 Streaming audio for:', song.title);
 
       // 🆕 Retry logic cho streaming
       const maxRetries = 2;
@@ -82,8 +77,6 @@ export class AudioPlayerService {
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.log(`🔄 Attempt ${attempt}/${maxRetries} for:`, song.title);
-
           const response = await fetch(song.audioUrl, {
             headers: {
               'ngrok-skip-browser-warning': 'true',
@@ -95,22 +88,11 @@ export class AudioPlayerService {
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
-
           const audioBlob = await response.blob();
           const audioObjectUrl = URL.createObjectURL(audioBlob);
-
           // Cache blob URL
           this.audioCache.set(cacheKey, audioObjectUrl);
-
-          console.log('✅ Streaming audio loaded successfully:', {
-            title: song.title,
-            blobUrl: audioObjectUrl,
-            size: `${(audioBlob.size / 1024 / 1024).toFixed(2)} MB`,
-            attempt: attempt
-          });
-
           return audioObjectUrl;
-
         } catch (error) {
           lastError = error;
           console.warn(`❌ Attempt ${attempt} failed:`, error);
@@ -118,7 +100,6 @@ export class AudioPlayerService {
           // Nếu không phải lần cuối, đợi một chút trước khi retry
           if (attempt < maxRetries) {
             const delay = attempt * 1000; // 1s, 2s...
-            console.log(`⏳ Waiting ${delay}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, delay));
           }
         }
@@ -129,9 +110,7 @@ export class AudioPlayerService {
 
     } catch (error) {
       console.error('❌ All attempts failed for audio loading:', error);
-
-      // Final fallback: sử dụng URL trực tiếp
-      console.log('🔄 Final fallback: using direct URL...');      return song.audioUrl;
+      return song.audioUrl;
     }
   }
 
@@ -140,7 +119,6 @@ export class AudioPlayerService {
     try {
       if (!this.audioCache.has(song.audioUrl)) {
         await this.loadAudioWithBypass(song);
-        console.log('🎵 Preloaded:', song.title);
       }
     } catch (error) {
       console.error('Error preloading audio:', error);
@@ -150,7 +128,6 @@ export class AudioPlayerService {
   // 🔄 Modified playSong method
   async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
     try {
-      console.log('🎵 Playing song:', song.title);
 
       this._playbackState.update(state => ({
         ...state,
@@ -210,11 +187,8 @@ export class AudioPlayerService {
 
   // 🆕 Clear cache method
   private clearAudioCache(): void {
-    console.log('🧹 Clearing audio cache...');
-
     this.audioCache.forEach((blobUrl, originalUrl) => {
       URL.revokeObjectURL(blobUrl);
-      console.log('🗑️ Revoked:', originalUrl);
     });
 
     this.audioCache.clear();
@@ -224,7 +198,8 @@ export class AudioPlayerService {
   destroy() {
     this.stopTimeUpdate();
     this.audio.pause();
-    this.audio.src = '';    this.clearAudioCache(); // Clear cache khi destroy
+    this.audio.src = '';
+    this.clearAudioCache(); // Clear cache khi destroy
   }
 
   private setupAudioEventListeners() {
@@ -296,7 +271,6 @@ export class AudioPlayerService {
 
         if (Math.abs(newBuffer - currentBuffer) > 0.5) {
           this.bufferProgress.set(newBuffer);
-          console.log(`📊 Buffer: ${newBuffer.toFixed(1)}% (${bufferedEnd.toFixed(1)}s / ${this.audio.duration.toFixed(1)}s)`);
         }
       } else {
         // Reset buffer if no data
@@ -355,8 +329,6 @@ export class AudioPlayerService {
 
       // Update signal immediately
       this.currentTime.set(clampedTime);
-
-      console.log(`🎯 Seeking to: ${clampedTime.toFixed(2)}s / ${this.audio.duration.toFixed(2)}s`);
     }
   }
 
@@ -366,7 +338,6 @@ export class AudioPlayerService {
     try {
       // Pause if playing to prevent audio glitches during seek
       if (wasPlaying && !this.audio.paused) {
-        console.log('🔄 Pausing for seek...');
         await this.audio.pause();
       }
 
@@ -378,15 +349,12 @@ export class AudioPlayerService {
 
       // Resume if was playing
       if (wasPlaying) {
-        console.log('▶️ Resuming after seek...');
         try {
           await this.audio.play();
         } catch (playError) {
           console.warn('Failed to resume after seek:', playError);
         }
       }
-
-      console.log('✅ Seek completed successfully');
 
     } catch (error) {
       console.error('❌ Seek failed:', error);
@@ -689,7 +657,6 @@ export class AudioPlayerService {
       };
 
       localStorage.setItem('savedPlaybackState', JSON.stringify(savedState));
-      console.log('✅ Playback state saved');
     } catch (error) {
       console.error('❌ Error saving playback state:', error);
     }
@@ -709,8 +676,6 @@ export class AudioPlayerService {
         localStorage.removeItem('savedPlaybackState');
         return;
       }
-
-      console.log('🔄 Restoring playback state...');
 
       if (savedState.currentSong && savedState.queue.length > 0) {        // Convert back to Song objects
         const playlist: Song[] = savedState.queue.map(item => ({
@@ -771,8 +736,6 @@ export class AudioPlayerService {
           if (savedState.currentTime > 0) {
             this.audio.currentTime = savedState.currentTime;
           }
-
-          console.log('✅ Playback state restored:', savedState.currentSong.title);
         } catch (error) {
           console.error('❌ Error loading saved audio:', error);
         }
