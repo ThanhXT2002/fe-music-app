@@ -559,10 +559,8 @@ export class DownloadService {
    * Lưu bài hát vào database
    * @param songData - Data từ API
    * @param filePath - Đường dẫn file (optional)
-   */
-  private async saveSongToDatabase(songData: DataSong, filePath?: string) {
-    try {
-      // Chuyển đổi DataSong thành Song object
+   */  private async saveSongToDatabase(songData: DataSong, filePath?: string) {
+    try {      // Chuyển đổi DataSong thành Song object
       const song: Song = {
         id: songData.id,
         title: songData.title,
@@ -570,14 +568,21 @@ export class DownloadService {
         album: undefined,
         duration: songData.duration || 0,
         duration_formatted: songData.duration_formatted,
-        thumbnail: songData.thumbnail_url,
-        audioUrl: songData.audio_url,
+        // 🔄 Native platform: không lưu server URL, chỉ lưu local path
+        thumbnail: Capacitor.isNativePlatform() ? '' : songData.thumbnail_url, // Thumbnail sẽ được load từ database
+        audioUrl: Capacitor.isNativePlatform() ? (filePath || '') : songData.audio_url,
         filePath: filePath,
         addedDate: new Date(),
         isFavorite: false,
         genre: this.extractGenreFromKeywords(songData.keywords || []),
         isDownloaded: true // Đánh dấu đã download
       };
+
+      console.log('💾 Saving song to database:');
+      console.log('- Platform:', Capacitor.getPlatform());
+      console.log('- audioUrl:', song.audioUrl);
+      console.log('- filePath:', song.filePath);
+      console.log('- isDownloaded:', song.isDownloaded);
 
       // Lưu vào database
       const success = await this.databaseService.addSong(song);
@@ -586,6 +591,7 @@ export class DownloadService {
         // Đánh dấu đã download trong search history
         await this.databaseService.markAsDownloaded(songData.id);
         this.refreshService.triggerRefresh();
+        console.log('✅ Song saved to database successfully');
       } else {
         console.error('❌ Failed to save song to database');
       }

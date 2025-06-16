@@ -53,11 +53,18 @@ export class OfflineMediaService {
       } catch (error) {
         console.warn('❌ Failed to load offline thumbnail, using online URL:', error);
       }
+    }    // Fallback: sử dụng URL online (chỉ cho web platform hoặc khi có internet)
+    if (Capacitor.getPlatform() === 'web') {
+      this.thumbnailCache.set(cacheKey, onlineUrl);
+      return onlineUrl;
+    } else {
+      // Native platform: Không fallback về server URL khi offline
+      console.warn('❌ No offline thumbnail available for native platform');
+      // Return placeholder hoặc empty image thay vì server URL
+      const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+      this.thumbnailCache.set(cacheKey, placeholderUrl);
+      return placeholderUrl;
     }
-
-    // Fallback: sử dụng URL online
-    this.thumbnailCache.set(cacheKey, onlineUrl);
-    return onlineUrl;
   }
 
   /**

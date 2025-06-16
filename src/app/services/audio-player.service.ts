@@ -47,21 +47,24 @@ export class AudioPlayerService {
     this.loadSavedSettings();
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
-    this.restorePlaybackState();
-  }
+    this.restorePlaybackState();  }
+
   // 🆕 Method để load audio với offline support
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
-      // Kiểm tra cache trước
+      // 🚫 Native platform: Không cho phép streaming khi chưa download
+      if (Capacitor.isNativePlatform()) {
+        throw new Error('Streaming not allowed on native platform. Song must be downloaded first.');
+      }
+
+      // Kiểm tra cache trước (chỉ cho web platform)
       const cacheKey = song.audioUrl;
       if (this.audioCache.has(cacheKey)) {
         return this.audioCache.get(cacheKey)!;
       }
 
       // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform)
-      if (Capacitor.getPlatform() === 'web' && song.isDownloaded) {
-
-
+      if (song.isDownloaded) {
         const audioBlob = await this.indexedDBService.getAudioFile(song.id);
         if (audioBlob) {
           const audioObjectUrl = URL.createObjectURL(audioBlob);
@@ -72,7 +75,7 @@ export class AudioPlayerService {
         }
       }
 
-      // 🆕 Retry logic cho streaming
+      // 🆕 Retry logic cho streaming (chỉ web platform)
       const maxRetries = 2;
       let lastError: any;
 
@@ -111,7 +114,7 @@ export class AudioPlayerService {
 
     } catch (error) {
       console.error('❌ All attempts failed for audio loading:', error);
-      return song.audioUrl;
+      throw error; // Don't fallback to audioUrl for native platform
     }
   }
   // 🆕 Method để preload audio (optional)
@@ -138,43 +141,63 @@ export class AudioPlayerService {
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
       }));      // Kiểm tra xem có local file không (đã download)
-      let audioUrl: string;      if (song.filePath && song.isDownloaded) {
+      let audioUrl: string;      // Debug: check call stack để xem song được gọi từ đâu
+      console.log('🔍 playSong called from:', new Error().stack?.split('\n')[2]);      // Check for downloaded version of the song
+      const finalSong = await this.getDownloadedSongVersion(song);
+
+      // 🔍 Check if song can be played on native platform
+      const playabilityCheck = await this.checkSongPlayabilityForNative(finalSong);
+      if (!playabilityCheck.canPlay && playabilityCheck.message) {
+        throw new Error(playabilityCheck.message);
+      }
+
+      // Debug song data trước khi check local file
+      console.log('🔍 Song debug info:');
+      console.log('- Title:', finalSong.title);
+      console.log('- filePath:', finalSong.filePath);
+      console.log('- isDownloaded:', finalSong.isDownloaded);
+      console.log('- audioUrl:', finalSong.audioUrl);if (finalSong.filePath && finalSong.isDownloaded) {
         // Sử dụng local file nếu đã download
-        console.log('🎵 Playing from local file:', song.filePath);
+        console.log('🎵 Playing from local file:', finalSong.filePath);
         console.log('📱 Platform:', Capacitor.getPlatform());
-        console.log('🔧 Is Native:', Capacitor.isNativePlatform());        if (Capacitor.isNativePlatform()) {
-          try {
-            // Try all local file approaches
-            audioUrl = await this.tryAllLocalFileApproaches(song.filePath);
-            console.log('✅ Local file loaded successfully');
-          } catch (localError) {
-            console.error('❌ All local file approaches failed:', localError);
-            // Final fallback to streaming
-            console.log('🔄 All local methods failed, falling back to streaming...');
-            audioUrl = await this.loadAudioWithBypass(song);
-          }
+        console.log('🔧 Is Native:', Capacitor.isNativePlatform());
+
+        if (Capacitor.isNativePlatform()) {
+          // Native platform: CHỈ phát local file, không fallback
+          audioUrl = await this.tryAllLocalFileApproaches(finalSong.filePath);
+          console.log('✅ Local file loaded successfully');
         } else {
-          audioUrl = song.filePath;
+          // Web platform: sử dụng file path trực tiếp
+          audioUrl = finalSong.filePath;
         }
       } else {
-        // Fallback to streaming từ URL với bypass headers
-        console.log('🌐 Streaming from URL:', song.audioUrl);
-        audioUrl = await this.loadAudioWithBypass(song);
+        // Không có local file
+        if (Capacitor.isNativePlatform()) {
+          // Native platform: YÊU CẦU download trước khi phát
+          throw new Error(`Song "${finalSong.title}" chưa được download. Vui lòng download trước khi phát offline.`);
+        } else {
+          // Web platform: có thể stream từ server
+          console.log('🌐 Streaming from URL:', finalSong.audioUrl);
+          audioUrl = await this.loadAudioWithBypass(finalSong);
+        }
       }// Set audio source và play
-      this.audio.src = audioUrl;
-
-      try {
+      this.audio.src = audioUrl;      try {
         await this.audio.load();
         await this.audio.play();
         console.log('✅ Audio playback started successfully');
       } catch (playError) {
         console.error('❌ Audio playback failed:', playError);
 
-        // Nếu local file fail, thử fallback to streaming
-        if (song.filePath && song.isDownloaded) {
-          console.log('🔄 Local file failed, falling back to streaming...');
+        // Native platform: Không fallback, báo lỗi rõ ràng
+        if (Capacitor.isNativePlatform() && finalSong.filePath && finalSong.isDownloaded) {
+          throw new Error(`Không thể phát file local: ${finalSong.title}. File có thể bị hỏng hoặc không tương thích.`);
+        }
+
+        // Web platform: có thể thử fallback nếu cần
+        if (!Capacitor.isNativePlatform() && finalSong.filePath && finalSong.isDownloaded) {
+          console.log('🔄 Web platform: Trying fallback to server...');
           try {
-            const streamUrl = await this.loadAudioWithBypass(song);
+            const streamUrl = await this.loadAudioWithBypass(finalSong);
             this.audio.src = streamUrl;
             await this.audio.load();
             await this.audio.play();
@@ -986,5 +1009,75 @@ export class AudioPlayerService {
     }
 
     throw lastError || new Error('All local file approaches failed');
+  }
+
+  // 🆕 Method to get downloaded version of a song
+  private async getDownloadedSongVersion(song: Song): Promise<Song> {
+    try {
+      // Tìm song trong database bằng songId
+      const downloadedSong = await this.databaseService.getSongById(song.id);
+
+      if (downloadedSong && downloadedSong.isDownloaded && downloadedSong.filePath) {
+        console.log('✅ Found downloaded version:', downloadedSong.filePath);
+        return downloadedSong;
+      }
+
+      // Fallback: search in all songs by title+artist
+      const allSongs = await this.databaseService.getAllSongs();
+      const matchingSong = allSongs.find(s =>
+        s.title === song.title &&
+        s.artist === song.artist &&
+        s.isDownloaded &&
+        s.filePath
+      );
+
+      if (matchingSong) {
+        console.log('✅ Found downloaded version by title+artist:', matchingSong.filePath);
+        return matchingSong;
+      }
+
+      console.log('❌ No downloaded version found');
+      return song;
+
+    } catch (error) {
+      console.error('❌ Error getting downloaded song version:', error);
+      return song;
+    }
+  }
+
+  // 🆕 Method to check if song requires download for native playback
+  async checkSongPlayabilityForNative(song: Song): Promise<{ canPlay: boolean; message?: string }> {
+    if (!Capacitor.isNativePlatform()) {
+      return { canPlay: true }; // Web platform can always try streaming
+    }
+
+    // Check if song is downloaded
+    const downloadedSong = await this.getDownloadedSongVersion(song);
+
+    if (downloadedSong.filePath && downloadedSong.isDownloaded) {
+      // Verify file exists
+      try {
+        const fileName = downloadedSong.filePath.includes('/') ?
+          downloadedSong.filePath.split('/').pop() || '' :
+          downloadedSong.filePath;
+
+        await Filesystem.stat({
+          path: `TxtMusic/${fileName}`,
+          directory: Directory.Cache
+        });
+
+        return { canPlay: true };
+      } catch (error) {
+        return {
+          canPlay: false,
+          message: `File local đã bị xóa hoặc hỏng. Vui lòng download lại "${song.title}".`
+        };
+      }
+    } else {
+      return {
+        canPlay: false,
+        message: `"${song.title}" chưa được download. Vui lòng download trước khi phát offline.`
+      };
+    }
   }
 }
