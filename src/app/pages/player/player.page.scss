@@ -30,6 +30,15 @@
   }
 }
 
+/* Album art rotation animation */
+.spin-with-fill {
+  animation: spin 20s linear infinite;
+}
+
+.spin-paused {
+  animation-play-state: paused !important;
+}
+
 
 /* Interactive elements */
 .progress-bar {

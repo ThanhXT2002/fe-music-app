@@ -160,7 +160,17 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   togglePlayPause() {
+    console.log('🎮 PlayerPage togglePlayPause clicked');
+    console.log('📊 Current isPlaying signal:', this.isPlaying());
+    console.log('📊 Current playbackState isPlaying:', this.playbackState().isPlaying);
+
     this.audioPlayerService.togglePlayPause();
+
+    // Debug signals after toggle with small delay
+    setTimeout(() => {
+      console.log('📊 After toggle - isPlaying signal:', this.isPlaying());
+      console.log('📊 After toggle - playbackState isPlaying:', this.playbackState().isPlaying);
+    }, 50);
   }
 
   previousTrack() {

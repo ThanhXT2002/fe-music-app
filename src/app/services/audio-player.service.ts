@@ -316,7 +316,7 @@ export class AudioPlayerService {
       // 🆕 Stop signal updates when song ends
       this.stopSignalUpdates();
       this.handleSongEnded();
-    });this.audio.addEventListener('play', () => {
+    });    this.audio.addEventListener('play', () => {
       this._playbackState.update(state => ({
         ...state,
         isPlaying: true,
@@ -325,6 +325,10 @@ export class AudioPlayerService {
       this.startTimeUpdate();
       // 🆕 Start signal updates when playing
       this.startSignalUpdates();
+      // 🔄 Update signals immediately when play event fires
+      setTimeout(() => {
+        this.updateSignalsImmediately(true);
+      }, 10);
     });
 
     this.audio.addEventListener('pause', () => {
@@ -336,6 +340,10 @@ export class AudioPlayerService {
       this.stopTimeUpdate();
       // 🆕 Stop signal updates when paused
       this.stopSignalUpdates();
+      // 🔄 Update signals immediately when pause event fires
+      setTimeout(() => {
+        this.updateSignalsImmediately(true);
+      }, 10);
     });
 
     this.audio.addEventListener('error', (e) => {
@@ -347,6 +355,8 @@ export class AudioPlayerService {
       }));
       // 🆕 Stop signal updates on error
       this.stopSignalUpdates();
+      // 🔄 Update signals immediately on error
+      this.updateSignalsImmediately(true);
     });
   }
   private updateBufferProgress() {
@@ -401,16 +411,21 @@ export class AudioPlayerService {
       this.signalUpdateInterval = undefined;
     }
   }
-
   async pause() {
     if (!this.audio.paused) {
       await this.audio.pause();
+      // 🔄 Update signals immediately after pause
+      this.updateSignalsImmediately(true);
+      console.log('⏸️ Paused - signals updated immediately');
     }
   }
 
   async resume() {
     if (this.audio.paused && this._playbackState().currentSong) {
       await this.audio.play();
+      // 🔄 Update signals immediately after resume
+      this.updateSignalsImmediately(true);
+      console.log('▶️ Resumed - signals updated immediately');
     }
   }
 
