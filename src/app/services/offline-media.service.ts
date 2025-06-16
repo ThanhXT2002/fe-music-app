@@ -31,18 +31,21 @@ export class OfflineMediaService {
     // Nếu bài hát đã download, tìm thumbnail offline
     if (isDownloaded) {
       try {
-        let thumbnailUrl: string | null = null;
-
-        if (Capacitor.getPlatform() === 'web') {
-          // Web platform: Lấy từ IndexedDB
-          const thumbnailBlob = await this.indexedDBService.getThumbnailFile(songId);
-          if (thumbnailBlob) {
-            thumbnailUrl = URL.createObjectURL(thumbnailBlob);
-          }        } else {
+        let thumbnailUrl: string | null = null;        if (Capacitor.isNativePlatform()) {
           // Native platform: Lấy từ SQLite database
+          console.log('📱 Native: Loading thumbnail from SQLite database');
           const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
           if (thumbnailBlob) {
             thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+            console.log('✅ Native: Thumbnail loaded from database');
+          }
+        } else {
+          // Web platform: Lấy từ IndexedDB
+          console.log('🌐 Web: Loading thumbnail from IndexedDB');
+          const thumbnailBlob = await this.indexedDBService.getThumbnailFile(songId);
+          if (thumbnailBlob) {
+            thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+            console.log('✅ Web: Thumbnail loaded from IndexedDB');
           }
         }
 
@@ -53,17 +56,19 @@ export class OfflineMediaService {
       } catch (error) {
         console.warn('❌ Failed to load offline thumbnail, using online URL:', error);
       }
-    }    // Fallback: sử dụng URL online (chỉ cho web platform hoặc khi có internet)
-    if (Capacitor.getPlatform() === 'web') {
-      this.thumbnailCache.set(cacheKey, onlineUrl);
-      return onlineUrl;
-    } else {
+    }    // Fallback: sử dụng URL online (chỉ cho web platform)
+    if (Capacitor.isNativePlatform()) {
       // Native platform: Không fallback về server URL khi offline
-      console.warn('❌ No offline thumbnail available for native platform');
+      console.warn('❌ Native: No offline thumbnail available, using placeholder');
       // Return placeholder hoặc empty image thay vì server URL
       const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
       this.thumbnailCache.set(cacheKey, placeholderUrl);
       return placeholderUrl;
+    } else {
+      // Web platform: có thể fallback về server URL
+      console.log('🌐 Web: Using online thumbnail URL');
+      this.thumbnailCache.set(cacheKey, onlineUrl);
+      return onlineUrl;
     }
   }
 

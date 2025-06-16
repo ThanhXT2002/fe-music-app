@@ -3,6 +3,7 @@ import { Song, PlaybackState } from '../interfaces/song.interface';
 import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
+import { OfflineMediaService } from './offline-media.service';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
@@ -38,16 +39,18 @@ export class AudioPlayerService {
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
-
   constructor(
     private databaseService: DatabaseService,
-    private indexedDBService: IndexedDBService
-  ) {
-    this.setupAudioEventListeners();
+    private indexedDBService: IndexedDBService,
+    private offlineMediaService: OfflineMediaService
+  ) {    this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
-    // Phục hồi trạng thái phát nhạc khi khởi tạo
-    this.restorePlaybackState();  }
+    // Phục hồi trạng thái phát nhạc khi khởi tạo (với delay để đảm bảo database đã sẵn sàng)
+    setTimeout(() => {
+      this.restorePlaybackState();
+    }, 1000); // Delay 1 giây
+  }
 
   // 🆕 Method để load audio với offline support
   private async loadAudioWithBypass(song: Song): Promise<string> {
@@ -57,21 +60,31 @@ export class AudioPlayerService {
         throw new Error('Streaming not allowed on native platform. Song must be downloaded first.');
       }
 
-      // Kiểm tra cache trước (chỉ cho web platform)
+      // ✅ Chỉ cho WEB/PWA platform
+      console.log('🌐 Web platform: Loading audio with streaming capability');
+
+      // Kiểm tra cache trước
       const cacheKey = song.audioUrl;
       if (this.audioCache.has(cacheKey)) {
+        console.log('✅ Using cached audio URL');
         return this.audioCache.get(cacheKey)!;
       }
 
-      // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform)
+      // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform - sử dụng IndexedDB)
       if (song.isDownloaded) {
-        const audioBlob = await this.indexedDBService.getAudioFile(song.id);
-        if (audioBlob) {
-          const audioObjectUrl = URL.createObjectURL(audioBlob);
-          this.audioCache.set(cacheKey, audioObjectUrl);
-          return audioObjectUrl;
-        } else {
-          console.warn('⚠️ Offline audio not found, fallback to streaming:', song.title);
+        console.log('🔄 Checking IndexedDB for offline audio...');
+        try {
+          const audioBlob = await this.indexedDBService.getAudioFile(song.id);
+          if (audioBlob) {
+            console.log('✅ Found offline audio in IndexedDB');
+            const audioObjectUrl = this.trackBlobUrl(URL.createObjectURL(audioBlob));
+            this.audioCache.set(cacheKey, audioObjectUrl);
+            return audioObjectUrl;
+          } else {
+            console.warn('⚠️ Offline audio not found in IndexedDB, fallback to streaming');
+          }
+        } catch (offlineError) {
+          console.warn('⚠️ Error loading offline audio from IndexedDB:', offlineError);
         }
       }
 
@@ -91,9 +104,8 @@ export class AudioPlayerService {
 
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const audioBlob = await response.blob();
-          const audioObjectUrl = URL.createObjectURL(audioBlob);
+          }          const audioBlob = await response.blob();
+          const audioObjectUrl = this.trackBlobUrl(URL.createObjectURL(audioBlob));
           // Cache blob URL
           this.audioCache.set(cacheKey, audioObjectUrl);
           return audioObjectUrl;
@@ -133,14 +145,18 @@ export class AudioPlayerService {
   }
   // 🔄 Modified playSong method
   async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
-    try {
+    // Cleanup previous blob URLs to prevent memory leaks
+    this.cleanupAllBlobUrls();
 
-      this._playbackState.update(state => ({
+    try {      this._playbackState.update(state => ({
         ...state,
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
-      }));      // Kiểm tra xem có local file không (đã download)
+      }));
+
+      // 🔄 Update signals ngay lập tức để UI hiển thị
+      this.updateSignalsImmediately();// Kiểm tra xem có local file không (đã download)
       let audioUrl: string;      // Debug: check call stack để xem song được gọi từ đâu
       console.log('🔍 playSong called from:', new Error().stack?.split('\n')[2]);      // Check for downloaded version of the song
       const finalSong = await this.getDownloadedSongVersion(song);
@@ -348,19 +364,9 @@ export class AudioPlayerService {
     } catch (error) {
       console.warn('Buffer progress update failed:', error);
     }
-  }
-  private setupSignalUpdates() {
+  }  private setupSignalUpdates() {
     setInterval(() => {
-      const state = this._playbackState();
-      this.currentSong.set(state.currentSong);
-      this.currentTime.set(state.currentTime);
-      this.duration.set(state.duration);
-      this.isPlayingSignal.set(state.isPlaying);
-      this.isShuffling.set(state.isShuffled);
-      this.repeatModeSignal.set(state.repeatMode);
-      this.queue.set(state.currentPlaylist);
-      this.currentIndex.set(state.currentIndex);
-
+      this.updateSignalsImmediately();
       // Update buffer progress more frequently
       this.updateBufferProgress();
     }, 100);
@@ -733,49 +739,86 @@ export class AudioPlayerService {
 
   // 🆕 Restore playback state from localStorage
   async restorePlaybackState(): Promise<void> {
+    console.log('🔄 restorePlaybackState: Starting...');
+
     try {
       const saved = localStorage.getItem('savedPlaybackState');
-      if (!saved) return;
+      console.log('💾 Saved state from localStorage:', saved ? 'Found' : 'Not found');
+
+      if (!saved) {
+        console.log('❌ No saved state found');
+        return;
+      }
 
       const savedState: SavedPlaybackState = JSON.parse(saved);
+      console.log('📝 Parsed saved state:', {
+        currentSong: savedState.currentSong?.title,
+        queueLength: savedState.queue.length,
+        savedAt: new Date(savedState.savedAt)
+      });
 
       // Chỉ restore nếu save không quá 7 ngày
       const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 ngày
-      if (Date.now() - savedState.savedAt > maxAge) {
+      const age = Date.now() - savedState.savedAt;
+      console.log('⏰ State age (hours):', age / (60 * 60 * 1000));
+
+      if (age > maxAge) {
+        console.log('🗑️ State too old, removing...');
         localStorage.removeItem('savedPlaybackState');
         return;
       }
 
-      if (savedState.currentSong && savedState.queue.length > 0) {        // Convert back to Song objects
-        const playlist: Song[] = savedState.queue.map(item => ({
-          id: item.id,
-          title: item.title,
-          artist: item.artist,
-          audioUrl: item.url,
-          thumbnail: item.thumbnail,
-          duration: item.duration,
-          album: '',
-          genre: '',
-          isFavorite: false,
-          addedDate: new Date(),
-          isDownloaded: false
-        }));
+      if (savedState.currentSong && savedState.queue.length > 0) {
+        console.log('🔄 Restoring playback state...');
+        console.log('📱 Platform:', Capacitor.getPlatform());
+        console.log('🔧 Is Native:', Capacitor.isNativePlatform());
 
-        // Update state
-        this._playbackState.update(state => ({
-          ...state,          currentSong: {
-            id: savedState.currentSong!.id,
-            title: savedState.currentSong!.title,
-            artist: savedState.currentSong!.artist,
-            audioUrl: savedState.currentSong!.url,
-            thumbnail: savedState.currentSong!.thumbnail,
-            duration: savedState.currentSong!.duration,
+        // Convert back to Song objects and check downloaded status
+        const playlist: Song[] = [];
+        for (const item of savedState.queue) {
+          // Check if song is downloaded in database
+          const downloadedSong = await this.getDownloadedSongVersion({
+            id: item.id,
+            title: item.title,
+            artist: item.artist,
+            audioUrl: item.url,
+            thumbnail: item.thumbnail,
+            duration: item.duration,
             album: '',
             genre: '',
             isFavorite: false,
             addedDate: new Date(),
-            isDownloaded: false
-          },
+            isDownloaded: false,
+            filePath: undefined,
+            duration_formatted: ''
+          });
+
+          playlist.push(downloadedSong);
+        }
+
+        // Check current song downloaded status
+        const currentSong = await this.getDownloadedSongVersion({
+          id: savedState.currentSong!.id,
+          title: savedState.currentSong!.title,
+          artist: savedState.currentSong!.artist,
+          audioUrl: savedState.currentSong!.url,
+          thumbnail: savedState.currentSong!.thumbnail,
+          duration: savedState.currentSong!.duration,
+          album: '',
+          genre: '',
+          isFavorite: false,
+          addedDate: new Date(),
+          isDownloaded: false,
+          filePath: undefined,
+          duration_formatted: ''
+        });        console.log('✅ Current song download status:', currentSong.isDownloaded);
+        console.log('📁 Current song file path:', currentSong.filePath);
+        console.log('🎵 Current song title:', currentSong.title);
+
+        // Update state
+        this._playbackState.update(state => ({
+          ...state,
+          currentSong: currentSong,
           currentPlaylist: playlist,
           currentIndex: savedState.currentIndex,
           volume: savedState.volume,
@@ -783,36 +826,72 @@ export class AudioPlayerService {
           repeatMode: savedState.repeatMode,
           currentTime: savedState.currentTime,
           isPlaying: false // Không tự động play
-        }));        // Load audio source nhưng không play
-        try {
-          // Tạo Song object tạm thời để sử dụng loadAudioWithBypass
-          const tempSong: Song = {
-            id: savedState.currentSong.id,
-            title: savedState.currentSong.title,
-            artist: savedState.currentSong.artist,
-            audioUrl: savedState.currentSong.url,
-            thumbnail: savedState.currentSong.thumbnail,
-            duration: savedState.currentSong.duration,
-            addedDate: new Date(),
-            isFavorite: false
-          };
+        }));
 
-          const audioUrl = await this.loadAudioWithBypass(tempSong);
-          this.audio.src = audioUrl;
-          await this.audio.load();
+        console.log('📊 _playbackState updated with currentSong:', this._playbackState().currentSong?.title);
 
-          // Seek đến vị trí đã lưu
-          if (savedState.currentTime > 0) {
-            this.audio.currentTime = savedState.currentTime;
+        // 🔄 Immediate update của signals để UI có thể hiển thị ngay
+        this.updateSignalsImmediately();
+
+        console.log('📊 currentSong signal after update:', this.currentSong()?.title);
+
+        // 🔍 Debug currentSong state after restore
+        this.debugCurrentSongState();
+
+        console.log('✅ Playback state restored:');
+        console.log('- currentSong:', this.currentSong()?.title);
+        console.log('- isDownloaded:', this.currentSong()?.isDownloaded);
+        console.log('- filePath:', this.currentSong()?.filePath);
+        console.log('- thumbnail:', this.currentSong()?.thumbnail);// Load audio source nhưng không play (chỉ nếu đã download cho native)
+        if (Capacitor.isNativePlatform()) {
+          // Native: chỉ load nếu đã download
+          if (currentSong.isDownloaded && currentSong.filePath) {
+            try {
+              console.log('🔄 Restoring audio source from local file...');
+              const audioUrl = await this.tryAllLocalFileApproaches(currentSong.filePath);
+              this.audio.src = audioUrl;
+              await this.audio.load();
+              console.log('✅ Audio source restored from local file');
+            } catch (error) {
+              console.error('❌ Failed to restore audio from local file:', error);
+            }
+          } else {
+            console.log('⚠️ Song not downloaded, skipping audio restore for native platform');
           }
-        } catch (error) {
-          console.error('❌ Error loading saved audio:', error);
+        } else {
+          // Web: có thể stream
+          try {
+            const audioUrl = await this.loadAudioWithBypass(currentSong);
+            this.audio.src = audioUrl;
+            await this.audio.load();            console.log('✅ Audio source restored for web platform');
+          } catch (error) {
+            console.error('❌ Error loading saved audio:', error);
+          }
+        }
+
+        // Seek đến vị trí đã lưu
+        if (savedState.currentTime > 0) {
+          this.audio.currentTime = savedState.currentTime;
         }
       }
     } catch (error) {
       console.error('❌ Error restoring playback state:', error);
       localStorage.removeItem('savedPlaybackState');
     }
+  }
+
+  // 🆕 Method để update signals ngay lập tức
+  private updateSignalsImmediately(): void {
+    const state = this._playbackState();
+    this.currentSong.set(state.currentSong);
+    this.currentTime.set(state.currentTime);
+    this.duration.set(state.duration);
+    this.isPlayingSignal.set(state.isPlaying);
+    this.isShuffling.set(state.isShuffled);
+    this.repeatModeSignal.set(state.repeatMode);
+    this.queue.set(state.currentPlaylist);
+    this.currentIndex.set(state.currentIndex);
+    console.log('✅ Signals updated immediately - currentSong:', state.currentSong?.title);
   }
 
   // 🆕 Clear saved state
@@ -907,8 +986,7 @@ export class AudioPlayerService {
       // Method 1: Blob URL (preferred for smaller files)
       try {
         const response = await fetch(`data:${mimeType};base64,${fileData.data}`);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        const blob = await response.blob();        const blobUrl = this.trackBlobUrl(URL.createObjectURL(blob));
         console.log('✅ Blob URL created:', blobUrl);
 
         // Test if blob URL is valid by creating a test audio element
@@ -1079,5 +1157,98 @@ export class AudioPlayerService {
         message: `"${song.title}" chưa được download. Vui lòng download trước khi phát offline.`
       };
     }
+  }
+
+  // 🆕 Blob URL cleanup management
+  private blobUrls = new Set<string>();
+
+  private cleanupBlobUrl(url: string): void {
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+      this.blobUrls.delete(url);
+      console.log('🗑️ Cleaned up blob URL:', url);
+    }
+  }
+
+  private trackBlobUrl(url: string): string {
+    if (url.startsWith('blob:')) {
+      this.blobUrls.add(url);
+    }
+    return url;
+  }
+
+  private cleanupAllBlobUrls(): void {
+    this.blobUrls.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+    this.blobUrls.clear();
+    console.log('🗑️ Cleaned up all blob URLs');
+  }
+
+  // Cleanup on destroy
+  ngOnDestroy(): void {
+    this.cleanupAllBlobUrls();
+    this.stopTimeUpdate();
+  }
+
+  // 🆕 Method để get current song với thumbnail URL đã resolved
+  async getCurrentSongWithThumbnail(): Promise<Song | null> {
+    const currentSong = this.currentSong();
+    if (!currentSong) return null;
+
+    try {
+      // Get thumbnail URL for the current song
+      const thumbnailUrl = await this.offlineMediaService.getThumbnailUrl(
+        currentSong.id,
+        currentSong.thumbnail || '',
+        currentSong.isDownloaded || false
+      );
+
+      // Return song với thumbnail URL đã resolved
+      return {
+        ...currentSong,
+        thumbnail: thumbnailUrl
+      };
+    } catch (error) {
+      console.error('❌ Error getting thumbnail for current song:', error);
+      return currentSong;
+    }
+  }
+
+  // 🆕 Method để debug currentSong state
+  debugCurrentSongState(): void {
+    console.log('🔍 DEBUG: Current song state check');
+    console.log('📱 Platform:', Capacitor.getPlatform());
+    console.log('🏠 Is Native:', Capacitor.isNativePlatform());
+
+    const playbackState = this._playbackState();
+    const signalSong = this.currentSong();
+
+    console.log('🎵 _playbackState.currentSong:', playbackState.currentSong?.title || 'null');
+    console.log('🎵 currentSong signal:', signalSong?.title || 'null');
+    console.log('📂 filePath:', signalSong?.filePath || 'null');
+    console.log('⬇️ isDownloaded:', signalSong?.isDownloaded || false);
+    console.log('🖼️ thumbnail:', signalSong?.thumbnail || 'null');
+    console.log('🎵 audioUrl:', signalSong?.audioUrl || 'null');
+
+    if (playbackState.currentSong !== signalSong) {
+      console.warn('⚠️ Signal mismatch detected!');
+    }
+  }
+
+  // 🆕 Manual restore for testing
+  async manualRestorePlaybackState(): Promise<void> {
+    console.log('🔧 Manual restore triggered');
+    await this.restorePlaybackState();
+  }
+
+  // 🆕 Debug method to check current signals
+  debugCurrentSignals(): void {
+    console.log('🔍 Current signals state:');
+    console.log('- currentSong:', this.currentSong()?.title || 'null');
+    console.log('- isPlaying:', this.isPlayingSignal());
+    console.log('- currentTime:', this.currentTime());
+    console.log('- duration:', this.duration());
+    console.log('- _playbackState.currentSong:', this._playbackState().currentSong?.title || 'null');
   }
 }

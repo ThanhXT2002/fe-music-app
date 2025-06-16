@@ -161,15 +161,21 @@ export class AppComponent implements OnInit, OnDestroy {
       const platform = Capacitor.getPlatform();
       const directory = platform === 'android' ? Directory.Cache : Directory.Documents;
 
-      console.log(`📂 Testing directory: ${directory}`);
-
-      // Test 1: Basic directory creation
-      await Filesystem.mkdir({
-        path: 'TxtMusicDebug',
-        directory: directory,
-        recursive: true
-      });
-      console.log('✅ DEBUG: Directory creation successful');
+      console.log(`📂 Testing directory: ${directory}`);      // Test 1: Basic directory creation - check if exists first
+      try {
+        await Filesystem.mkdir({
+          path: 'TxtMusicDebug',
+          directory: directory,
+          recursive: true
+        });
+        console.log('✅ DEBUG: Directory creation successful');
+      } catch (dirError: any) {
+        if (dirError.message?.includes('already exists')) {
+          console.log('ℹ️ DEBUG: Directory already exists (OK)');
+        } else {
+          throw dirError;
+        }
+      }
 
       // Test 2: Write test file
       const testContent = 'Debug test - ' + new Date().toISOString();
