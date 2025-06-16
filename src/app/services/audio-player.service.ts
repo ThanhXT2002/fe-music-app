@@ -153,10 +153,13 @@ export class AudioPlayerService {
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
-      }));
+      }));      // 🔄 Update signals ngay lập tức để UI hiển thị
+      this.updateSignalsImmediately(true); // Log when user plays a song
 
-      // 🔄 Update signals ngay lập tức để UI hiển thị
-      this.updateSignalsImmediately();// Kiểm tra xem có local file không (đã download)
+      // 🔄 Force refresh thumbnail để đảm bảo hiển thị đúng
+      setTimeout(() => {
+        this.refreshCurrentSongThumbnail();
+      }, 100);// Kiểm tra xem có local file không (đã download)
       let audioUrl: string;      // Debug: check call stack để xem song được gọi từ đâu
       console.log('🔍 playSong called from:', new Error().stack?.split('\n')[2]);      // Check for downloaded version of the song
       const finalSong = await this.getDownloadedSongVersion(song);
@@ -278,10 +281,10 @@ export class AudioPlayerService {
 
     this.audioCache.clear();
   }
-
   // 🔄 Modified destroy method
   destroy() {
     this.stopTimeUpdate();
+    this.stopSignalUpdates(); // 🆕 Stop signal updates
     this.audio.pause();
     this.audio.src = '';
     this.clearAudioCache(); // Clear cache khi destroy
@@ -309,19 +312,19 @@ export class AudioPlayerService {
 
     this.audio.addEventListener('loadedmetadata', () => {
       this.updateBufferProgress();
-    });
-
-    this.audio.addEventListener('ended', () => {
+    });    this.audio.addEventListener('ended', () => {
+      // 🆕 Stop signal updates when song ends
+      this.stopSignalUpdates();
       this.handleSongEnded();
-    });
-
-    this.audio.addEventListener('play', () => {
+    });this.audio.addEventListener('play', () => {
       this._playbackState.update(state => ({
         ...state,
         isPlaying: true,
         isPaused: false
       }));
       this.startTimeUpdate();
+      // 🆕 Start signal updates when playing
+      this.startSignalUpdates();
     });
 
     this.audio.addEventListener('pause', () => {
@@ -331,6 +334,8 @@ export class AudioPlayerService {
         isPaused: true
       }));
       this.stopTimeUpdate();
+      // 🆕 Stop signal updates when paused
+      this.stopSignalUpdates();
     });
 
     this.audio.addEventListener('error', (e) => {
@@ -340,6 +345,8 @@ export class AudioPlayerService {
         isPlaying: false,
         isPaused: false
       }));
+      // 🆕 Stop signal updates on error
+      this.stopSignalUpdates();
     });
   }
   private updateBufferProgress() {
@@ -364,12 +371,35 @@ export class AudioPlayerService {
     } catch (error) {
       console.warn('Buffer progress update failed:', error);
     }
-  }  private setupSignalUpdates() {
-    setInterval(() => {
-      this.updateSignalsImmediately();
-      // Update buffer progress more frequently
-      this.updateBufferProgress();
-    }, 100);
+  }  private signalUpdateInterval?: number;
+
+  private setupSignalUpdates() {
+    // Không setup interval ngay, chỉ update khi có sự kiện thực sự
+    console.log('📡 Signal updates setup - will only update when needed');
+  }
+
+  // 🆕 Start signal updates only when playing
+  private startSignalUpdates() {
+    if (this.signalUpdateInterval) {
+      this.stopSignalUpdates(); // Clear existing interval
+    }
+
+    console.log('🔄 Starting signal updates (music is playing)');
+    this.signalUpdateInterval = window.setInterval(() => {      // Chỉ update khi thực sự đang phát nhạc
+      if (!this.audio.paused && this._playbackState().isPlaying) {
+        this.updateSignalsImmediately(); // No log for periodic updates
+        this.updateBufferProgress();
+      }
+    }, 500); // Giảm frequency xuống 500ms để tiết kiệm tài nguyên
+  }
+
+  // 🆕 Stop signal updates when paused
+  private stopSignalUpdates() {
+    if (this.signalUpdateInterval) {
+      console.log('⏸️ Stopping signal updates (music paused/stopped)');
+      clearInterval(this.signalUpdateInterval);
+      this.signalUpdateInterval = undefined;
+    }
   }
 
   async pause() {
@@ -828,15 +858,18 @@ export class AudioPlayerService {
           isPlaying: false // Không tự động play
         }));
 
-        console.log('📊 _playbackState updated with currentSong:', this._playbackState().currentSong?.title);
-
-        // 🔄 Immediate update của signals để UI có thể hiển thị ngay
-        this.updateSignalsImmediately();
+        console.log('📊 _playbackState updated with currentSong:', this._playbackState().currentSong?.title);        // 🔄 Immediate update của signals để UI có thể hiển thị ngay
+        this.updateSignalsImmediately(true); // Log when restoring state
 
         console.log('📊 currentSong signal after update:', this.currentSong()?.title);
 
         // 🔍 Debug currentSong state after restore
         this.debugCurrentSongState();
+
+        // 🔄 Force refresh thumbnail để đảm bảo hiển thị đúng
+        setTimeout(() => {
+          this.refreshCurrentSongThumbnail();
+        }, 200);
 
         console.log('✅ Playback state restored:');
         console.log('- currentSong:', this.currentSong()?.title);
@@ -879,9 +912,8 @@ export class AudioPlayerService {
       localStorage.removeItem('savedPlaybackState');
     }
   }
-
   // 🆕 Method để update signals ngay lập tức
-  private updateSignalsImmediately(): void {
+  private updateSignalsImmediately(logUpdate: boolean = false): void {
     const state = this._playbackState();
     this.currentSong.set(state.currentSong);
     this.currentTime.set(state.currentTime);
@@ -891,7 +923,11 @@ export class AudioPlayerService {
     this.repeatModeSignal.set(state.repeatMode);
     this.queue.set(state.currentPlaylist);
     this.currentIndex.set(state.currentIndex);
-    console.log('✅ Signals updated immediately - currentSong:', state.currentSong?.title);
+
+    // Chỉ log khi được yêu cầu (để tránh spam log)
+    if (logUpdate) {
+      console.log('✅ Signals updated immediately - currentSong:', state.currentSong?.title);
+    }
   }
 
   // 🆕 Clear saved state
@@ -1250,5 +1286,32 @@ export class AudioPlayerService {
     console.log('- currentTime:', this.currentTime());
     console.log('- duration:', this.duration());
     console.log('- _playbackState.currentSong:', this._playbackState().currentSong?.title || 'null');
+  }
+
+  // 🆕 Method để force refresh thumbnail (useful when switching between songs)
+  async refreshCurrentSongThumbnail(): Promise<void> {
+    const currentSong = this.currentSong();
+    if (currentSong) {
+      console.log('🔄 Force refreshing thumbnail for:', currentSong.title);
+
+      // Get fresh thumbnail URL
+      const updatedThumbnail = await this.offlineMediaService.getThumbnailUrl(
+        currentSong.id,
+        currentSong.thumbnail || '',
+        currentSong.isDownloaded
+      );
+
+      // Update song with refreshed thumbnail
+      const updatedSong = { ...currentSong, thumbnail: updatedThumbnail };
+      this.currentSong.set(updatedSong);
+
+      // Also update in playback state
+      this._playbackState.update(state => ({
+        ...state,
+        currentSong: updatedSong
+      }));
+
+      console.log('✅ Thumbnail refreshed:', updatedThumbnail);
+    }
   }
 }

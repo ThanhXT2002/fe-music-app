@@ -122,27 +122,29 @@ export class AlbumsPage implements OnInit, OnDestroy {
     public albumsState: AlbumsPageStateService,
     private refreshService: RefreshService
   ) {}
-
   async ngOnInit() {
-    // Restore scroll position if available
+    console.log('🔄 AlbumsPage ngOnInit started');
+
+    // Always load data on init (don't depend on isDataLoaded flag for initial load)
+    await this.loadAlbums();
+
+    // Restore scroll position after data is loaded
     setTimeout(() => {
       if (this.scrollContainer && this.albumsState.scrollPosition > 0) {
-        this.scrollContainer.nativeElement.scrollTop =
-          this.albumsState.scrollPosition;
+        this.scrollContainer.nativeElement.scrollTop = this.albumsState.scrollPosition;
+        console.log('📜 Albums scroll position restored:', this.albumsState.scrollPosition);
       }
-    }, 100);
-
-    // Load albums if not already loaded
-    if (!this.albumsState.isDataLoaded) {
-      await this.loadAlbums();
-    }
+    }, 200);
 
     // Lắng nghe tín hiệu refresh
     this.refreshService.refresh$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
+        console.log('🔄 Albums refresh triggered');
         this.loadAlbums();
       });
+
+    console.log('✅ AlbumsPage ngOnInit completed');
   }
 
   ngOnDestroy() {

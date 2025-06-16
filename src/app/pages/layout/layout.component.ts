@@ -58,9 +58,8 @@ export class LayoutComponent implements OnDestroy {
   showSearch = false;
   isVisible = false;
   searchQuery = '';
-  searchResults: Song[] = [];
-
-  currentSong: Song | null = null;
+  searchResults: Song[] = [];  // Use signal for currentSong to ensure reactive updates
+  currentSong = this.audioPlayerService.currentSong;
   isPlaying = false;
   progressPercentage = 0;
   bottomPosition: string =
@@ -107,11 +106,10 @@ export class LayoutComponent implements OnDestroy {
       (event.target as HTMLIonRefresherElement).complete();
     }, 1500);
   }
-
   // Move effect to field initializer để tránh lỗi injection context
   private playerStateEffect = effect(() => {
     const state = this.audioPlayerService.playbackState();
-    this.currentSong = state.currentSong;
+    // currentSong is now a signal, so no direct assignment needed
     this.isPlaying = state.isPlaying;
 
     if (state.duration > 0) {

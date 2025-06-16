@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Song } from '../../interfaces/song.interface';
@@ -29,15 +29,19 @@ export class ListPage implements OnInit, OnDestroy {
   ];
 
   tabTitle:string = 'Tất cả bài hát';
+  // Loading state - Start with loading true so UI shows loading immediately
+  isLoading = signal(true);
+  loadError = signal<string | null>(null);
 
   constructor(
     private databaseService: DatabaseService,
     private audioPlayerService: AudioPlayerService,
     private stateService: ListPageStateService,
     private refreshService: RefreshService
-  ) {}
-
-  // Use getters to access state reactively
+  ) {
+    console.log('🔄 ListPage constructor - Setting initial loading state');
+  }
+  // Use computed signals to access state reactively
   get activeTab() {
     return this.stateService.activeTab;
   }
@@ -46,41 +50,35 @@ export class ListPage implements OnInit, OnDestroy {
     this.stateService.setActiveTab(value);
   }
 
-  get allSongs() {
-    return this.stateService.allSongs;
-  }
-
-  get recentSongs() {
-    return this.stateService.recentSongs;
-  }
-
-  get favoriteSongs() {
-    return this.stateService.favoriteSongs;
-  }
-
-  get artists() {
-    return this.stateService.artists;
-  }
-
+  // Convert to signal getters for reactive updates
+  allSongs = this.stateService.allSongsSignal;
+  recentSongs = this.stateService.recentSongsSignal;
+  favoriteSongs = this.stateService.favoriteSongsSignal;
+  artists = this.stateService.artistsSignal;
 
   async ngOnInit() {
-    // Restore scroll position if available
+    console.log('🔄 ListPage ngOnInit started');
+
+    // Always load data on init (don't depend on isDataLoaded flag for initial load)
+    await this.loadData();
+
+    // Restore scroll position after data is loaded
     setTimeout(() => {
       if (this.scrollContainer && this.stateService.scrollPosition > 0) {
         this.scrollContainer.nativeElement.scrollTop = this.stateService.scrollPosition;
+        console.log('📜 Scroll position restored:', this.stateService.scrollPosition);
       }
-    }, 100);
+    }, 200);
 
-    // Load data only if not already loaded
-    if (!this.stateService.isDataLoaded) {
-      await this.loadData();
-    }
-
-     this.refreshService.refresh$
+    // Subscribe to refresh events for subsequent updates
+    this.refreshService.refresh$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-         this.loadData();
+        console.log('🔄 Refresh triggered');
+        this.loadData();
       });
+
+    console.log('✅ ListPage ngOnInit completed');
   }
 
   ngOnDestroy() {
@@ -102,20 +100,31 @@ export class ListPage implements OnInit, OnDestroy {
       this.loadData();
     }
   }
-
   async loadData() {
+    console.log('📊 Loading list data...');
+    this.isLoading.set(true);
+    this.loadError.set(null);
+
     try {
       // Load all songs
+      console.log('🎵 Loading all songs...');
       const allSongs = await this.databaseService.getAllSongs();
+      console.log(`✅ Loaded ${allSongs.length} songs`);
 
       // Load recent songs
+      console.log('🕐 Loading recent songs...');
       const recentSongs = await this.databaseService.getRecentlyPlayedSongs(50);
+      console.log(`✅ Loaded ${recentSongs.length} recent songs`);
 
       // Load favorite songs
+      console.log('❤️ Loading favorite songs...');
       const favoriteSongs = await this.databaseService.getFavoriteSongs();
+      console.log(`✅ Loaded ${favoriteSongs.length} favorite songs`);
 
       // Group songs by artists
+      console.log('👨‍🎤 Grouping songs by artists...');
       const artists = this.groupSongsByArtists(allSongs);
+      console.log(`✅ Grouped into ${artists.length} artists`);
 
       // Update state service with all data
       this.stateService.updateAllData({
@@ -124,8 +133,27 @@ export class ListPage implements OnInit, OnDestroy {
         favoriteSongs,
         artists
       });
+
+      console.log('✅ All list data loaded successfully');
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('❌ Error loading list data:', error);
+      this.loadError.set('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.');
+
+      // Try to show some data even if there's an error
+      try {
+        const basicSongs = await this.databaseService.getAllSongs();
+        this.stateService.updateAllData({
+          allSongs: basicSongs,
+          recentSongs: [],
+          favoriteSongs: [],
+          artists: this.groupSongsByArtists(basicSongs)
+        });
+        console.log('⚠️ Loaded basic data as fallback');
+      } catch (fallbackError) {
+        console.error('❌ Fallback data loading also failed:', fallbackError);
+      }
+    } finally {
+      this.isLoading.set(false);
     }
   }
 
@@ -166,8 +194,9 @@ export class ListPage implements OnInit, OnDestroy {
 
     return baseClasses + ' text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300';
   }
-
   async playSong(event: { song: Song; playlist: Song[]; index: number }) {
+    console.log('🎵 ListPage playSong triggered for:', event.song.title);
+
     // Use the playlist and index from the event, or fallback to current tab's playlist
     let playlist = event.playlist.length > 0 ? event.playlist : [];
     let index = event.index;
@@ -176,20 +205,23 @@ export class ListPage implements OnInit, OnDestroy {
       // Fallback to tab-based playlist if none provided
       switch (this.activeTab) {
         case 'all':
-          playlist = this.allSongs;
+          playlist = this.allSongs();
           break;
         case 'recent':
-          playlist = this.recentSongs;
+          playlist = this.recentSongs();
           break;
         case 'favorites':
-          playlist = this.favoriteSongs;
+          playlist = this.favoriteSongs();
           break;
         default:
           playlist = [event.song];
       }
       index = playlist.findIndex(s => s.id === event.song.id);
-    }
+    }    // Update signals immediately before starting playback
+    console.log('🔄 Updating signals immediately for currentSong:', event.song.title);
+    this.audioPlayerService.updateCurrentSong(event.song);
 
+    // Then set playlist and start playing
     await this.audioPlayerService.setPlaylist(playlist, index);
   }
 

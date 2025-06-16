@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 import { Song } from '../interfaces/song.interface';
 
 interface ListPageState {
@@ -53,6 +53,13 @@ export class ListPageStateService {
   get scrollPosition() {
     return this.state().scrollPosition;
   }
+
+  // Computed signals for reactive access
+  allSongsSignal = computed(() => this.state().allSongs);
+  recentSongsSignal = computed(() => this.state().recentSongs);
+  favoriteSongsSignal = computed(() => this.state().favoriteSongs);
+  artistsSignal = computed(() => this.state().artists);
+  isDataLoadedSignal = computed(() => this.state().isDataLoaded);
 
   // State setters
   setActiveTab(tab: string) {
