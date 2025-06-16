@@ -427,6 +427,9 @@ export class DownloadService {
       // Lưu file vào device
       const filePath = await this.saveFileToDevice(download, blob);
 
+      // Download và save thumbnail
+      await this.downloadThumbnailForNative(download);
+
       // Complete download
       await this.completeDownload(id, filePath);
 
@@ -461,6 +464,42 @@ export class DownloadService {
     console.log('✅ File saved to:', result.uri);
     return result.uri;
   }
+
+  /**
+   * Download và lưu thumbnail cho native platform
+   * @param download - Download task
+   */
+  private async downloadThumbnailForNative(download: DownloadTask) {
+    if (!download.thumbnail || !download.songData) return;
+
+    try {
+      console.log('📸 Downloading thumbnail for native:', download.title);
+      const response = await fetch(download.thumbnail);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const thumbnailBlob = await response.blob();
+
+      // Lưu vào SQLite
+      const saved = await this.databaseService.saveThumbnailFile(
+        download.songData.id,
+        thumbnailBlob,
+        thumbnailBlob.type || 'image/jpeg'
+      );
+
+      if (saved) {
+        console.log('✅ Thumbnail saved for native:', download.title);
+      } else {
+        console.warn('⚠️ Failed to save thumbnail for native:', download.title);
+      }
+
+    } catch (error) {
+      console.warn('❌ Failed to download thumbnail for native:', error);
+    }
+  }
+
   /**
    * Lưu bài hát vào database
    * @param songData - Data từ API

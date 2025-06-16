@@ -4,7 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
-
+import { OfflineMediaService } from './offline-media.service';
 /**
  * Service quản lý cơ sở dữ liệu SQLite cho ứng dụng nhạc
  * Xử lý tất cả các thao tác CRUD với bài hát, album, nghệ sĩ và playlist
@@ -28,7 +28,8 @@ export class DatabaseService {
 
   constructor(
     indexedDBService: IndexedDBService,
-    private refreshService: RefreshService
+    private refreshService: RefreshService,
+    private offlineMediaService: OfflineMediaService
   ) {
     this.indexedDB = indexedDBService;
     this.platform = Capacitor.getPlatform();
@@ -292,12 +293,12 @@ export class DatabaseService {
         const rows = await this.indexedDB.getAll('songs');
         // Sắp xếp theo addedDate DESC
         rows.sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime());
-        return this.mapRowsToSongs(rows);
+        return await this.mapRowsToSongs(rows);
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return [];
         const result = await this.db.query('SELECT * FROM songs ORDER BY addedDate DESC');
-        return this.mapRowsToSongs(result.values || []);
+        return await this.mapRowsToSongs(result.values || []);
       }
     } catch (error) {
       console.error('Error getting songs:', error);
@@ -317,13 +318,13 @@ export class DatabaseService {
         // Sử dụng IndexedDB cho web
         const row = await this.indexedDB.get('songs', id);
         if (!row) return null;
-        const songs = this.mapRowsToSongs([row]);
+        const songs = await this.mapRowsToSongs([row]);
         return songs.length > 0 ? songs[0] : null;
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return null;
         const result = await this.db.query('SELECT * FROM songs WHERE id = ?', [id]);
-        const songs = this.mapRowsToSongs(result.values || []);
+        const songs = await this.mapRowsToSongs(result.values || []);
         return songs.length > 0 ? songs[0] : null;
       }
     } catch (error) {
@@ -350,7 +351,7 @@ export class DatabaseService {
         );
         // Sắp xếp theo title ASC
         filtered.sort((a, b) => a.title.localeCompare(b.title));
-        return this.mapRowsToSongs(filtered);
+        return await this.mapRowsToSongs(filtered);
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return [];
@@ -360,7 +361,7 @@ export class DatabaseService {
            ORDER BY title ASC`,
           [`%${query}%`, `%${query}%`, `%${query}%`]
         );
-        return this.mapRowsToSongs(result.values || []);
+        return await this.mapRowsToSongs(result.values || []);
       }
     } catch (error) {
       console.error('Error searching songs:', error);
@@ -400,22 +401,111 @@ export class DatabaseService {
    * Chuyển đổi dữ liệu từ database rows thành đối tượng Song
    * @param rows - Mảng các row từ database
    * @returns Song[] - Mảng các đối tượng Song
-   */  private mapRowsToSongs(rows: any[]): Song[] {
-    return rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      artist: row.artist,
-      album: row.album,
-      duration: row.duration,
-      duration_formatted: row.duration_formatted,
-      thumbnail: row.thumbnail_url, // Sử dụng đúng tên cột trong database
-      audioUrl: row.audioUrl,
-      filePath: row.filePath,
-      addedDate: new Date(row.addedDate),
-      isFavorite: row.isFavorite === 1, // Chuyển integer thành boolean
-      genre: row.genre,
-      isDownloaded: row.isDownloaded === 1 // Chuyển integer thành boolean
-    }));
+   */
+  private async mapRowsToSongs(rows: any[]): Promise<Song[]> {
+    const songs: Song[] = [];
+
+    for (const row of rows) {
+      let thumbnailUrl = row.thumbnail_url; // Default URL
+
+      // Load thumbnail từ blob nếu đã download
+      if (row.isDownloaded === 1) {
+        if (this.platform === 'web') {
+          thumbnailUrl = await this.offlineMediaService.getThumbnailUrl(
+            row.id,
+            row.thumbnail_url,
+            true
+          );
+        } else {
+          // Native: Load từ SQLite blob
+          const thumbnailBlob = await this.getThumbnailBlob(row.id);
+          if (thumbnailBlob) {
+            thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+          }
+        }
+      }
+
+      songs.push({
+        id: row.id,
+        title: row.title,
+        artist: row.artist,
+        album: row.album,
+        duration: row.duration,
+        duration_formatted: row.duration_formatted,
+        thumbnail: thumbnailUrl,
+        audioUrl: row.audioUrl,
+        filePath: row.filePath,
+        addedDate: new Date(row.addedDate),
+        isFavorite: row.isFavorite === 1,
+        genre: row.genre,
+        isDownloaded: row.isDownloaded === 1
+      });
+    }
+
+    return songs;
+  }
+
+  /**
+   * Lưu thumbnail file vào storage
+   * @param songId - ID của bài hát
+   * @param blob - Thumbnail blob
+   * @param mimeType - MIME type của file
+   * @returns Promise<boolean>
+   */
+  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+    try {
+      if (this.platform === 'web') {
+        return await this.indexedDB.saveThumbnailFile(songId, blob, mimeType);
+      } else {
+        // Native: Lưu vào SQLite
+        if (!this.db) return false;
+
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        await this.db.run(
+          'INSERT OR REPLACE INTO thumbnail_files (songId, blob, mimeType, createdAt) VALUES (?, ?, ?, ?)',
+          [songId, uint8Array, mimeType, new Date().toISOString()]
+        );
+
+        console.log('✅ Thumbnail saved to SQLite:', songId);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error saving thumbnail file:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Lấy thumbnail blob từ storage
+   * @param songId - ID của bài hát
+   * @returns Promise<Blob | null>
+   */
+  async getThumbnailBlob(songId: string): Promise<Blob | null> {
+    try {
+      if (this.platform === 'web') {
+        return await this.indexedDB.getThumbnailFile(songId);
+      } else {
+        // Native: Lấy từ SQLite
+        if (!this.db) return null;
+
+        const result = await this.db.query(
+          'SELECT blob, mimeType FROM thumbnail_files WHERE songId = ?',
+          [songId]
+        );
+
+        if (result.values && result.values.length > 0) {
+          const row = result.values[0];
+          return new Blob([row.blob], { type: row.mimeType });
+        }
+
+        return null;
+      }
+    } catch (error) {
+      console.error('Error getting thumbnail blob:', error);
+      return null;
+    }
   }
 
   /**
@@ -560,14 +650,14 @@ export class DatabaseService {
         const favorites = allSongs.filter(song => song.isFavorite === 1);
         // Sắp xếp theo addedDate DESC
         favorites.sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime());
-        return this.mapRowsToSongs(favorites);
+        return await this.mapRowsToSongs(favorites);
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return [];
         const result = await this.db.query(
           'SELECT * FROM songs WHERE isFavorite = 1 ORDER BY addedDate DESC'
         );
-        return this.mapRowsToSongs(result.values || []);
+        return await this.mapRowsToSongs(result.values || []);
       }
     } catch (error) {
       console.error('Error getting favorite songs:', error);
@@ -605,7 +695,7 @@ export class DatabaseService {
           }
         }
 
-        return this.mapRowsToSongs(recentSongs);
+        return await this.mapRowsToSongs(recentSongs);
       } else {
         // Sử dụng SQLite cho native
         if (!this.db) return [];
@@ -616,7 +706,7 @@ export class DatabaseService {
            LIMIT ?`,
           [limit]
         );
-        return this.mapRowsToSongs(result.values || []);
+        return await this.mapRowsToSongs(result.values || []);
       }
     } catch (error) {
       console.error('Error getting recently played songs:', error);
