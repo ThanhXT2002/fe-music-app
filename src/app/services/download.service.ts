@@ -136,11 +136,10 @@ export class DownloadService {
 
       this.downloadsSubject.next(currentDownloads);
       this.saveDownloadsToStorage();
-    }
-  }
+    }  }
 
   // Mark download as completed
-  async completeDownload(id: string, filePath?: string) {
+  async completeDownload(id: string, filePath?: string, skipSongSave: boolean = false) {
     const download = this.getDownload(id);
     if (!download) return;
 
@@ -157,8 +156,8 @@ export class DownloadService {
       this.updateDownloadProgressWithDetails(id, 100, 'completed',
         filePath ? 'File saved to device' : 'Saved to browser storage');
 
-      // Lưu bài hát vào database nếu có songData
-      if (download.songData) {
+      // Lưu bài hát vào database nếu có songData (chỉ khi không skip)
+      if (!skipSongSave && download.songData) {
         await this.saveSongToDatabase(download.songData, filePath);
         console.log('✅ Song saved to database:', download.title);
       }
@@ -448,20 +447,41 @@ export class DownloadService {
         if (total > 0) {
           this.updateProgressWithSpeed(id, received, total, 'downloading');
         }
-      }
-
-      // Bước 4: Combine chunks và lưu file (80% -> 90%)
+      }      // Bước 4: Combine chunks và lưu file (80% -> 85%)
       this.updateDownloadProgressWithDetails(id, 80, 'downloading', 'Đang lưu file...', { phase: 'saving' });
       const blob = new Blob(chunks);
       const filePath = await this.saveFileToDevice(download, blob);
-      this.updateDownloadProgressWithDetails(id, 90, 'downloading', 'Đang xử lý...', { phase: 'processing' });
 
-      // Bước 5: Download và save thumbnail (90% -> 100%)
+      // Bước 4.5: Verify file integrity (85% -> 87%)
+      this.updateDownloadProgressWithDetails(id, 85, 'downloading', 'Kiểm tra file...', { phase: 'saving' });
+      const isValid = await this.verifyAudioFileIntegrity(filePath);
+      if (!isValid) {
+        throw new Error('Downloaded file is corrupted or invalid');
+      }
+      console.log('✅ Audio file verification passed');
+
+      // Bước 5: Lưu song vào database TRƯỚC (87% -> 90%)
+      this.updateDownloadProgressWithDetails(id, 87, 'downloading', 'Lưu vào database...', { phase: 'processing' });
+      if (download.songData) {
+        await this.saveSongToDatabase(download.songData, filePath);
+        console.log('✅ Song saved to database:', download.title);
+      }
+
+      // Bước 6: Download thumbnail SAU KHI song đã có trong DB (90% -> 95%)
+      this.updateDownloadProgressWithDetails(id, 90, 'downloading', 'Tải thumbnail...', { phase: 'processing' });
       await this.downloadThumbnailForNative(download);
-      this.updateDownloadProgressWithDetails(id, 100, 'completed', 'Hoàn thành!', { phase: 'completing' });
 
-      // Complete download
-      await this.completeDownload(id, filePath);
+      // Bước 7: Complete download (95% -> 100%)
+      this.updateDownloadProgressWithDetails(id, 95, 'downloading', 'Hoàn thành...', { phase: 'completing' });
+
+      // Update download status
+      this.updateDownloadProgressWithDetails(id, 100, 'completed', 'Hoàn thành!');
+
+      // Remove from active downloads
+      this.activeDownloads.delete(id);
+
+      // Trigger refresh để update UI
+      this.refreshService.triggerRefresh();
 
     } catch (error) {
       if (!signal.aborted) {
@@ -489,8 +509,8 @@ export class DownloadService {
       const result = await Filesystem.writeFile({
         path: `TxtMusic/${fileName}`,
         data: base64Data,
-        directory: Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents,
-        encoding: Encoding.UTF8
+        directory: Directory.Cache, // Luôn dùng Cache cho consistency
+        // Bỏ encoding vì đây là binary data (base64)
       });
 
       console.log('✅ File saved to:', result.uri);
@@ -1109,6 +1129,51 @@ export class DownloadService {
         filePath: song.filePath,
         error: `File verification failed: ${error}`
       };
+    }
+  }
+
+  /**
+   * Verify downloaded audio file integrity
+   * @param filePath - Local file path
+   * @returns Promise<boolean>
+   */
+  private async verifyAudioFileIntegrity(filePath: string): Promise<boolean> {
+    try {
+      const fileName = filePath.includes('/') ? filePath.split('/').pop() || '' : filePath;
+
+      console.log('🔍 Verifying audio file integrity:', fileName);
+
+      // Check if file exists and get stats
+      const stat = await Filesystem.stat({
+        path: `TxtMusic/${fileName}`,
+        directory: Directory.Cache
+      });
+
+      console.log('📊 File stats:', stat);
+
+      // Check file size (should be > 0)
+      if (stat.size === 0) {
+        console.error('❌ File is empty');
+        return false;
+      }
+
+      // Try to read a small portion of the file to ensure it's readable
+      const testRead = await Filesystem.readFile({
+        path: `TxtMusic/${fileName}`,
+        directory: Directory.Cache
+      });
+
+      if (!testRead.data) {
+        console.error('❌ File data is empty');
+        return false;
+      }
+
+      console.log('✅ File integrity check passed');
+      return true;
+
+    } catch (error) {
+      console.error('❌ File integrity check failed:', error);
+      return false;
     }
   }
 

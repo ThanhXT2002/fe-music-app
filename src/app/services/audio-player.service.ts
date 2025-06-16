@@ -4,6 +4,7 @@ import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 @Injectable({
   providedIn: 'root'
@@ -136,25 +137,56 @@ export class AudioPlayerService {
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
-      }));
-
-      // Kiểm tra xem có local file không (đã download)
-      let audioUrl: string;
-
-      if (song.filePath && song.isDownloaded) {
+      }));      // Kiểm tra xem có local file không (đã download)
+      let audioUrl: string;      if (song.filePath && song.isDownloaded) {
         // Sử dụng local file nếu đã download
         console.log('🎵 Playing from local file:', song.filePath);
-        audioUrl = song.filePath;
+        console.log('📱 Platform:', Capacitor.getPlatform());
+        console.log('🔧 Is Native:', Capacitor.isNativePlatform());        if (Capacitor.isNativePlatform()) {
+          try {
+            // Try all local file approaches
+            audioUrl = await this.tryAllLocalFileApproaches(song.filePath);
+            console.log('✅ Local file loaded successfully');
+          } catch (localError) {
+            console.error('❌ All local file approaches failed:', localError);
+            // Final fallback to streaming
+            console.log('🔄 All local methods failed, falling back to streaming...');
+            audioUrl = await this.loadAudioWithBypass(song);
+          }
+        } else {
+          audioUrl = song.filePath;
+        }
       } else {
         // Fallback to streaming từ URL với bypass headers
         console.log('🌐 Streaming from URL:', song.audioUrl);
         audioUrl = await this.loadAudioWithBypass(song);
-      }
-
-      // Set audio source và play
+      }// Set audio source và play
       this.audio.src = audioUrl;
-      await this.audio.load();
-      await this.audio.play();
+
+      try {
+        await this.audio.load();
+        await this.audio.play();
+        console.log('✅ Audio playback started successfully');
+      } catch (playError) {
+        console.error('❌ Audio playback failed:', playError);
+
+        // Nếu local file fail, thử fallback to streaming
+        if (song.filePath && song.isDownloaded) {
+          console.log('🔄 Local file failed, falling back to streaming...');
+          try {
+            const streamUrl = await this.loadAudioWithBypass(song);
+            this.audio.src = streamUrl;
+            await this.audio.load();
+            await this.audio.play();
+            console.log('✅ Fallback streaming successful');
+          } catch (fallbackError) {
+            console.error('❌ Fallback streaming also failed:', fallbackError);
+            throw fallbackError;
+          }
+        } else {
+          throw playError;
+        }
+      }
 
       // Preload next song (optional optimization)
       this.preloadNextSong();
@@ -763,5 +795,196 @@ export class AudioPlayerService {
   // 🆕 Clear saved state
   clearSavedState(): void {
     localStorage.removeItem('savedPlaybackState');
+  }
+
+  /**
+   * Debug method để test file path conversion
+   */
+  async debugFileConversion(filePath: string): Promise<void> {
+    console.log('🔍 DEBUG: File conversion test');
+    console.log('📂 Original path:', filePath);
+
+    if (Capacitor.isNativePlatform()) {
+      const convertedPath = Capacitor.convertFileSrc(filePath);
+      console.log('🔗 Converted path:', convertedPath);
+
+      // Test if converted URL is accessible
+      try {
+        const response = await fetch(convertedPath, { method: 'HEAD' });
+        console.log('✅ File accessible:', response.status);
+      } catch (error) {
+        console.error('❌ File not accessible:', error);
+      }
+    } else {
+      console.log('🌐 Web platform - no conversion needed');
+    }
+  }
+
+  /**
+   * Load local file as blob URL for HTML5 audio
+   */  private async loadLocalFileAsBlobUrl(filePath: string): Promise<string> {
+    try {
+      console.log('📂 Loading local file as blob:', filePath);
+
+      // Extract filename from filePath (remove directory prefix if any)
+      const fileName = filePath.includes('/') ? filePath.split('/').pop() || '' : filePath;
+      const directory = Directory.Cache;
+
+      console.log('📁 Reading file:', `TxtMusic/${fileName}`);
+
+      // First, check if file exists
+      try {
+        const stat = await Filesystem.stat({
+          path: `TxtMusic/${fileName}`,
+          directory: directory
+        });
+        console.log('📊 File stats:', stat);
+      } catch (statError) {
+        console.error('❌ File does not exist:', statError);
+        throw new Error(`File not found: TxtMusic/${fileName}`);
+      }
+
+      // Read file as base64
+      const fileData = await Filesystem.readFile({
+        path: `TxtMusic/${fileName}`,
+        directory: directory
+      });
+
+      console.log('📄 File read successfully, data type:', typeof fileData.data);
+
+      // Detect MIME type from filename extension
+      const extension = fileName.split('.').pop()?.toLowerCase() || '';
+      let mimeType = 'audio/mp3'; // default
+
+      switch (extension) {
+        case 'mp3':
+          mimeType = 'audio/mpeg';
+          break;
+        case 'm4a':
+        case 'mp4':
+          mimeType = 'audio/mp4';
+          break;
+        case 'webm':
+          mimeType = 'audio/webm';
+          break;
+        case 'ogg':
+          mimeType = 'audio/ogg';
+          break;
+        case 'wav':
+          mimeType = 'audio/wav';
+          break;
+        default:
+          mimeType = 'audio/mpeg';
+      }
+
+      console.log('🎵 Detected MIME type:', mimeType);
+
+      // Try multiple approaches for creating playable URL
+
+      // Method 1: Blob URL (preferred for smaller files)
+      try {
+        const response = await fetch(`data:${mimeType};base64,${fileData.data}`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        console.log('✅ Blob URL created:', blobUrl);
+
+        // Test if blob URL is valid by creating a test audio element
+        const testAudio = new Audio();
+        testAudio.src = blobUrl;
+
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            testAudio.remove();
+            reject(new Error('Blob URL test timeout'));
+          }, 3000);
+
+          testAudio.addEventListener('canplaythrough', () => {
+            clearTimeout(timeout);
+            testAudio.remove();
+            console.log('✅ Blob URL test passed');
+            resolve(blobUrl);
+          });
+
+          testAudio.addEventListener('error', (e) => {
+            clearTimeout(timeout);
+            testAudio.remove();
+            console.error('❌ Blob URL test failed:', e);
+            reject(new Error('Blob URL not playable'));
+          });
+
+          testAudio.load();
+        });
+
+      } catch (blobError) {
+        console.error('❌ Blob URL approach failed:', blobError);
+
+        // Method 2: Data URI directly (fallback)
+        console.log('🔄 Trying direct data URI...');
+        const dataUri = `data:${mimeType};base64,${fileData.data}`;
+        console.log('📝 Data URI created, length:', dataUri.length);
+        return dataUri;
+      }
+
+    } catch (error) {
+      console.error('❌ Failed to load local file as blob:', error);
+      throw error;
+    }
+  }
+
+  // 🆕 Alternative method: Use native file URI with Capacitor convertFileSrc
+  private async loadLocalFileAsNativeUri(filePath: string): Promise<string> {
+    try {
+      console.log('📂 Loading local file as native URI:', filePath);
+
+      const fileName = filePath.includes('/') ? filePath.split('/').pop() || '' : filePath;
+      const directory = Directory.Cache;
+
+      // Get the native URI using Filesystem.getUri
+      const uriResult = await Filesystem.getUri({
+        path: `TxtMusic/${fileName}`,
+        directory: directory
+      });
+
+      console.log('📍 Native URI:', uriResult.uri);
+
+      // Convert to web-accessible URL
+      const webUrl = Capacitor.convertFileSrc(uriResult.uri);
+      console.log('🌐 Web URL:', webUrl);
+
+      // Validate that the conversion worked
+      if (webUrl === uriResult.uri) {
+        console.warn('⚠️ convertFileSrc did not convert the URI!');
+      }
+
+      return webUrl;
+
+    } catch (error) {
+      console.error('❌ Failed to load local file as native URI:', error);
+      throw error;
+    }
+  }
+
+  // 🆕 Method to try all local file loading approaches
+  private async tryAllLocalFileApproaches(filePath: string): Promise<string> {
+    const approaches = [
+      { name: 'Native URI', method: () => this.loadLocalFileAsNativeUri(filePath) },
+      { name: 'Blob URL', method: () => this.loadLocalFileAsBlobUrl(filePath) }
+    ];
+
+    let lastError: any;
+
+    for (const approach of approaches) {
+      try {
+        console.log(`🔄 Trying approach: ${approach.name}`);
+        const result = await approach.method();
+        console.log(`✅ ${approach.name} succeeded:`, result);
+        return result;
+      } catch (error) {
+        console.error(`❌ ${approach.name} failed:`, error);
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error('All local file approaches failed');
   }
 }
