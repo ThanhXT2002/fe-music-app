@@ -6,12 +6,10 @@ export interface Song {
   duration: number; // in seconds
   duration_formatted?: string; // in seconds
   thumbnail?: string;
-  audioUrl: string;
-  filePath?: string | null; // local file path
+  audioUrl: string;  filePath?: string | null; // local file path
   addedDate: Date;
   isFavorite: boolean;
   genre?: string;
-  isDownloaded?: boolean; // Đã download file về máy chưa
 }
 
 export interface Album {
@@ -100,7 +98,6 @@ export interface SearchResultItem {
   duration: string;
   thumbnail: string;
   url: string;
-  isDownloading?: boolean;
   downloadProgress?: number;
 }
 
@@ -128,13 +125,11 @@ export interface SearchHistoryItem {
   songId: string;
   title: string;
   artist: string;
-  thumbnail_url: string;
-  audio_url: string;
+  thumbnail_url: string;  audio_url: string;
   duration: number;
   duration_formatted: string;
   keywords: string[];
   searchedAt: Date;
-  isDownloaded: boolean; // Đã download về máy chưa
 }
 
 // Interfaces for offline file storage

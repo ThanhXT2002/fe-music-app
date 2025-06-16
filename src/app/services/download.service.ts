@@ -241,16 +241,39 @@ export class DownloadService {
   getDownloadsByStatus(status: DownloadTask['status']): DownloadTask[] {
     return this.currentDownloads.filter(d => d.status === status);
   }
-
   /**
-   * Kiểm tra xem bài hát đã được download chưa
+   * Kiểm tra xem bài hát đã được download chưa (dựa vào database)
    * @param songId - ID của bài hát
    * @returns boolean
    */
   isSongDownloaded(songId: string): boolean {
-    return this.currentDownloads.some(d =>
+    // Kiểm tra trong memory cache trước (nhanh hơn)
+    const inProgress = this.currentDownloads.some(d =>
       d.songData?.id === songId && d.status === 'completed'
     );
+
+    if (inProgress) {
+      return true;
+    }
+
+    // Kiểm tra trong database (sẽ cần async, nhưng để backward compatibility với method sync)
+    // Note: Trong tương lai nên chuyển thành async method
+    return false; // Tạm thời return false, logic chính sẽ dùng async check
+  }
+
+  /**
+   * Kiểm tra async xem bài hát đã được download chưa (dựa vào database)
+   * @param songId - ID của bài hát
+   * @returns Promise<boolean>
+   */
+  async isSongDownloadedAsync(songId: string): Promise<boolean> {
+    try {
+      const song = await this.databaseService.getSongById(songId);
+      return !!song && !!song.filePath;
+    } catch (error) {
+      console.error('Error checking song download status:', error);
+      return false;
+    }
   }
 
   /**
@@ -559,30 +582,28 @@ export class DownloadService {
    * Lưu bài hát vào database
    * @param songData - Data từ API
    * @param filePath - Đường dẫn file (optional)
-   */  private async saveSongToDatabase(songData: DataSong, filePath?: string) {
+   */
+  private async saveSongToDatabase(songData: DataSong, filePath?: string) {
     try {      // Chuyển đổi DataSong thành Song object
-      const song: Song = {
+    const song: Song = {
         id: songData.id,
         title: songData.title,
         artist: songData.artist,
         album: undefined,
         duration: songData.duration || 0,
         duration_formatted: songData.duration_formatted,
-        // 🔄 Native platform: không lưu server URL, chỉ lưu local path
-        thumbnail: Capacitor.isNativePlatform() ? '' : songData.thumbnail_url, // Thumbnail sẽ được load từ database
-        audioUrl: Capacitor.isNativePlatform() ? (filePath || '') : songData.audio_url,
+        // 🔄 Không lưu server URL, chỉ lưu metadata và file path
+        thumbnail: '', // Thumbnail sẽ được lưu riêng và load theo cách khác
+        audioUrl: '', // Không lưu URL streaming, chỉ phụ thuộc vào file đã tải về
         filePath: filePath,
         addedDate: new Date(),
         isFavorite: false,
-        genre: this.extractGenreFromKeywords(songData.keywords || []),
-        isDownloaded: true // Đánh dấu đã download
+        genre: this.extractGenreFromKeywords(songData.keywords || [])
       };
-
       console.log('💾 Saving song to database:');
       console.log('- Platform:', Capacitor.getPlatform());
-      console.log('- audioUrl:', song.audioUrl);
       console.log('- filePath:', song.filePath);
-      console.log('- isDownloaded:', song.isDownloaded);
+      console.log('- Using streaming URL:', false);
 
       // Lưu vào database
       const success = await this.databaseService.addSong(song);
@@ -718,7 +739,8 @@ export class DownloadService {
 
   /**
    * Đảm bảo thư mục TxtMusic tồn tại
-   */  private async ensureMusicDirectoryExists(): Promise<void> {
+   */
+  private async ensureMusicDirectoryExists(): Promise<void> {
     try {
       const directory = Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents;
 
@@ -1090,29 +1112,29 @@ export class DownloadService {
 
   /**
    * Verify if a downloaded song file actually exists
-   */
-  async verifyDownloadedFile(song: Song): Promise<{
+   */  async verifyDownloadedFile(song: Song): Promise<{
     exists: boolean;
     fileSize?: number;
     filePath?: string;
     error?: string;
   }> {
-    if (!song.filePath || !song.isDownloaded) {
-      return { exists: false, error: 'Song not marked as downloaded' };
+    // Kiểm tra bài hát có trong database không
+    const dbSong = await this.databaseService.getSongById(song.id);
+    if (!dbSong || !dbSong.filePath) {
+      return { exists: false, error: 'Song not found in database or no file path' };
     }
 
     if (!Capacitor.isNativePlatform()) {      // For web, check IndexedDB (simplified check)
       try {
-        // Assume exists if marked as downloaded for web platform
+        // Assume exists if found in database for web platform
         return { exists: true, filePath: 'IndexedDB' };
       } catch (error) {
         return { exists: false, error: `IndexedDB error: ${error}` };
-      }
-    }
+      }    }
 
     try {
       // Extract filename from filePath URI
-      const uriParts = song.filePath.split('/');
+      const uriParts = dbSong.filePath.split('/');
       const fileName = uriParts[uriParts.length - 1];
       const directory = Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents;
 
@@ -1125,14 +1147,14 @@ export class DownloadService {
       return {
         exists: true,
         fileSize: stat.size,
-        filePath: song.filePath
+        filePath: dbSong.filePath
       };
 
     } catch (error) {
       console.error('❌ File verification failed:', error);
       return {
         exists: false,
-        filePath: song.filePath,
+        filePath: dbSong.filePath,
         error: `File verification failed: ${error}`
       };
     }

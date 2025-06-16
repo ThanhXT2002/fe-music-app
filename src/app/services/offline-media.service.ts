@@ -13,23 +13,22 @@ export class OfflineMediaService {
   constructor(
     private indexedDBService: IndexedDBService,
     private databaseService: DatabaseService
-  ) {}
-  /**
-   * Lấy thumbnail URL - offline first nếu có, fallback to online URL
+  ) {}  /**
+   * Lấy thumbnail URL - offline first nếu có, fallback về placeholder
    * @param songId - ID của bài hát
-   * @param onlineUrl - URL online của thumbnail
-   * @param isDownloaded - Có phải bài hát đã download không
+   * @param onlineUrl - URL online của thumbnail (không sử dụng, chỉ để backward compatibility)
    * @returns Promise<string> - URL của thumbnail để sử dụng
    */
-  async getThumbnailUrl(songId: string, onlineUrl: string, isDownloaded: boolean = false): Promise<string> {
+  async getThumbnailUrl(songId: string, onlineUrl: string): Promise<string> {
     // Kiểm tra cache trước
     const cacheKey = `thumb_${songId}`;
     if (this.thumbnailCache.has(cacheKey)) {
       return this.thumbnailCache.get(cacheKey)!;
     }
 
-    // Nếu bài hát đã download, tìm thumbnail offline
-    if (isDownloaded) {
+    // Kiểm tra bài hát có được download chưa (chỉ kiểm tra ID trong database)
+    const song = await this.databaseService.getSongById(songId);
+    if (song && song.filePath) {
       try {
         let thumbnailUrl: string | null = null;        if (Capacitor.isNativePlatform()) {
           // Native platform: Lấy từ SQLite database
@@ -47,29 +46,20 @@ export class OfflineMediaService {
             thumbnailUrl = URL.createObjectURL(thumbnailBlob);
             console.log('✅ Web: Thumbnail loaded from IndexedDB');
           }
-        }
-
-        if (thumbnailUrl) {
+        }        if (thumbnailUrl) {
           this.thumbnailCache.set(cacheKey, thumbnailUrl);
           return thumbnailUrl;
         }
       } catch (error) {
-        console.warn('❌ Failed to load offline thumbnail, using online URL:', error);
+        console.warn('❌ Failed to load offline thumbnail:', error);
       }
-    }    // Fallback: sử dụng URL online (chỉ cho web platform)
-    if (Capacitor.isNativePlatform()) {
-      // Native platform: Không fallback về server URL khi offline
-      console.warn('❌ Native: No offline thumbnail available, using placeholder');
-      // Return placeholder hoặc empty image thay vì server URL
-      const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
-      this.thumbnailCache.set(cacheKey, placeholderUrl);
-      return placeholderUrl;
-    } else {
-      // Web platform: có thể fallback về server URL
-      console.log('🌐 Web: Using online thumbnail URL');
-      this.thumbnailCache.set(cacheKey, onlineUrl);
-      return onlineUrl;
     }
+
+    // 🚫 KHÔNG fallback về server - chỉ dùng placeholder
+    console.warn('❌ No offline thumbnail available, using placeholder');
+    const placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+    this.thumbnailCache.set(cacheKey, placeholderUrl);
+    return placeholderUrl;
   }
 
   /**
@@ -102,8 +92,7 @@ export class OfflineMediaService {
    * Kiểm tra xem bài hát có files offline không
    * @param songId - ID của bài hát
    * @returns Promise<{hasAudio: boolean, hasThumbnail: boolean}>
-   */
-  async checkOfflineFiles(songId: string): Promise<{hasAudio: boolean, hasThumbnail: boolean}> {
+   */  async checkOfflineFiles(songId: string): Promise<{hasAudio: boolean, hasThumbnail: boolean}> {
     try {
       if (Capacitor.getPlatform() === 'web') {
         // Web platform: Check IndexedDB
@@ -112,7 +101,7 @@ export class OfflineMediaService {
         // Native platform: Check database and filesystem
         const song = await this.databaseService.getSongById(songId);
 
-        const hasAudio = !!(song?.filePath && song.isDownloaded);
+        const hasAudio = !!(song?.filePath); 
 
         // Check thumbnail trong database
         const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
@@ -137,11 +126,9 @@ export class OfflineMediaService {
       } else {
         // Native platform: Filesystem + Database usage
         let audioSize = 0;
-        let thumbnailSize = 0;
-
-        try {          // Lấy tất cả bài hát và filter những bài đã download
+        let thumbnailSize = 0;        try {          // Lấy tất cả bài hát và filter những bài có filePath (đã download)
           const allSongs = await this.databaseService.getAllSongs();
-          const downloadedSongs = allSongs.filter(song => song.isDownloaded && song.filePath);
+          const downloadedSongs = allSongs.filter(song => song.filePath); // Chỉ kiểm tra filePath
 
           for (const song of downloadedSongs) {
             // Kiểm tra file audio

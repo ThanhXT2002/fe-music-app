@@ -6,12 +6,24 @@ import { IndexedDBService } from './indexeddb.service';
 import { OfflineMediaService } from './offline-media.service';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Subject } from 'rxjs';
+
+// 🆕 Interface for download prompt events
+interface DownloadPromptEvent {
+  song: Song;
+  playlist?: Song[];
+  index?: number;
+}
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AudioPlayerService {
   private audio: HTMLAudioElement = new Audio();
+
+  // 🆕 Subject for download prompt events
+  public downloadPrompt$ = new Subject<DownloadPromptEvent>();
+
   private _playbackState = signal<PlaybackState>({
     currentSong: null,
     isPlaying: false,
@@ -23,12 +35,12 @@ export class AudioPlayerService {
     repeatMode: 'none',
     isShuffled: false,
     currentPlaylist: [],
-    currentIndex: -1
+    currentIndex: -1,
   });
 
   public playbackState = this._playbackState.asReadonly();
   private updateInterval?: number;
-  private audioCache = new Map<string, string>(); // Cache cho blob URLs
+  private blobUrlCache = new Map<string, string>(); // Cache cho blob URLs từ IndexedDB
   // Additional signals for PlayerPage
   currentSong = signal<Song | null>(null);
   currentTime = signal<number>(0);
@@ -39,11 +51,13 @@ export class AudioPlayerService {
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
+
   constructor(
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private offlineMediaService: OfflineMediaService
-  ) {    this.setupAudioEventListeners();
+  ) {
+    this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo (với delay để đảm bảo database đã sẵn sàng)
@@ -51,94 +65,24 @@ export class AudioPlayerService {
       this.restorePlaybackState();
     }, 1000); // Delay 1 giây
   }
-
-  // 🆕 Method để load audio với offline support
-  private async loadAudioWithBypass(song: Song): Promise<string> {
-    try {
-      // 🚫 Native platform: Không cho phép streaming khi chưa download
-      if (Capacitor.isNativePlatform()) {
-        throw new Error('Streaming not allowed on native platform. Song must be downloaded first.');
-      }
-
-      // ✅ Chỉ cho WEB/PWA platform
-      console.log('🌐 Web platform: Loading audio with streaming capability');
-
-      // Kiểm tra cache trước
-      const cacheKey = song.audioUrl;
-      if (this.audioCache.has(cacheKey)) {
-        console.log('✅ Using cached audio URL');
-        return this.audioCache.get(cacheKey)!;
-      }
-
-      // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform - sử dụng IndexedDB)
-      if (song.isDownloaded) {
-        console.log('🔄 Checking IndexedDB for offline audio...');
-        try {
-          const audioBlob = await this.indexedDBService.getAudioFile(song.id);
-          if (audioBlob) {
-            console.log('✅ Found offline audio in IndexedDB');
-            const audioObjectUrl = this.trackBlobUrl(URL.createObjectURL(audioBlob));
-            this.audioCache.set(cacheKey, audioObjectUrl);
-            return audioObjectUrl;
-          } else {
-            console.warn('⚠️ Offline audio not found in IndexedDB, fallback to streaming');
-          }
-        } catch (offlineError) {
-          console.warn('⚠️ Error loading offline audio from IndexedDB:', offlineError);
-        }
-      }
-
-      // 🆕 Retry logic cho streaming (chỉ web platform)
-      const maxRetries = 2;
-      let lastError: any;
-
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const response = await fetch(song.audioUrl, {
-            headers: {
-              'ngrok-skip-browser-warning': 'true',
-              'User-Agent': 'IonicApp/1.0',
-              'Accept': 'audio/*,*/*;q=0.9'
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }          const audioBlob = await response.blob();
-          const audioObjectUrl = this.trackBlobUrl(URL.createObjectURL(audioBlob));
-          // Cache blob URL
-          this.audioCache.set(cacheKey, audioObjectUrl);
-          return audioObjectUrl;
-        } catch (error) {
-          lastError = error;
-          console.warn(`❌ Attempt ${attempt} failed:`, error);
-
-          // Nếu không phải lần cuối, đợi một chút trước khi retry
-          if (attempt < maxRetries) {
-            const delay = attempt * 1000; // 1s, 2s...
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-        }
-      }
-
-      // Nếu tất cả attempts đều fail
-      throw lastError;
-
-    } catch (error) {
-      console.error('❌ All attempts failed for audio loading:', error);
-      throw error; // Don't fallback to audioUrl for native platform
-    }
-  }
-  // 🆕 Method để preload audio (optional)
+  // 🆕 Method để preload audio (chỉ cho downloaded songs)
   async preloadAudio(song: Song): Promise<void> {
     try {
-      // Chỉ preload nếu chưa có local file
-      if (!song.filePath || !song.isDownloaded) {
-        if (!this.audioCache.has(song.audioUrl)) {
-          await this.loadAudioWithBypass(song);
+      // Chỉ preload nếu có trong database và có filePath
+      const dbSong = await this.databaseService.getSongById(song.id);
+      if (dbSong && dbSong.filePath) {
+        console.log('🔄 Preloading downloaded audio:', song.title);
+        if (Capacitor.isNativePlatform()) {
+          // Native: Kiểm tra file tồn tại
+          await this.tryAllLocalFileApproaches(dbSong.filePath);
+        } else {
+          // Web/PWA: Kiểm tra blob trong IndexedDB
+          const audioBlob = await this.indexedDBService.getAudioFile(song.id);
+          if (!audioBlob) {
+            console.warn('⚠️ Audio blob not found for preload:', song.title);
+          }
         }
       }
-      // Nếu đã có local file thì không cần preload
     } catch (error) {
       console.error('Error preloading audio:', error);
     }
@@ -148,109 +92,102 @@ export class AudioPlayerService {
     // Cleanup previous blob URLs to prevent memory leaks
     this.cleanupAllBlobUrls();
 
-    try {      this._playbackState.update(state => ({
+    try {
+      this._playbackState.update((state) => ({
         ...state,
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
-        currentIndex: playlist.length > 0 ? index : 0
-      }));      // 🔄 Update signals ngay lập tức để UI hiển thị
+        currentIndex: playlist.length > 0 ? index : 0,
+      })); // 🔄 Update signals ngay lập tức để UI hiển thị
       this.updateSignalsImmediately(true); // Log when user plays a song
 
       // 🔄 Force refresh thumbnail để đảm bảo hiển thị đúng
       setTimeout(() => {
         this.refreshCurrentSongThumbnail();
-      }, 100);// Kiểm tra xem có local file không (đã download)
-      let audioUrl: string;      // Debug: check call stack để xem song được gọi từ đâu
-      console.log('🔍 playSong called from:', new Error().stack?.split('\n')[2]);      // Check for downloaded version of the song
-      const finalSong = await this.getDownloadedSongVersion(song);
+      }, 100); // Kiểm tra xem có local file không (đã download)
+      let audioUrl: string; // Debug: check call stack để xem song được gọi từ đâu
+      console.log(
+        '🔍 playSong called from:',
+        new Error().stack?.split('\n')[2]
+      ); // 🔍 Check if song exists in database (downloaded)
+      console.log('🔍 Checking if song exists in database:', song.title);
+      const existsInDb = await this.databaseService.getSongById(song.id);
 
-      // 🔍 Check if song can be played on native platform
-      const playabilityCheck = await this.checkSongPlayabilityForNative(finalSong);
-      if (!playabilityCheck.canPlay && playabilityCheck.message) {
-        throw new Error(playabilityCheck.message);
-      }
-
-      // Debug song data trước khi check local file
-      console.log('🔍 Song debug info:');
-      console.log('- Title:', finalSong.title);
-      console.log('- filePath:', finalSong.filePath);
-      console.log('- isDownloaded:', finalSong.isDownloaded);
-      console.log('- audioUrl:', finalSong.audioUrl);if (finalSong.filePath && finalSong.isDownloaded) {
-        // Sử dụng local file nếu đã download
-        console.log('🎵 Playing from local file:', finalSong.filePath);
+      if (existsInDb) {
+        // 🎵 Bài hát có trong database - CHỈ dùng local file (cả native và web/PWA)
+        console.log('🎵 Song found in database, playing from local file');
         console.log('📱 Platform:', Capacitor.getPlatform());
         console.log('🔧 Is Native:', Capacitor.isNativePlatform());
 
         if (Capacitor.isNativePlatform()) {
-          // Native platform: CHỈ phát local file, không fallback
-          audioUrl = await this.tryAllLocalFileApproaches(finalSong.filePath);
-          console.log('✅ Local file loaded successfully');
+          // Native platform: Dùng filesystem
+          if (existsInDb.filePath) {
+            audioUrl = await this.tryAllLocalFileApproaches(
+              existsInDb.filePath
+            );
+            console.log('✅ Native: Local file loaded from filesystem');
+          } else {
+            throw new Error(
+              `File path not found for song: ${existsInDb.title}`
+            );
+          }
         } else {
-          // Web platform: sử dụng file path trực tiếp
-          audioUrl = finalSong.filePath;
+          // Web/PWA platform: Dùng IndexedDB blob
+          console.log('🔄 Web/PWA: Loading from IndexedDB...');
+          try {
+            const audioBlob = await this.indexedDBService.getAudioFile(song.id);
+            if (audioBlob) {
+              audioUrl = this.trackBlobUrl(URL.createObjectURL(audioBlob));
+              console.log('✅ Web/PWA: Local file loaded from IndexedDB');
+            } else {
+              throw new Error('Audio blob not found in IndexedDB');
+            }
+          } catch (indexedDbError) {
+            throw new Error(
+              `Không thể phát file offline: ${existsInDb.title}. File có thể bị hỏng trong IndexedDB.`
+            );
+          }
         }
       } else {
-        // Không có local file
-        if (Capacitor.isNativePlatform()) {
-          // Native platform: YÊU CẦU download trước khi phát
-          throw new Error(`Song "${finalSong.title}" chưa được download. Vui lòng download trước khi phát offline.`);
-        } else {
-          // Web platform: có thể stream từ server
-          console.log('🌐 Streaming from URL:', finalSong.audioUrl);
-          audioUrl = await this.loadAudioWithBypass(finalSong);
-        }
-      }// Set audio source và play
-      this.audio.src = audioUrl;      try {
+        // 🚫 Bài hát không có trong database - KHÔNG cho phép phát
+        throw new Error(
+          `Song "${song.title}" chưa được download. Vui lòng download trước khi phát.`
+        );
+      } // Set audio source và play
+      this.audio.src = audioUrl;
+      try {
         await this.audio.load();
         await this.audio.play();
         console.log('✅ Audio playback started successfully');
       } catch (playError) {
         console.error('❌ Audio playback failed:', playError);
-
-        // Native platform: Không fallback, báo lỗi rõ ràng
-        if (Capacitor.isNativePlatform() && finalSong.filePath && finalSong.isDownloaded) {
-          throw new Error(`Không thể phát file local: ${finalSong.title}. File có thể bị hỏng hoặc không tương thích.`);
-        }
-
-        // Web platform: có thể thử fallback nếu cần
-        if (!Capacitor.isNativePlatform() && finalSong.filePath && finalSong.isDownloaded) {
-          console.log('🔄 Web platform: Trying fallback to server...');
-          try {
-            const streamUrl = await this.loadAudioWithBypass(finalSong);
-            this.audio.src = streamUrl;
-            await this.audio.load();
-            await this.audio.play();
-            console.log('✅ Fallback streaming successful');
-          } catch (fallbackError) {
-            console.error('❌ Fallback streaming also failed:', fallbackError);
-            throw fallbackError;
-          }
-        } else {
-          throw playError;
-        }
+        // 🚫 KHÔNG có fallback streaming - chỉ phát từ file offline
+        throw new Error(
+          `Không thể phát file offline: ${song.title}. File có thể bị hỏng hoặc không tương thích.`
+        );
       }
 
       // Preload next song (optional optimization)
       this.preloadNextSong();
-
     } catch (error) {
       console.error('❌ Error playing song:', error);
 
       // Show user-friendly error
       this.handlePlaybackError(error, song);
-    }  }
+    }
+  }
 
   // 🆕 Preload next song for smooth playback
   private async preloadNextSong(): Promise<void> {
     try {
       const state = this._playbackState();
       if (state.currentPlaylist.length > 1) {
-        const nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
-        const nextSong = state.currentPlaylist[nextIndex];
-
-        // Chỉ preload nếu bài tiếp theo chưa có local file và chưa trong cache
-        if (nextSong && (!nextSong.filePath || !nextSong.isDownloaded) && !this.audioCache.has(nextSong.audioUrl)) {
-          // Preload in background
+        const nextIndex =
+          (state.currentIndex + 1) % state.currentPlaylist.length;
+        const nextSong = state.currentPlaylist[nextIndex]; // Chúng ta không cần preload nữa vì bây giờ chỉ phát từ file đã download
+        // Không còn sử dụng streaming URL
+        if (nextSong && nextSong.filePath) {
+          // Preload từ file system hoặc IndexedDB nếu cần
           setTimeout(() => this.preloadAudio(nextSong), 2000);
         }
       }
@@ -258,28 +195,33 @@ export class AudioPlayerService {
       console.error('Error preloading next song:', error);
     }
   }
-
   // 🆕 Handle playback errors
   private handlePlaybackError(error: any, song: Song): void {
     console.error('Playback error for song:', song.title, error);
 
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
       isPlaying: false,
-      isPaused: false
+      isPaused: false,
     }));
 
-    // Có thể emit event hoặc show toast notification
+    // Check if error is about missing download
+    if (error.message && error.message.includes('chưa được download')) {
+      console.log('🔔 Emitting download prompt for:', song.title);
+      this.downloadPrompt$.next({ song });
+    }
+
+    // Could emit other types of errors for UI handling
     // this.toastService.showError(`Cannot play ${song.title}`);
   }
 
   // 🆕 Clear cache method
-  private clearAudioCache(): void {
-    this.audioCache.forEach((blobUrl, originalUrl) => {
+  private clearBlobUrlCache(): void {
+    this.blobUrlCache.forEach((blobUrl, originalUrl) => {
       URL.revokeObjectURL(blobUrl);
     });
 
-    this.audioCache.clear();
+    this.blobUrlCache.clear();
   }
   // 🔄 Modified destroy method
   destroy() {
@@ -287,21 +229,21 @@ export class AudioPlayerService {
     this.stopSignalUpdates(); // 🆕 Stop signal updates
     this.audio.pause();
     this.audio.src = '';
-    this.clearAudioCache(); // Clear cache khi destroy
+    this.clearCache(); // Clear cache khi destroy
   }
 
   private setupAudioEventListeners() {
     this.audio.addEventListener('loadedmetadata', () => {
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
-        duration: this.audio.duration
+        duration: this.audio.duration,
       }));
     });
 
     this.audio.addEventListener('timeupdate', () => {
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
-        currentTime: this.audio.currentTime
+        currentTime: this.audio.currentTime,
       }));
     });
 
@@ -312,15 +254,17 @@ export class AudioPlayerService {
 
     this.audio.addEventListener('loadedmetadata', () => {
       this.updateBufferProgress();
-    });    this.audio.addEventListener('ended', () => {
+    });
+    this.audio.addEventListener('ended', () => {
       // 🆕 Stop signal updates when song ends
       this.stopSignalUpdates();
       this.handleSongEnded();
-    });    this.audio.addEventListener('play', () => {
-      this._playbackState.update(state => ({
+    });
+    this.audio.addEventListener('play', () => {
+      this._playbackState.update((state) => ({
         ...state,
         isPlaying: true,
-        isPaused: false
+        isPaused: false,
       }));
       this.startTimeUpdate();
       // 🆕 Start signal updates when playing
@@ -332,10 +276,10 @@ export class AudioPlayerService {
     });
 
     this.audio.addEventListener('pause', () => {
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
         isPlaying: false,
-        isPaused: true
+        isPaused: true,
       }));
       this.stopTimeUpdate();
       // 🆕 Stop signal updates when paused
@@ -348,10 +292,10 @@ export class AudioPlayerService {
 
     this.audio.addEventListener('error', (e) => {
       console.error('Audio error:', e);
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
         isPlaying: false,
-        isPaused: false
+        isPaused: false,
       }));
       // 🆕 Stop signal updates on error
       this.stopSignalUpdates();
@@ -381,7 +325,8 @@ export class AudioPlayerService {
     } catch (error) {
       console.warn('Buffer progress update failed:', error);
     }
-  }  private signalUpdateInterval?: number;
+  }
+  private signalUpdateInterval?: number;
 
   private setupSignalUpdates() {
     // Không setup interval ngay, chỉ update khi có sự kiện thực sự
@@ -395,7 +340,8 @@ export class AudioPlayerService {
     }
 
     console.log('🔄 Starting signal updates (music is playing)');
-    this.signalUpdateInterval = window.setInterval(() => {      // Chỉ update khi thực sự đang phát nhạc
+    this.signalUpdateInterval = window.setInterval(() => {
+      // Chỉ update khi thực sự đang phát nhạc
       if (!this.audio.paused && this._playbackState().isPlaying) {
         this.updateSignalsImmediately(); // No log for periodic updates
         this.updateBufferProgress();
@@ -442,9 +388,9 @@ export class AudioPlayerService {
       this.audio.currentTime = clampedTime;
 
       // Force update state immediately
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
-        currentTime: clampedTime
+        currentTime: clampedTime,
       }));
 
       // Update signal immediately
@@ -465,7 +411,7 @@ export class AudioPlayerService {
       this.seekTo(time);
 
       // Wait a bit for seek to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Resume if was playing
       if (wasPlaying) {
@@ -475,7 +421,6 @@ export class AudioPlayerService {
           console.warn('Failed to resume after seek:', playError);
         }
       }
-
     } catch (error) {
       console.error('❌ Seek failed:', error);
       throw error;
@@ -485,10 +430,10 @@ export class AudioPlayerService {
   setVolume(volume: number) {
     const clampedVolume = Math.max(0, Math.min(1, volume));
     this.audio.volume = clampedVolume;
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
       volume: clampedVolume,
-      isMuted: clampedVolume === 0
+      isMuted: clampedVolume === 0,
     }));
     this.saveSettings();
   }
@@ -499,9 +444,9 @@ export class AudioPlayerService {
       this.setVolume(currentState.volume || 0.5);
     } else {
       this.audio.volume = 0;
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
-        isMuted: true
+        isMuted: true,
       }));
     }
     this.saveSettings();
@@ -567,17 +512,17 @@ export class AudioPlayerService {
         break;
     }
 
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
-      repeatMode: newMode
+      repeatMode: newMode,
     }));
     this.saveSettings();
   }
 
   toggleShuffle() {
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
-      isShuffled: !state.isShuffled
+      isShuffled: !state.isShuffled,
     }));
     this.saveSettings();
   }
@@ -597,10 +542,10 @@ export class AudioPlayerService {
         if (state.currentIndex < state.currentPlaylist.length - 1) {
           await this.playNext();
         } else {
-          this._playbackState.update(state => ({
+          this._playbackState.update((state) => ({
             ...state,
             isPlaying: false,
-            isPaused: false
+            isPaused: false,
           }));
         }
         break;
@@ -614,9 +559,9 @@ export class AudioPlayerService {
 
     this.updateInterval = window.setInterval(() => {
       if (!this.audio.paused) {
-        this._playbackState.update(state => ({
+        this._playbackState.update((state) => ({
           ...state,
-          currentTime: this.audio.currentTime
+          currentTime: this.audio.currentTime,
         }));
 
         // Save state mỗi 30 giây khi đang phát nhạc
@@ -636,12 +581,15 @@ export class AudioPlayerService {
 
   private saveSettings() {
     const state = this._playbackState();
-    localStorage.setItem('audioPlayerSettings', JSON.stringify({
-      volume: state.volume,
-      isMuted: state.isMuted,
-      repeatMode: state.repeatMode,
-      isShuffled: state.isShuffled
-    }));
+    localStorage.setItem(
+      'audioPlayerSettings',
+      JSON.stringify({
+        volume: state.volume,
+        isMuted: state.isMuted,
+        repeatMode: state.repeatMode,
+        isShuffled: state.isShuffled,
+      })
+    );
   }
 
   private loadSavedSettings() {
@@ -649,12 +597,12 @@ export class AudioPlayerService {
       const saved = localStorage.getItem('audioPlayerSettings');
       if (saved) {
         const settings = JSON.parse(saved);
-        this._playbackState.update(state => ({
+        this._playbackState.update((state) => ({
           ...state,
           volume: settings.volume || 1,
           isMuted: settings.isMuted || false,
           repeatMode: settings.repeatMode || 'none',
-          isShuffled: settings.isShuffled || false
+          isShuffled: settings.isShuffled || false,
         }));
 
         this.audio.volume = settings.volume || 1;
@@ -665,10 +613,10 @@ export class AudioPlayerService {
   }
 
   async setPlaylist(playlist: Song[], startIndex: number = 0) {
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
       currentPlaylist: playlist,
-      currentIndex: startIndex
+      currentIndex: startIndex,
     }));
 
     if (playlist.length > 0 && playlist[startIndex]) {
@@ -697,9 +645,9 @@ export class AudioPlayerService {
   }
 
   updateCurrentSong(song: Song) {
-    this._playbackState.update(state => ({
+    this._playbackState.update((state) => ({
       ...state,
-      currentSong: song
+      currentSong: song,
     }));
     this.currentSong.set(song);
   }
@@ -725,25 +673,25 @@ export class AudioPlayerService {
         newIndex = Math.min(newIndex, newPlaylist.length - 1);
       }
 
-      this._playbackState.update(prevState => ({
+      this._playbackState.update((prevState) => ({
         ...prevState,
         currentPlaylist: newPlaylist,
-        currentIndex: newIndex
+        currentIndex: newIndex,
       }));
     }
   }
 
   // 🆕 Additional utility methods
   getCacheSize(): number {
-    return this.audioCache.size;
+    return this.blobUrlCache.size;
   }
 
   getCachedUrls(): string[] {
-    return Array.from(this.audioCache.keys());
+    return Array.from(this.blobUrlCache.keys());
   }
 
   async clearCache(): Promise<void> {
-    this.clearAudioCache();
+    this.clearBlobUrlCache();
   }
 
   // 🆕 Save current playback state to localStorage
@@ -751,29 +699,31 @@ export class AudioPlayerService {
     try {
       const state = this._playbackState();
       const savedState: SavedPlaybackState = {
-        currentSong: state.currentSong ? {
-          id: state.currentSong.id,
-          title: state.currentSong.title,
-          artist: state.currentSong.artist,
-          url: state.currentSong.audioUrl,
-          thumbnail: state.currentSong.thumbnail,
-          duration: state.currentSong.duration
-        } : null,
+        currentSong: state.currentSong
+          ? {
+              id: state.currentSong.id,
+              title: state.currentSong.title,
+              artist: state.currentSong.artist,
+              url: '', // Không lưu URL streaming
+              thumbnail: state.currentSong.thumbnail,
+              duration: state.currentSong.duration,
+            }
+          : null,
         currentTime: state.currentTime,
         isPlaying: false, // Luôn save là false để không tự động play khi restore
         volume: state.volume,
         isShuffling: state.isShuffled,
         repeatMode: state.repeatMode,
-        queue: state.currentPlaylist.map(song => ({
+        queue: state.currentPlaylist.map((song) => ({
           id: song.id,
           title: song.title,
           artist: song.artist,
-          url: song.audioUrl,
+          url: '', // Không lưu URL streaming
           thumbnail: song.thumbnail,
-          duration: song.duration
+          duration: song.duration,
         })),
         currentIndex: state.currentIndex,
-        savedAt: Date.now()
+        savedAt: Date.now(),
       };
 
       localStorage.setItem('savedPlaybackState', JSON.stringify(savedState));
@@ -788,7 +738,10 @@ export class AudioPlayerService {
 
     try {
       const saved = localStorage.getItem('savedPlaybackState');
-      console.log('💾 Saved state from localStorage:', saved ? 'Found' : 'Not found');
+      console.log(
+        '💾 Saved state from localStorage:',
+        saved ? 'Found' : 'Not found'
+      );
 
       if (!saved) {
         console.log('❌ No saved state found');
@@ -799,7 +752,7 @@ export class AudioPlayerService {
       console.log('📝 Parsed saved state:', {
         currentSong: savedState.currentSong?.title,
         queueLength: savedState.queue.length,
-        savedAt: new Date(savedState.savedAt)
+        savedAt: new Date(savedState.savedAt),
       });
 
       // Chỉ restore nếu save không quá 7 ngày
@@ -816,52 +769,56 @@ export class AudioPlayerService {
       if (savedState.currentSong && savedState.queue.length > 0) {
         console.log('🔄 Restoring playback state...');
         console.log('📱 Platform:', Capacitor.getPlatform());
-        console.log('🔧 Is Native:', Capacitor.isNativePlatform());
-
-        // Convert back to Song objects and check downloaded status
+        console.log('🔧 Is Native:', Capacitor.isNativePlatform()); // Convert back to Song objects and check database
         const playlist: Song[] = [];
         for (const item of savedState.queue) {
-          // Check if song is downloaded in database
-          const downloadedSong = await this.getDownloadedSongVersion({
-            id: item.id,
-            title: item.title,
-            artist: item.artist,
-            audioUrl: item.url,
-            thumbnail: item.thumbnail,
-            duration: item.duration,
-            album: '',
-            genre: '',
-            isFavorite: false,
-            addedDate: new Date(),
-            isDownloaded: false,
-            filePath: undefined,
-            duration_formatted: ''
-          });
-
-          playlist.push(downloadedSong);
-        }
-
-        // Check current song downloaded status
-        const currentSong = await this.getDownloadedSongVersion({
+          // Check if song exists in database
+          const dbSong = await this.databaseService.getSongById(item.id);
+          if (dbSong) {
+            playlist.push(dbSong);
+          } else {            // Create song object even if not in database
+            playlist.push({
+              id: item.id,
+              title: item.title,
+              artist: item.artist,
+              audioUrl: '', // Không sử dụng URL streaming
+              thumbnail: item.thumbnail,
+              duration: item.duration,
+              album: '',
+              genre: '',
+              isFavorite: false,
+              addedDate: new Date(),
+              filePath: undefined,
+              duration_formatted: '',
+            });
+          }
+        }        // Check current song in database
+        const currentSong = (await this.databaseService.getSongById(
+          savedState.currentSong!.id
+        )) || {
           id: savedState.currentSong!.id,
           title: savedState.currentSong!.title,
           artist: savedState.currentSong!.artist,
-          audioUrl: savedState.currentSong!.url,
+          audioUrl: '', // Không sử dụng URL streaming
           thumbnail: savedState.currentSong!.thumbnail,
           duration: savedState.currentSong!.duration,
           album: '',
           genre: '',
           isFavorite: false,
           addedDate: new Date(),
-          isDownloaded: false,
           filePath: undefined,
-          duration_formatted: ''
-        });        console.log('✅ Current song download status:', currentSong.isDownloaded);
+          duration_formatted: '',
+        };
+
+        console.log(
+          '✅ Current song exists in database:',
+          !!(await this.databaseService.getSongById(savedState.currentSong!.id))
+        );
         console.log('📁 Current song file path:', currentSong.filePath);
         console.log('🎵 Current song title:', currentSong.title);
 
         // Update state
-        this._playbackState.update(state => ({
+        this._playbackState.update((state) => ({
           ...state,
           currentSong: currentSong,
           currentPlaylist: playlist,
@@ -870,13 +827,19 @@ export class AudioPlayerService {
           isShuffling: savedState.isShuffling,
           repeatMode: savedState.repeatMode,
           currentTime: savedState.currentTime,
-          isPlaying: false // Không tự động play
+          isPlaying: false, // Không tự động play
         }));
 
-        console.log('📊 _playbackState updated with currentSong:', this._playbackState().currentSong?.title);        // 🔄 Immediate update của signals để UI có thể hiển thị ngay
+        console.log(
+          '📊 _playbackState updated with currentSong:',
+          this._playbackState().currentSong?.title
+        ); // 🔄 Immediate update của signals để UI có thể hiển thị ngay
         this.updateSignalsImmediately(true); // Log when restoring state
 
-        console.log('📊 currentSong signal after update:', this.currentSong()?.title);
+        console.log(
+          '📊 currentSong signal after update:',
+          this.currentSong()?.title
+        );
 
         // 🔍 Debug currentSong state after restore
         this.debugCurrentSongState();
@@ -888,32 +851,59 @@ export class AudioPlayerService {
 
         console.log('✅ Playback state restored:');
         console.log('- currentSong:', this.currentSong()?.title);
-        console.log('- isDownloaded:', this.currentSong()?.isDownloaded);
         console.log('- filePath:', this.currentSong()?.filePath);
-        console.log('- thumbnail:', this.currentSong()?.thumbnail);// Load audio source nhưng không play (chỉ nếu đã download cho native)
+        console.log('- thumbnail:', this.currentSong()?.thumbnail); // Load audio source nhưng không play (chỉ nếu có trong database)
+        const dbSong = await this.databaseService.getSongById(currentSong.id);
         if (Capacitor.isNativePlatform()) {
-          // Native: chỉ load nếu đã download
-          if (currentSong.isDownloaded && currentSong.filePath) {
+          // Native: chỉ load nếu có trong database và có filePath
+          if (dbSong && dbSong.filePath) {
             try {
               console.log('🔄 Restoring audio source from local file...');
-              const audioUrl = await this.tryAllLocalFileApproaches(currentSong.filePath);
+              const audioUrl = await this.tryAllLocalFileApproaches(
+                dbSong.filePath
+              );
               this.audio.src = audioUrl;
               await this.audio.load();
               console.log('✅ Audio source restored from local file');
             } catch (error) {
-              console.error('❌ Failed to restore audio from local file:', error);
+              console.error(
+                '❌ Failed to restore audio from local file:',
+                error
+              );
             }
           } else {
-            console.log('⚠️ Song not downloaded, skipping audio restore for native platform');
+            console.log(
+              '⚠️ Song not in database, skipping audio restore for native platform'
+            );
           }
         } else {
-          // Web: có thể stream
-          try {
-            const audioUrl = await this.loadAudioWithBypass(currentSong);
-            this.audio.src = audioUrl;
-            await this.audio.load();            console.log('✅ Audio source restored for web platform');
-          } catch (error) {
-            console.error('❌ Error loading saved audio:', error);
+          // Web/PWA: chỉ restore nếu có trong database
+          if (dbSong) {
+            try {
+              console.log('🔄 Web/PWA: Restoring audio from IndexedDB...');
+              const audioBlob = await this.indexedDBService.getAudioFile(
+                currentSong.id
+              );
+              if (audioBlob) {
+                const audioUrl = this.trackBlobUrl(
+                  URL.createObjectURL(audioBlob)
+                );
+                this.audio.src = audioUrl;
+                await this.audio.load();
+                console.log('✅ Audio source restored for web/PWA platform');
+              } else {
+                console.log('⚠️ Audio blob not found in IndexedDB');
+              }
+            } catch (error) {
+              console.error(
+                '❌ Error loading saved audio from IndexedDB:',
+                error
+              );
+            }
+          } else {
+            console.log(
+              '⚠️ Song not in database, skipping audio restore for web/PWA platform'
+            );
           }
         }
 
@@ -941,7 +931,10 @@ export class AudioPlayerService {
 
     // Chỉ log khi được yêu cầu (để tránh spam log)
     if (logUpdate) {
-      console.log('✅ Signals updated immediately - currentSong:', state.currentSong?.title);
+      console.log(
+        '✅ Signals updated immediately - currentSong:',
+        state.currentSong?.title
+      );
     }
   }
 
@@ -975,12 +968,14 @@ export class AudioPlayerService {
 
   /**
    * Load local file as blob URL for HTML5 audio
-   */  private async loadLocalFileAsBlobUrl(filePath: string): Promise<string> {
+   */ private async loadLocalFileAsBlobUrl(filePath: string): Promise<string> {
     try {
       console.log('📂 Loading local file as blob:', filePath);
 
       // Extract filename from filePath (remove directory prefix if any)
-      const fileName = filePath.includes('/') ? filePath.split('/').pop() || '' : filePath;
+      const fileName = filePath.includes('/')
+        ? filePath.split('/').pop() || ''
+        : filePath;
       const directory = Directory.Cache;
 
       console.log('📁 Reading file:', `TxtMusic/${fileName}`);
@@ -989,7 +984,7 @@ export class AudioPlayerService {
       try {
         const stat = await Filesystem.stat({
           path: `TxtMusic/${fileName}`,
-          directory: directory
+          directory: directory,
         });
         console.log('📊 File stats:', stat);
       } catch (statError) {
@@ -1000,10 +995,13 @@ export class AudioPlayerService {
       // Read file as base64
       const fileData = await Filesystem.readFile({
         path: `TxtMusic/${fileName}`,
-        directory: directory
+        directory: directory,
       });
 
-      console.log('📄 File read successfully, data type:', typeof fileData.data);
+      console.log(
+        '📄 File read successfully, data type:',
+        typeof fileData.data
+      );
 
       // Detect MIME type from filename extension
       const extension = fileName.split('.').pop()?.toLowerCase() || '';
@@ -1036,8 +1034,11 @@ export class AudioPlayerService {
 
       // Method 1: Blob URL (preferred for smaller files)
       try {
-        const response = await fetch(`data:${mimeType};base64,${fileData.data}`);
-        const blob = await response.blob();        const blobUrl = this.trackBlobUrl(URL.createObjectURL(blob));
+        const response = await fetch(
+          `data:${mimeType};base64,${fileData.data}`
+        );
+        const blob = await response.blob();
+        const blobUrl = this.trackBlobUrl(URL.createObjectURL(blob));
         console.log('✅ Blob URL created:', blobUrl);
 
         // Test if blob URL is valid by creating a test audio element
@@ -1066,7 +1067,6 @@ export class AudioPlayerService {
 
           testAudio.load();
         });
-
       } catch (blobError) {
         console.error('❌ Blob URL approach failed:', blobError);
 
@@ -1076,7 +1076,6 @@ export class AudioPlayerService {
         console.log('📝 Data URI created, length:', dataUri.length);
         return dataUri;
       }
-
     } catch (error) {
       console.error('❌ Failed to load local file as blob:', error);
       throw error;
@@ -1088,13 +1087,15 @@ export class AudioPlayerService {
     try {
       console.log('📂 Loading local file as native URI:', filePath);
 
-      const fileName = filePath.includes('/') ? filePath.split('/').pop() || '' : filePath;
+      const fileName = filePath.includes('/')
+        ? filePath.split('/').pop() || ''
+        : filePath;
       const directory = Directory.Cache;
 
       // Get the native URI using Filesystem.getUri
       const uriResult = await Filesystem.getUri({
         path: `TxtMusic/${fileName}`,
-        directory: directory
+        directory: directory,
       });
 
       console.log('📍 Native URI:', uriResult.uri);
@@ -1109,7 +1110,6 @@ export class AudioPlayerService {
       }
 
       return webUrl;
-
     } catch (error) {
       console.error('❌ Failed to load local file as native URI:', error);
       throw error;
@@ -1119,8 +1119,11 @@ export class AudioPlayerService {
   // 🆕 Method to try all local file loading approaches
   private async tryAllLocalFileApproaches(filePath: string): Promise<string> {
     const approaches = [
-      { name: 'Native URI', method: () => this.loadLocalFileAsNativeUri(filePath) },
-      { name: 'Blob URL', method: () => this.loadLocalFileAsBlobUrl(filePath) }
+      {
+        name: 'Native URI',
+        method: () => this.loadLocalFileAsNativeUri(filePath),
+      },
+      { name: 'Blob URL', method: () => this.loadLocalFileAsBlobUrl(filePath) },
     ];
 
     let lastError: any;
@@ -1145,29 +1148,27 @@ export class AudioPlayerService {
     try {
       // Tìm song trong database bằng songId
       const downloadedSong = await this.databaseService.getSongById(song.id);
-
-      if (downloadedSong && downloadedSong.isDownloaded && downloadedSong.filePath) {
+      if (downloadedSong && downloadedSong.filePath) {
         console.log('✅ Found downloaded version:', downloadedSong.filePath);
         return downloadedSong;
       }
 
       // Fallback: search in all songs by title+artist
       const allSongs = await this.databaseService.getAllSongs();
-      const matchingSong = allSongs.find(s =>
-        s.title === song.title &&
-        s.artist === song.artist &&
-        s.isDownloaded &&
-        s.filePath
+      const matchingSong = allSongs.find(
+        (s) => s.title === song.title && s.artist === song.artist && s.filePath
       );
 
       if (matchingSong) {
-        console.log('✅ Found downloaded version by title+artist:', matchingSong.filePath);
+        console.log(
+          '✅ Found downloaded version by title+artist:',
+          matchingSong.filePath
+        );
         return matchingSong;
       }
 
       console.log('❌ No downloaded version found');
       return song;
-
     } catch (error) {
       console.error('❌ Error getting downloaded song version:', error);
       return song;
@@ -1175,38 +1176,68 @@ export class AudioPlayerService {
   }
 
   // 🆕 Method to check if song requires download for native playback
-  async checkSongPlayabilityForNative(song: Song): Promise<{ canPlay: boolean; message?: string }> {
+  async checkSongPlayabilityForNative(
+    song: Song
+  ): Promise<{ canPlay: boolean; message?: string }> {
     if (!Capacitor.isNativePlatform()) {
       return { canPlay: true }; // Web platform can always try streaming
     }
 
     // Check if song is downloaded
     const downloadedSong = await this.getDownloadedSongVersion(song);
-
-    if (downloadedSong.filePath && downloadedSong.isDownloaded) {
+    if (downloadedSong.filePath) {
       // Verify file exists
       try {
-        const fileName = downloadedSong.filePath.includes('/') ?
-          downloadedSong.filePath.split('/').pop() || '' :
-          downloadedSong.filePath;
+        const fileName = downloadedSong.filePath.includes('/')
+          ? downloadedSong.filePath.split('/').pop() || ''
+          : downloadedSong.filePath;
 
         await Filesystem.stat({
           path: `TxtMusic/${fileName}`,
-          directory: Directory.Cache
+          directory: Directory.Cache,
         });
 
         return { canPlay: true };
       } catch (error) {
         return {
           canPlay: false,
-          message: `File local đã bị xóa hoặc hỏng. Vui lòng download lại "${song.title}".`
+          message: `File local đã bị xóa hoặc hỏng. Vui lòng download lại "${song.title}".`,
         };
       }
     } else {
       return {
         canPlay: false,
-        message: `"${song.title}" chưa được download. Vui lòng download trước khi phát offline.`
+        message: `"${song.title}" chưa được download. Vui lòng download trước khi phát offline.`,
       };
+    }
+  }
+  // 🆕 Method to check if song can be played (exists in database)
+  async checkAndPromptDownload(
+    song: Song
+  ): Promise<{ canPlay: boolean; needsDownload: boolean }> {
+    const existsInDb = await this.databaseService.getSongById(song.id);
+
+    if (existsInDb) {
+      return { canPlay: true, needsDownload: false };
+    } else {
+      return { canPlay: false, needsDownload: true };
+    }
+  }
+
+  // 🆕 Enhanced playSong with download prompt
+  async playSongWithDownloadCheck(
+    song: Song,
+    playlist: Song[] = [],
+    index: number = 0
+  ): Promise<void> {
+    const check = await this.checkAndPromptDownload(song);
+
+    if (check.canPlay) {
+      // Song is downloaded, play normally
+      await this.playSong(song, playlist, index);
+    } else {
+      // Song not downloaded, throw specific error for UI to handle
+      throw new Error(`DOWNLOAD_REQUIRED:${song.title}`);
     }
   }
 
@@ -1229,7 +1260,7 @@ export class AudioPlayerService {
   }
 
   private cleanupAllBlobUrls(): void {
-    this.blobUrls.forEach(url => {
+    this.blobUrls.forEach((url) => {
       URL.revokeObjectURL(url);
     });
     this.blobUrls.clear();
@@ -1246,19 +1277,17 @@ export class AudioPlayerService {
   async getCurrentSongWithThumbnail(): Promise<Song | null> {
     const currentSong = this.currentSong();
     if (!currentSong) return null;
-
     try {
       // Get thumbnail URL for the current song
       const thumbnailUrl = await this.offlineMediaService.getThumbnailUrl(
         currentSong.id,
-        currentSong.thumbnail || '',
-        currentSong.isDownloaded || false
+        currentSong.thumbnail || ''
       );
 
       // Return song với thumbnail URL đã resolved
       return {
         ...currentSong,
-        thumbnail: thumbnailUrl
+        thumbnail: thumbnailUrl,
       };
     } catch (error) {
       console.error('❌ Error getting thumbnail for current song:', error);
@@ -1275,10 +1304,12 @@ export class AudioPlayerService {
     const playbackState = this._playbackState();
     const signalSong = this.currentSong();
 
-    console.log('🎵 _playbackState.currentSong:', playbackState.currentSong?.title || 'null');
+    console.log(
+      '🎵 _playbackState.currentSong:',
+      playbackState.currentSong?.title || 'null'
+    );
     console.log('🎵 currentSong signal:', signalSong?.title || 'null');
     console.log('📂 filePath:', signalSong?.filePath || 'null');
-    console.log('⬇️ isDownloaded:', signalSong?.isDownloaded || false);
     console.log('🖼️ thumbnail:', signalSong?.thumbnail || 'null');
     console.log('🎵 audioUrl:', signalSong?.audioUrl || 'null');
 
@@ -1300,20 +1331,20 @@ export class AudioPlayerService {
     console.log('- isPlaying:', this.isPlayingSignal());
     console.log('- currentTime:', this.currentTime());
     console.log('- duration:', this.duration());
-    console.log('- _playbackState.currentSong:', this._playbackState().currentSong?.title || 'null');
+    console.log(
+      '- _playbackState.currentSong:',
+      this._playbackState().currentSong?.title || 'null'
+    );
   }
 
   // 🆕 Method để force refresh thumbnail (useful when switching between songs)
   async refreshCurrentSongThumbnail(): Promise<void> {
     const currentSong = this.currentSong();
     if (currentSong) {
-      console.log('🔄 Force refreshing thumbnail for:', currentSong.title);
-
-      // Get fresh thumbnail URL
+      console.log('🔄 Force refreshing thumbnail for:', currentSong.title); // Get fresh thumbnail URL
       const updatedThumbnail = await this.offlineMediaService.getThumbnailUrl(
         currentSong.id,
-        currentSong.thumbnail || '',
-        currentSong.isDownloaded
+        currentSong.thumbnail || ''
       );
 
       // Update song with refreshed thumbnail
@@ -1321,9 +1352,9 @@ export class AudioPlayerService {
       this.currentSong.set(updatedSong);
 
       // Also update in playback state
-      this._playbackState.update(state => ({
+      this._playbackState.update((state) => ({
         ...state,
-        currentSong: updatedSong
+        currentSong: updatedSong,
       }));
 
       console.log('✅ Thumbnail refreshed:', updatedThumbnail);

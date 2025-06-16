@@ -231,11 +231,9 @@ export class DatabaseService {
         duration_formatted TEXT,
         thumbnail_url TEXT,
         audioUrl TEXT NOT NULL,
-        filePath TEXT,
-        addedDate TEXT NOT NULL,
+        filePath TEXT,        addedDate TEXT NOT NULL,
         isFavorite INTEGER DEFAULT 0,
-        genre TEXT,
-        isDownloaded INTEGER DEFAULT 0
+        genre TEXT
       );`,
 
       // Bảng album - lưu thông tin về các album nhạc
@@ -302,10 +300,9 @@ export class DatabaseService {
         audio_url TEXT NOT NULL,
         duration INTEGER NOT NULL,
         duration_formatted TEXT,
-        keywords TEXT, -- JSON string của keywords array
-        searchedAt TEXT NOT NULL,
-        isDownloaded INTEGER DEFAULT 0,
-        UNIQUE(songId) -- Mỗi bài hát chỉ xuất hiện 1 lần trong lịch sử
+        keywords TEXT,
+        searchedAt TEXT NOT NULL
+        UNIQUE(songId)
       );`,
 
       // Bảng lưu trữ thumbnail files (binary data)
@@ -321,7 +318,6 @@ export class DatabaseService {
       // Index để tối ưu performance
       `CREATE INDEX IF NOT EXISTS idx_search_history_date ON search_history(searchedAt DESC);`,
       `CREATE INDEX IF NOT EXISTS idx_search_history_song ON search_history(songId);`,
-      `CREATE INDEX IF NOT EXISTS idx_search_history_downloaded ON search_history(isDownloaded);`,
       `CREATE INDEX IF NOT EXISTS idx_thumbnail_files_song ON thumbnail_files(songId);`
 
     ];
@@ -391,10 +387,8 @@ export class DatabaseService {
           thumbnail_url: song.thumbnail || null,
           audioUrl: song.audioUrl,
           filePath: song.filePath || null,
-          addedDate: song.addedDate.toISOString(),
-          isFavorite: song.isFavorite ? 1 : 0,
-          genre: song.genre || null,
-          isDownloaded: song.isDownloaded ? 1 : 0
+          addedDate: song.addedDate.toISOString(),          isFavorite: song.isFavorite ? 1 : 0,
+          genre: song.genre || null
         };
         return await this.indexedDB.put('songs', songData);
       } else {
@@ -402,8 +396,8 @@ export class DatabaseService {
         if (!this.db) return false;        await this.db.run(
           `INSERT OR REPLACE INTO songs
            (id, title, artist, album, duration, duration_formatted, thumbnail_url, audioUrl, filePath,
-            addedDate, isFavorite, genre, isDownloaded)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            addedDate, isFavorite, genre)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             song.id,
             song.title,
@@ -416,8 +410,7 @@ export class DatabaseService {
             song.filePath || null,
             song.addedDate.toISOString(),
             song.isFavorite ? 1 : 0,
-            song.genre || null,
-            song.isDownloaded ? 1 : 0
+            song.genre || null
           ]
         );
         return true;
@@ -553,8 +546,9 @@ export class DatabaseService {
     const songs: Song[] = [];
 
     for (const row of rows) {
-      let thumbnailUrl = row.thumbnail_url; // Default URL      // Load thumbnail từ blob nếu đã download
-      if (row.isDownloaded === 1) {
+      let thumbnailUrl = row.thumbnail_url; // Default URL
+      // Kiểm tra có filePath không, nếu có thì đã download
+      if (row.filePath) {
         if (this.platform === 'web') {
           // Web: Cố gắng load từ IndexedDB
           try {
@@ -579,15 +573,13 @@ export class DatabaseService {
         title: row.title,
         artist: row.artist,
         album: row.album,
-        duration: row.duration,
-        duration_formatted: row.duration_formatted,
+        duration: row.duration,        duration_formatted: row.duration_formatted,
         thumbnail: thumbnailUrl,
         audioUrl: row.audioUrl,
         filePath: row.filePath,
         addedDate: new Date(row.addedDate),
         isFavorite: row.isFavorite === 1,
-        genre: row.genre,
-        isDownloaded: row.isDownloaded === 1
+        genre: row.genre
       });
     }
 
@@ -944,17 +936,15 @@ export class DatabaseService {
       if (this.platform === 'web') {
         // Sử dụng IndexedDB cho web
         const historyData = {
-          songId: youtubeData.id,
-          title: youtubeData.title,
+          songId: youtubeData.id,          title: youtubeData.title,
           artist: youtubeData.artist,
           thumbnail_url: youtubeData.thumbnail_url,
           audio_url: youtubeData.audio_url,
           duration: youtubeData.duration || 0,
           duration_formatted: youtubeData.duration_formatted,
           keywords: JSON.stringify(youtubeData.keywords || []),
-          searchedAt: new Date().toISOString(),
-          isDownloaded: 0
-        };        // For IndexedDB, put will update existing record with same songId or create new one
+          searchedAt: new Date().toISOString()
+        };// For IndexedDB, put will update existing record with same songId or create new one
         const success = await this.indexedDB.put('search_history', historyData);
 
         if (success) {
@@ -994,8 +984,8 @@ export class DatabaseService {
           await this.db.run(
             `INSERT INTO search_history
              (songId, title, artist, thumbnail_url, audio_url, duration,
-              duration_formatted, keywords, searchedAt, isDownloaded)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+              duration_formatted, keywords, searchedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               youtubeData.id,
               youtubeData.title,
@@ -1040,9 +1030,7 @@ export class DatabaseService {
         const rows = await this.indexedDB.getAll('search_history');
         // Sắp xếp theo searchedAt DESC và giới hạn số lượng
         rows.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
-        const limitedRows = rows.slice(0, limit);
-
-        return limitedRows.map(row => ({
+        const limitedRows = rows.slice(0, limit);        return limitedRows.map(row => ({
           id: row.id,
           songId: row.songId,
           title: row.title,
@@ -1052,8 +1040,7 @@ export class DatabaseService {
           duration: row.duration,
           duration_formatted: row.duration_formatted,
           keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: row.isDownloaded === 1
+          searchedAt: new Date(row.searchedAt)
         }));
       } else {
         // Sử dụng SQLite cho native
@@ -1062,9 +1049,7 @@ export class DatabaseService {
         const result = await this.db.query(
           'SELECT * FROM search_history ORDER BY searchedAt DESC LIMIT ?',
           [limit]
-        );
-
-        return (result.values || []).map(row => ({
+        );        return (result.values || []).map(row => ({
           id: row.id,
           songId: row.songId,
           title: row.title,
@@ -1074,8 +1059,7 @@ export class DatabaseService {
           duration: row.duration,
           duration_formatted: row.duration_formatted,
           keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: row.isDownloaded === 1
+          searchedAt: new Date(row.searchedAt)
         }));
       }
     } catch (error) {
@@ -1100,9 +1084,7 @@ export class DatabaseService {
           item.artist.toLowerCase().includes(query.toLowerCase())
         );
         // Sắp xếp theo searchedAt DESC
-        filtered.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
-
-        return filtered.map(row => ({
+        filtered.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());        return filtered.map(row => ({
           id: row.id,
           songId: row.songId,
           title: row.title,
@@ -1112,8 +1094,7 @@ export class DatabaseService {
           duration: row.duration,
           duration_formatted: row.duration_formatted,
           keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: row.isDownloaded === 1
+          searchedAt: new Date(row.searchedAt)
         }));
       } else {
         // Sử dụng SQLite cho native
@@ -1123,9 +1104,7 @@ export class DatabaseService {
            WHERE title LIKE ? OR artist LIKE ?
            ORDER BY searchedAt DESC`,
           [`%${query}%`, `%${query}%`]
-        );
-
-        return (result.values || []).map(row => ({
+        );        return (result.values || []).map(row => ({
           id: row.id,
           songId: row.songId,
           title: row.title,
@@ -1135,8 +1114,7 @@ export class DatabaseService {
           duration: row.duration,
           duration_formatted: row.duration_formatted,
           keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: row.isDownloaded === 1
+          searchedAt: new Date(row.searchedAt)
         }));
       }
     } catch (error) {
@@ -1166,12 +1144,10 @@ export class DatabaseService {
           title: item.title,
           artist: item.artist,
           thumbnail_url: item.thumbnail_url,
-          audio_url: item.audio_url,
-          duration: item.duration,
+          audio_url: item.audio_url,          duration: item.duration,
           duration_formatted: item.duration_formatted,
           keywords: JSON.parse(item.keywords || '[]'),
-          searchedAt: new Date(item.searchedAt),
-          isDownloaded: item.isDownloaded === 1
+          searchedAt: new Date(item.searchedAt)
         };
       } else {
         // Sử dụng SQLite cho native
@@ -1188,14 +1164,12 @@ export class DatabaseService {
           id: row.id,
           songId: row.songId,
           title: row.title,
-          artist: row.artist,
-          thumbnail_url: row.thumbnail_url,
+          artist: row.artist,          thumbnail_url: row.thumbnail_url,
           audio_url: row.audio_url,
           duration: row.duration,
           duration_formatted: row.duration_formatted,
           keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: row.isDownloaded === 1
+          searchedAt: new Date(row.searchedAt)
         };
       }
     } catch (error) {
@@ -1205,84 +1179,38 @@ export class DatabaseService {
   }
   /**
    * Đánh dấu bài hát đã được download
-   * @param songId - ID của bài hát
-   */
+   * @param songId - ID của bài hát   */
   async markAsDownloaded(songId: string): Promise<boolean> {
-    if (!this.isDbReady) return false;
-
-    try {
-      if (this.platform === 'web') {
-        // Sử dụng IndexedDB cho web
-        const allHistory = await this.indexedDB.getAll('search_history');
-        const item = allHistory.find(h => h.songId === songId);
-        if (item) {
-          item.isDownloaded = 1;
-          await this.indexedDB.put('search_history', item);
-        }
-        return true;
-      } else {
-        // Sử dụng SQLite cho native
-        if (!this.db) return false;
-        await this.db.run(
-          'UPDATE search_history SET isDownloaded = 1 WHERE songId = ?',
-          [songId]
-        );
-        return true;
-      }
-    } catch (error) {
-      console.error('Error marking as downloaded:', error);
-      return false;
-    }
+    // Logic download được kiểm tra bằng cách có song trong database và có filePath
+    console.log('⚠️ markAsDownloaded is deprecated - using database presence check instead');
+    return true;
   }
   /**
    * Lấy danh sách bài hát đã download từ lịch sử
+   * @returns Promise<SearchHistoryItem[]>
+   */  /**
+   * Lấy danh sách bài hát đã download từ bảng songs (thay vì search_history)
    * @returns Promise<SearchHistoryItem[]>
    */
   async getDownloadedFromHistory(): Promise<SearchHistoryItem[]> {
     if (!this.isDbReady) return [];
 
     try {
-      if (this.platform === 'web') {
-        // Sử dụng IndexedDB cho web
-        const allHistory = await this.indexedDB.getAll('search_history');
-        const downloaded = allHistory.filter(item => item.isDownloaded === 1);
-        // Sắp xếp theo searchedAt DESC
-        downloaded.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
-
-        return downloaded.map(row => ({
-          id: row.id,
-          songId: row.songId,
-          title: row.title,
-          artist: row.artist,
-          thumbnail_url: row.thumbnail_url,
-          audio_url: row.audio_url,
-          duration: row.duration,
-          duration_formatted: row.duration_formatted,
-          keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: true
-        }));
-      } else {
-        // Sử dụng SQLite cho native
-        if (!this.db) return [];
-        const result = await this.db.query(
-          'SELECT * FROM search_history WHERE isDownloaded = 1 ORDER BY searchedAt DESC'
-        );
-
-        return (result.values || []).map(row => ({
-          id: row.id,
-          songId: row.songId,
-          title: row.title,
-          artist: row.artist,
-          thumbnail_url: row.thumbnail_url,
-          audio_url: row.audio_url,
-          duration: row.duration,
-          duration_formatted: row.duration_formatted,
-          keywords: JSON.parse(row.keywords || '[]'),
-          searchedAt: new Date(row.searchedAt),
-          isDownloaded: true
-        }));
-      }
+      // Lấy tất cả songs đã download (có filePath)
+      const downloadedSongs = await this.getAllSongs();
+      const songsWithPath = downloadedSongs.filter(song => song.filePath);      // Convert Song objects to SearchHistoryItem format
+      return songsWithPath.map((song, index) => ({
+        id: index + 1, // Generate numeric ID
+        songId: song.id,
+        title: song.title,
+        artist: song.artist,
+        thumbnail_url: song.thumbnail || '',
+        audio_url: song.audioUrl,
+        duration: song.duration,
+        duration_formatted: song.duration_formatted || '',
+        keywords: [], // Songs table không có keywords
+        searchedAt: song.addedDate
+      }));
     } catch (error) {
       console.error('Error getting downloaded from history:', error);
       return [];
@@ -1353,35 +1281,32 @@ export class DatabaseService {
     }
 
     try {
-      if (this.platform === 'web') {
-        // Sử dụng IndexedDB cho web
+      if (this.platform === 'web') {        // Sử dụng IndexedDB cho web
         const allHistory = await this.indexedDB.getAll('search_history');
+        const allSongs = await this.getAllSongs();
+
         const totalSongs = allHistory.length;
-        const downloadedSongs = allHistory.filter(item => item.isDownloaded === 1).length;
-        const pendingSongs = allHistory.filter(item => item.isDownloaded === 0).length;
+        const downloadedSongs = allSongs.filter(song => song.filePath).length; // Đếm songs có filePath
+        const pendingSongs = totalSongs - downloadedSongs;
 
         return {
           totalSongs,
           downloadedSongs,
           pendingSongs
-        };
-      } else {
+        };      } else {
         // Sử dụng SQLite cho native
         if (!this.db) return { totalSongs: 0, downloadedSongs: 0, pendingSongs: 0 };
 
-        const result = await this.db.query(
-          `SELECT
-             COUNT(*) as totalSongs,
-             SUM(CASE WHEN isDownloaded = 1 THEN 1 ELSE 0 END) as downloadedSongs,
-             SUM(CASE WHEN isDownloaded = 0 THEN 1 ELSE 0 END) as pendingSongs
-           FROM search_history`
-        );
+        // Đếm songs trong search_history và songs có filePath trong songs table
+        const historyResult = await this.db.query('SELECT COUNT(*) as totalSongs FROM search_history');
+        const songsResult = await this.db.query('SELECT COUNT(*) as downloadedSongs FROM songs WHERE filePath IS NOT NULL');
 
-        const stats = result.values?.[0];
-        return {
-          totalSongs: stats?.totalSongs || 0,
-          downloadedSongs: stats?.downloadedSongs || 0,
-          pendingSongs: stats?.pendingSongs || 0
+        const totalSongs = historyResult.values?.[0]?.totalSongs || 0;
+        const downloadedSongs = songsResult.values?.[0]?.downloadedSongs || 0;
+        const pendingSongs = totalSongs - downloadedSongs;        return {
+          totalSongs,
+          downloadedSongs,
+          pendingSongs
         };
       }
     } catch (error) {

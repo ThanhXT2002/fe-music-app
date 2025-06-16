@@ -40,12 +40,26 @@ export class DownloadsPage implements OnInit {
 
   // Download state
   downloads = signal<DownloadTask[]>([]);
+  downloadedSongIds = signal<Set<string>>(new Set()); // Track downloaded song IDs
+
   async ngOnInit() {
     await this.loadSearchHistory();
+    await this.loadDownloadedSongs(); // Load downloaded songs
 
     // Subscribe to download changes
     this.downloadService.downloads$.subscribe((downloads) => {
       this.downloads.set(downloads);
+
+      // Cập nhật downloaded songs khi có task hoàn thành
+      const completedSongs = downloads
+        .filter(d => d.status === 'completed' && d.songData?.id)
+        .map(d => d.songData!.id);
+
+      if (completedSongs.length > 0) {
+        const currentDownloaded = this.downloadedSongIds();
+        const updatedDownloaded = new Set([...currentDownloaded, ...completedSongs]);
+        this.downloadedSongIds.set(updatedDownloaded);
+      }
     });
 
     // Auto-paste from clipboard on load
@@ -205,14 +219,13 @@ export class DownloadsPage implements OnInit {
     const download = this.getDownloadStatus(songId);
     return download?.progress || 0;
   }
-
   /**
-   * Kiểm tra xem bài hát đã download xong chưa
+   * Kiểm tra xem bài hát đã download xong chưa (dựa vào database)
    * @param songId - ID bài hát
    * @returns boolean
    */
   isDownloaded(songId: string): boolean {
-    return this.downloadService.isSongDownloaded(songId);
+    return this.downloadedSongIds().has(songId);
   }
 
   /**
@@ -280,6 +293,23 @@ export class DownloadsPage implements OnInit {
   async loadSearchHistory() {
     const history = await this.databaseService.getSearchHistory(20);
     this.searchHistoryItem.set(history);
+  }
+
+  /**
+   * Load danh sách songs đã download từ database
+   */
+  private async loadDownloadedSongs() {
+    try {
+      const allSongs = await this.databaseService.getAllSongs();
+      const downloadedIds = new Set(
+        allSongs
+          .filter((song) => song.filePath) // Chỉ songs có filePath
+          .map((song) => song.id)
+      );
+      this.downloadedSongIds.set(downloadedIds);
+    } catch (error) {
+      console.error('Failed to load downloaded songs:', error);
+    }
   }
 
   /**
