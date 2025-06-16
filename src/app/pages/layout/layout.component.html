@@ -62,8 +62,9 @@
         <button
           (click)="togglePlayPause()"
           class="bg-purple-500 rounded-full flex items-center justify-center text-white relative"
-        >          <img
-            [src]="currentSong()!.thumbnail || 'assets/images/default-song.png'"
+        >
+        <img
+            [src]="currentSong()!.thumbnail"
             [alt]="currentSong()!.title"
             class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
             [ngClass]="{
@@ -86,7 +87,8 @@
         <marquee
           behavior="scroll"
           direction="left"
-          scrollamount="4"          scrolldelay="0"
+          scrollamount="4"
+          scrolldelay="0"
           loop="infinite"
           class="text-sm font-medium text-white"
         >

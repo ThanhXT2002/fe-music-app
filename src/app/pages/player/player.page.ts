@@ -15,6 +15,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
 import { ModalController, IonicModule,Gesture, GestureController } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
+import { OfflineMediaService } from '../../services/offline-media.service';
 
 @Component({
   selector: 'app-player',
@@ -30,6 +31,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private modalCtrl = inject(ModalController);
   private themeService = inject(ThemeService);
   private gestureCtrl = inject(GestureController);
+  private offlineMediaService = inject(OfflineMediaService);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -50,6 +52,9 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('modalContent', { read: ElementRef }) modalContent!: ElementRef;
 
   private swipeGesture!: Gesture;
+
+  // Signal for offline thumbnail URL
+  offlineThumbnailUrl = signal<string | null>(null);
 
   // Computed values
   progress = computed(() => {
@@ -73,6 +78,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit() {
     this.setPlayerThemeColor();
     this.setupBufferTracking();
+    this.loadOfflineThumbnail();
   }
 
   ngAfterViewInit() {
@@ -415,20 +421,12 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Utility methods
-  formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return '0:00';
-
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  } else {
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  async loadOfflineThumbnail() {
+    const song = this.currentSong();
+    if (song) {
+      this.offlineThumbnailUrl.set(await this.offlineMediaService.getThumbnailUrl(song.id, song.thumbnail || ''));
+    }
   }
-}
 
   getRepeatColor(): string {
     return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-gray-400';
@@ -436,5 +434,18 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   getShuffleColor(): string {
     return this.isShuffling() ? 'text-purple-500' : 'text-gray-400';
+  }
+
+  // Utility methods
+  formatTime(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
   }
 }

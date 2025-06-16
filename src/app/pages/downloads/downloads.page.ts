@@ -15,6 +15,7 @@ import {
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
+import { OfflineMediaService } from '../../services/offline-media.service';
 
 @Component({
   selector: 'app-downloads',
@@ -31,6 +32,7 @@ export class DownloadsPage implements OnInit {
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private platform = inject(Platform);
+  private offlineMediaService = inject(OfflineMediaService);
   searchQuery = signal('');
   searchResults = signal<DataSong[]>([]);
   isSearching = signal(false);
@@ -299,17 +301,12 @@ export class DownloadsPage implements OnInit {
    * Load danh sách songs đã download từ database
    */
   private async loadDownloadedSongs() {
-    try {
-      const allSongs = await this.databaseService.getAllSongs();
-      const downloadedIds = new Set(
-        allSongs
-          .filter((song) => song.filePath) // Chỉ songs có filePath
-          .map((song) => song.id)
-      );
-      this.downloadedSongIds.set(downloadedIds);
-    } catch (error) {
-      console.error('Failed to load downloaded songs:', error);
+    // Lấy tất cả bài hát đã download
+    const songs = await this.databaseService.getAllSongs();
+    for (const song of songs) {
+      (song as any).thumbnailUrl = await this.getOfflineThumbnail(song);
     }
+    this.downloadHistory.set(songs);
   }
 
   /**
@@ -570,5 +567,23 @@ Hoặc paste thủ công:
     } finally {
       this.isClipboardLoading.set(false);
     }
+  }
+
+  /**
+   * Lấy thumbnail offline (ưu tiên offline, fallback online)
+   */
+  async getOfflineThumbnail(song: Song | DataSong): Promise<string> {
+    // Nếu là DataSong (chưa download), trả về thumbnail_url
+    if ('thumbnail_url' in song) return song.thumbnail_url;
+    // Nếu là Song đã download, lấy offline (ưu tiên), fallback online
+    return await this.offlineMediaService.getThumbnailUrl(song.id, song.thumbnail || '');
+  }
+
+  onThumbnailError(event: Event) {
+    (event.target as HTMLImageElement).src = 'assets/placeholder.png';
+  }
+
+  onSongClick(song: Song) {
+    this.audioPlayerService.playSong(song, this.downloadHistory());
   }
 }

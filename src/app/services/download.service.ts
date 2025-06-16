@@ -373,17 +373,24 @@ export class DownloadService {
       }
 
       const thumbnailBlob = await thumbResponse.blob();
+      const thumbnailType = thumbnailBlob.type || 'image/jpeg';
       totalProgress = 60;
       this.updateDownloadProgress(id, totalProgress);
 
       if (signal.aborted) return;
 
       // Step 3: Save audio to IndexedDB (10% of total progress)
-      const audioSaved = await this.indexedDBService.saveAudioFile(
-        songData.id,
-        audioBlob,
-        audioBlob.type || 'audio/mpeg'
-      );
+      let audioSaved = false;
+      try {
+        audioSaved = await this.indexedDBService.saveAudioFile(
+          songData.id,
+          audioBlob,
+          audioBlob.type || 'audio/mpeg'
+        );
+      } catch (err: any) {
+        console.error('Failed to save audio file to IndexedDB:', err);
+        throw new Error('Failed to save audio file to IndexedDB: ' + (err && (err.message || err.toString()) || err));
+      }
 
       if (!audioSaved) {
         throw new Error('Failed to save audio file to IndexedDB');
@@ -393,24 +400,35 @@ export class DownloadService {
       this.updateDownloadProgress(id, totalProgress);
 
       // Step 4: Save thumbnail to IndexedDB (10% of total progress)
-      const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
-        songData.id,
-        thumbnailBlob,
-        thumbnailBlob.type || 'image/jpeg'
-      );
+      let thumbnailSaved = false;
+      try {
+        thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
+          songData.id,
+          thumbnailBlob,
+          thumbnailType
+        );
+      } catch (err: any) {
+        console.error('Failed to save thumbnail file to IndexedDB:', err);
+        throw new Error('Failed to save thumbnail file to IndexedDB: ' + (err && (err.message || err.toString()) || err));
+      }
 
       if (!thumbnailSaved) {
         throw new Error('Failed to save thumbnail file to IndexedDB');
       }
 
       totalProgress = 100;
-      this.updateDownloadProgress(id, totalProgress);      // Complete download (filePath sẽ là undefined cho web)
+      this.updateDownloadProgress(id, totalProgress);
+      // Complete download (filePath sẽ là undefined cho web)
       await this.completeDownload(id, undefined);
 
-    } catch (error) {
+    } catch (error: any) {
       if (!signal.aborted) {
+        let msg = error?.message || error?.toString() || 'Unknown error';
+        if (msg.includes('QuotaExceededError')) {
+          msg = 'Bộ nhớ trình duyệt đã đầy, không thể lưu thêm bài hát.';
+        }
+        this.failDownload(id, 'Web download error: ' + msg);
         console.error('Web download error:', error);
-        throw error;
       }
     }
   }

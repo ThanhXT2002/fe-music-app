@@ -5,12 +5,12 @@
 >
   <!-- Background Album Art -->
   <div class="absolute inset-0 opacity-50">
-    @if (currentSong()?.thumbnail) {
-    <img
-      [src]="currentSong()!.thumbnail"
-      [alt]="currentSong()!.title"
-      class="w-full h-full object-cover blur-lg scale-110"
-    />
+    @if (offlineThumbnailUrl()) {
+      <img
+        [src]="offlineThumbnailUrl()"
+        [alt]="currentSong()?.title"
+        class="w-full h-full object-cover blur-lg scale-110"
+      />
     }
   </div>
 
@@ -48,18 +48,17 @@
           'spin-paused': !isPlaying()
         }"
       >
-        @if (currentSong()?.thumbnail) {
-        <img
-          [src]="currentSong()!.thumbnail"
-          [alt]="currentSong()!.title"
-          class="w-full h-full object-cover"
-        />
+        @if (offlineThumbnailUrl()) {
+          <img
+            [src]="offlineThumbnailUrl()"
+            [alt]="currentSong()?.title"
+            class="w-full h-full object-cover"
+          />
         } @else {
-        <div class="w-full h-full flex items-center justify-center">
-          <i
-            class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-          ></i>
-        </div>
+          <div class="w-full h-full flex items-center justify-center">
+            <i
+              class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"></i>
+          </div>
         }
       </div>
     </div>

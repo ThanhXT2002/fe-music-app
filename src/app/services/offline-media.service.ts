@@ -30,7 +30,8 @@ export class OfflineMediaService {
     const song = await this.databaseService.getSongById(songId);
     if (song && song.filePath) {
       try {
-        let thumbnailUrl: string | null = null;        if (Capacitor.isNativePlatform()) {
+        let thumbnailUrl: string | null = null;
+        if (Capacitor.isNativePlatform()) {
           // Native platform: Lấy từ SQLite database
           console.log('📱 Native: Loading thumbnail from SQLite database');
           const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
@@ -101,7 +102,7 @@ export class OfflineMediaService {
         // Native platform: Check database and filesystem
         const song = await this.databaseService.getSongById(songId);
 
-        const hasAudio = !!(song?.filePath); 
+        const hasAudio = !!(song?.filePath);
 
         // Check thumbnail trong database
         const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);

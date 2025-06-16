@@ -38,7 +38,7 @@ import { RefreshService } from 'src/app/services/refresh.service';
             <!-- Album Cover -->
             <div class="relative mb-3">
               <img
-                [src]="album.thumbnail || 'assets/images/default-album.png'"
+                [src]="album.thumbnail"
                 [alt]="album.name"
                 class="w-full aspect-square rounded-lg object-cover"
               />
