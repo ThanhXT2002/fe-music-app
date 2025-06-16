@@ -113,10 +113,12 @@ export class DatabaseService {
           console.log('📂 Database opened successfully');
         } else {
           console.log('📂 Database already open');
-        }
-
-        // Tạo các bảng cần thiết
+        }        // Tạo các bảng cần thiết
         await this.createTables();
+
+        // Migrate database schema if needed
+        await this.migrateDatabase();
+
         this.isDbReady = true;
       } else {
         throw new Error('Database connection is null');
@@ -219,7 +221,8 @@ export class DatabaseService {
   private async createTables() {
     if (!this.db) return;
 
-    const queries = [      `CREATE TABLE IF NOT EXISTS songs (
+    const queries = [
+      `CREATE TABLE IF NOT EXISTS songs (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         artist TEXT NOT NULL,
@@ -305,10 +308,21 @@ export class DatabaseService {
         UNIQUE(songId) -- Mỗi bài hát chỉ xuất hiện 1 lần trong lịch sử
       );`,
 
+      // Bảng lưu trữ thumbnail files (binary data)
+      `CREATE TABLE IF NOT EXISTS thumbnail_files (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        songId TEXT NOT NULL UNIQUE,
+        blob BLOB NOT NULL,
+        mimeType TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY (songId) REFERENCES songs(id) ON DELETE CASCADE
+      );`,
+
       // Index để tối ưu performance
       `CREATE INDEX IF NOT EXISTS idx_search_history_date ON search_history(searchedAt DESC);`,
       `CREATE INDEX IF NOT EXISTS idx_search_history_song ON search_history(songId);`,
-      `CREATE INDEX IF NOT EXISTS idx_search_history_downloaded ON search_history(isDownloaded);`
+      `CREATE INDEX IF NOT EXISTS idx_search_history_downloaded ON search_history(isDownloaded);`,
+      `CREATE INDEX IF NOT EXISTS idx_thumbnail_files_song ON thumbnail_files(songId);`
 
     ];
 
@@ -579,7 +593,6 @@ export class DatabaseService {
 
     return songs;
   }
-
   /**
    * Lưu thumbnail file vào storage
    * @param songId - ID của bài hát
@@ -593,15 +606,20 @@ export class DatabaseService {
         return await this.indexedDB.saveThumbnailFile(songId, blob, mimeType);
       } else {
         // Native: Lưu vào SQLite
-        if (!this.db) return false;
+        if (!this.db) {
+          console.error('Database not initialized');
+          return false;
+        }
 
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
+        // Chuyển blob thành base64 để lưu vào SQLite
+        const base64Data = await this.blobToBase64(blob);
 
-        await this.db.run(
+        const result = await this.db.run(
           'INSERT OR REPLACE INTO thumbnail_files (songId, blob, mimeType, createdAt) VALUES (?, ?, ?, ?)',
-          [songId, uint8Array, mimeType, new Date().toISOString()]
+          [songId, base64Data, mimeType, new Date().toISOString()]
         );
+
+        console.log('✅ Thumbnail saved to SQLite:', songId, result);
         return true;
       }
     } catch (error) {
@@ -621,7 +639,10 @@ export class DatabaseService {
         return await this.indexedDB.getThumbnailFile(songId);
       } else {
         // Native: Lấy từ SQLite
-        if (!this.db) return null;
+        if (!this.db) {
+          console.error('Database not initialized');
+          return null;
+        }
 
         const result = await this.db.query(
           'SELECT blob, mimeType FROM thumbnail_files WHERE songId = ?',
@@ -630,7 +651,9 @@ export class DatabaseService {
 
         if (result.values && result.values.length > 0) {
           const row = result.values[0];
-          return new Blob([row.blob], { type: row.mimeType });
+          // Chuyển base64 thành blob
+          const base64Data = row.blob;
+          return this.base64ToBlob(base64Data, row.mimeType);
         }
 
         return null;
@@ -639,6 +662,35 @@ export class DatabaseService {
       console.error('Error getting thumbnail blob:', error);
       return null;
     }
+  }
+
+  /**
+   * Convert blob to base64
+   */
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        // Remove data URL prefix (data:image/jpeg;base64,)
+        const base64Data = base64.split(',')[1];
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+  /**
+   * Convert base64 to blob
+   */
+  private base64ToBlob(base64: string, mimeType: string): Blob {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
   }
 
   /**
@@ -1335,6 +1387,47 @@ export class DatabaseService {
     } catch (error) {
       console.error('Error getting search history stats:', error);
       return { totalSongs: 0, downloadedSongs: 0, pendingSongs: 0 };
+    }
+  }
+
+  /**
+   * Migrate database schema to add missing tables
+   */
+  private async migrateDatabase() {
+    if (!this.db) return;
+
+    try {
+      // Check if thumbnail_files table exists
+      const tableExists = await this.db.query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='thumbnail_files'"
+      );
+
+      if (!tableExists.values || tableExists.values.length === 0) {
+        console.log('📦 Creating thumbnail_files table...');
+
+        // Create thumbnail_files table
+        await this.db.execute(`
+          CREATE TABLE IF NOT EXISTS thumbnail_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            songId TEXT NOT NULL UNIQUE,
+            blob TEXT NOT NULL,
+            mimeType TEXT NOT NULL,
+            createdAt TEXT NOT NULL,
+            FOREIGN KEY (songId) REFERENCES songs(id) ON DELETE CASCADE
+          )
+        `);
+
+        // Create index
+        await this.db.execute(`
+          CREATE INDEX IF NOT EXISTS idx_thumbnail_files_song ON thumbnail_files(songId)
+        `);
+
+        console.log('✅ thumbnail_files table created successfully');
+      } else {
+        console.log('✅ thumbnail_files table already exists');
+      }
+    } catch (error) {
+      console.error('❌ Error migrating database:', error);
     }
   }
 
