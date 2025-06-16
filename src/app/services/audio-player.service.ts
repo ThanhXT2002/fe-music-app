@@ -113,18 +113,20 @@ export class AudioPlayerService {
       return song.audioUrl;
     }
   }
-
   // 🆕 Method để preload audio (optional)
   async preloadAudio(song: Song): Promise<void> {
     try {
-      if (!this.audioCache.has(song.audioUrl)) {
-        await this.loadAudioWithBypass(song);
+      // Chỉ preload nếu chưa có local file
+      if (!song.filePath || !song.isDownloaded) {
+        if (!this.audioCache.has(song.audioUrl)) {
+          await this.loadAudioWithBypass(song);
+        }
       }
+      // Nếu đã có local file thì không cần preload
     } catch (error) {
       console.error('Error preloading audio:', error);
     }
   }
-
   // 🔄 Modified playSong method
   async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
     try {
@@ -134,8 +136,20 @@ export class AudioPlayerService {
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0
-      }));      // Load audio với bypass headers
-      const audioUrl = await this.loadAudioWithBypass(song);
+      }));
+
+      // Kiểm tra xem có local file không (đã download)
+      let audioUrl: string;
+
+      if (song.filePath && song.isDownloaded) {
+        // Sử dụng local file nếu đã download
+        console.log('🎵 Playing from local file:', song.filePath);
+        audioUrl = song.filePath;
+      } else {
+        // Fallback to streaming từ URL với bypass headers
+        console.log('🌐 Streaming from URL:', song.audioUrl);
+        audioUrl = await this.loadAudioWithBypass(song);
+      }
 
       // Set audio source và play
       this.audio.src = audioUrl;
@@ -150,8 +164,7 @@ export class AudioPlayerService {
 
       // Show user-friendly error
       this.handlePlaybackError(error, song);
-    }
-  }
+    }  }
 
   // 🆕 Preload next song for smooth playback
   private async preloadNextSong(): Promise<void> {
@@ -161,7 +174,8 @@ export class AudioPlayerService {
         const nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
         const nextSong = state.currentPlaylist[nextIndex];
 
-        if (nextSong && !this.audioCache.has(nextSong.audioUrl)) {
+        // Chỉ preload nếu bài tiếp theo chưa có local file và chưa trong cache
+        if (nextSong && (!nextSong.filePath || !nextSong.isDownloaded) && !this.audioCache.has(nextSong.audioUrl)) {
           // Preload in background
           setTimeout(() => this.preloadAudio(nextSong), 2000);
         }

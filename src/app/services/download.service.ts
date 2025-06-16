@@ -1004,4 +1004,112 @@ export class DownloadService {
     }
   }
 
+  /**
+   * Debug method để kiểm tra local files
+   */
+  async debugLocalFiles(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('🌐 Web platform - files stored in IndexedDB');
+      return;
+    }
+
+    try {
+      const directory = Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents;
+
+      console.log('📂 Checking TxtMusic directory...');
+
+      // List files in TxtMusic directory
+      const files = await Filesystem.readdir({
+        path: 'TxtMusic',
+        directory: directory
+      });
+
+      console.log('📁 Files in TxtMusic directory:', files.files.length);
+
+      files.files.forEach((file, index) => {
+        console.log(`📄 ${index + 1}. ${file.name} (${file.type}) - ${file.size || 'unknown size'} bytes`);
+      });
+
+      if (files.files.length === 0) {
+        console.log('❌ No files found in TxtMusic directory');
+
+        // Try to create a test file to verify write permissions
+        try {
+          const testResult = await Filesystem.writeFile({
+            path: 'TxtMusic/test.txt',
+            data: 'test file content',
+            directory: directory,
+            encoding: Encoding.UTF8
+          });
+
+          console.log('✅ Test file created successfully:', testResult.uri);
+
+          // Delete test file
+          await Filesystem.deleteFile({
+            path: 'TxtMusic/test.txt',
+            directory: directory
+          });
+
+          console.log('🗑️ Test file deleted');
+
+        } catch (testError) {
+          console.error('❌ Failed to create test file:', testError);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ Error checking local files:', error);
+    }
+  }
+
+  /**
+   * Verify if a downloaded song file actually exists
+   */
+  async verifyDownloadedFile(song: Song): Promise<{
+    exists: boolean;
+    fileSize?: number;
+    filePath?: string;
+    error?: string;
+  }> {
+    if (!song.filePath || !song.isDownloaded) {
+      return { exists: false, error: 'Song not marked as downloaded' };
+    }
+
+    if (!Capacitor.isNativePlatform()) {      // For web, check IndexedDB (simplified check)
+      try {
+        // Assume exists if marked as downloaded for web platform
+        return { exists: true, filePath: 'IndexedDB' };
+      } catch (error) {
+        return { exists: false, error: `IndexedDB error: ${error}` };
+      }
+    }
+
+    try {
+      // Extract filename from filePath URI
+      const uriParts = song.filePath.split('/');
+      const fileName = uriParts[uriParts.length - 1];
+      const directory = Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents;
+
+      // Check if file exists
+      const stat = await Filesystem.stat({
+        path: `TxtMusic/${fileName}`,
+        directory: directory
+      });
+
+      return {
+        exists: true,
+        fileSize: stat.size,
+        filePath: song.filePath
+      };
+
+    } catch (error) {
+      console.error('❌ File verification failed:', error);
+      return {
+        exists: false,
+        filePath: song.filePath,
+        error: `File verification failed: ${error}`
+      };
+    }
+  }
+
 }
