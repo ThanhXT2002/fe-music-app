@@ -9,8 +9,14 @@ const config: CapacitorConfig = {
     allowNavigation: [
       'https://i.ytimg.com',
       'https://img.youtube.com']
-  },
-  plugins: {
+  },  plugins: {
+    Keyboard: {
+      resize: "none",
+      resizeOnFullScreen: false
+    },
+    StatusBar: {
+      style: "default"
+    },
     SafeArea: {
       enabled: true,
       customColorsForSystemNavigation: true,
