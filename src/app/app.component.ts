@@ -15,6 +15,7 @@ import { DatabaseService } from './services/database.service';
 import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
 import { PermissionService } from './services/permission.service';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 @Component({
   selector: 'app-root',
@@ -44,13 +45,13 @@ export class AppComponent implements OnInit, OnDestroy {
     setInterval(() => {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
+
+    // DEBUG: Test basic filesystem on app startup
+    this.debugFilesystemOnStartup();
   }
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-
-    // Đóng database connection khi app destroy
-    this.cleanupDatabase();
   }
 
   /**
@@ -143,5 +144,67 @@ export class AppComponent implements OnInit, OnDestroy {
   //   }
   // }
 
+  /**
+   * DEBUG: Test filesystem functionality on app startup
+   */
+  private async debugFilesystemOnStartup() {
+    try {
+      console.log('🚀 DEBUG: Starting filesystem test on app startup...');
+      console.log('📱 Platform:', Capacitor.getPlatform());
+      console.log('🔧 Is Native:', Capacitor.isNativePlatform());
+
+      if (!Capacitor.isNativePlatform()) {
+        console.log('⚠️ Web platform - skipping filesystem test');
+        return;
+      }
+
+      const platform = Capacitor.getPlatform();
+      const directory = platform === 'android' ? Directory.Cache : Directory.Documents;
+
+      console.log(`📂 Testing directory: ${directory}`);
+
+      // Test 1: Basic directory creation
+      await Filesystem.mkdir({
+        path: 'TxtMusicDebug',
+        directory: directory,
+        recursive: true
+      });
+      console.log('✅ DEBUG: Directory creation successful');
+
+      // Test 2: Write test file
+      const testContent = 'Debug test - ' + new Date().toISOString();
+      const writeResult = await Filesystem.writeFile({
+        path: 'TxtMusicDebug/startup_test.txt',
+        data: testContent,
+        directory: directory,
+        encoding: Encoding.UTF8
+      });
+      console.log('✅ DEBUG: File write successful:', writeResult.uri);
+
+      // Test 3: Read back
+      const readResult = await Filesystem.readFile({
+        path: 'TxtMusicDebug/startup_test.txt',
+        directory: directory,
+        encoding: Encoding.UTF8
+      });
+      console.log('✅ DEBUG: File read successful:', readResult.data);
+
+      // Test 4: Check permissions
+      const permissions = await this.permissionService.checkStoragePermissions();
+      console.log('✅ DEBUG: Storage permissions:', permissions);
+
+      console.log('🎉 DEBUG: All filesystem tests passed!');
+
+    } catch (error) {
+      console.error('❌ DEBUG: Filesystem test failed:', error);
+
+      // Log detailed error info
+      if (error instanceof Error) {
+        console.error('❌ DEBUG: Error name:', error.name);
+        console.error('❌ DEBUG: Error message:', error.message);
+        console.error('❌ DEBUG: Error stack:', error.stack);
+      }
+    }
+  }
 
 }

@@ -13,19 +13,28 @@ export interface PermissionStatus {
 })
 export class PermissionService {
 
-  constructor() {}
-
-  /**
+  constructor() {}  /**
    * Check and request storage permissions
+   * Directory.Cache trên Android không cần permissions
    */
   async checkStoragePermissions(): Promise<PermissionStatus> {
     if (!Capacitor.isNativePlatform()) {
       return { granted: true, message: 'Web platform - no permissions needed' };
     }
 
+    // Với Directory.Cache trên Android, không cần storage permissions
+    if (Capacitor.getPlatform() === 'android') {
+      console.log('✅ Using Directory.Cache - no storage permissions needed');
+      return { granted: true, message: 'Using cache directory - no permissions needed' };
+    }
+
+    // Cho iOS hoặc các platform khác
     try {
-      // Check current permissions
+      // Check current permissions first
+      console.log('🔐 Checking filesystem permissions...');
       const permissions = await Filesystem.checkPermissions();
+
+      console.log('Permission status:', permissions);
 
       if (permissions.publicStorage === 'granted') {
         console.log('✅ Storage permissions already granted');
@@ -36,14 +45,16 @@ export class PermissionService {
       console.log('🔐 Requesting storage permissions...');
       const requestResult = await Filesystem.requestPermissions();
 
+      console.log('Permission request result:', requestResult);
+
       if (requestResult.publicStorage === 'granted') {
-        console.log('✅ Storage permissions granted');
+        console.log('✅ Storage permissions granted after request');
         return { granted: true, message: 'Storage permissions granted' };
       } else {
         console.log('❌ Storage permissions denied');
         return {
           granted: false,
-          message: 'Storage permissions denied. Please enable in settings to download music.'
+          message: 'Storage permissions denied. Please enable storage access in app settings to download music.'
         };
       }
 
@@ -51,7 +62,7 @@ export class PermissionService {
       console.error('❌ Error checking storage permissions:', error);
       return {
         granted: false,
-        message: 'Error checking storage permissions: ' + error
+        message: `Error checking storage permissions: ${error}`
       };
     }
   }

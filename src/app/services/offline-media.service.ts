@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { IndexedDBService } from './indexeddb.service';
+import { DatabaseService } from './database.service';
 import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 
 @Injectable({
   providedIn: 'root'
@@ -8,8 +10,10 @@ import { Capacitor } from '@capacitor/core';
 export class OfflineMediaService {
   private thumbnailCache = new Map<string, string>(); // Cache cho thumbnail URLs
 
-  constructor(private indexedDBService: IndexedDBService) {}
-
+  constructor(
+    private indexedDBService: IndexedDBService,
+    private databaseService: DatabaseService
+  ) {}
   /**
    * Lấy thumbnail URL - offline first nếu có, fallback to online URL
    * @param songId - ID của bài hát
@@ -24,17 +28,30 @@ export class OfflineMediaService {
       return this.thumbnailCache.get(cacheKey)!;
     }
 
-    // Chỉ tìm offline thumbnail trên web platform và nếu bài hát đã download
-    if (Capacitor.getPlatform() === 'web' && isDownloaded) {
+    // Nếu bài hát đã download, tìm thumbnail offline
+    if (isDownloaded) {
       try {
-        const thumbnailBlob = await this.indexedDBService.getThumbnailFile(songId);
-        if (thumbnailBlob) {
-          const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+        let thumbnailUrl: string | null = null;
+
+        if (Capacitor.getPlatform() === 'web') {
+          // Web platform: Lấy từ IndexedDB
+          const thumbnailBlob = await this.indexedDBService.getThumbnailFile(songId);
+          if (thumbnailBlob) {
+            thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+          }        } else {
+          // Native platform: Lấy từ SQLite database
+          const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
+          if (thumbnailBlob) {
+            thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+          }
+        }
+
+        if (thumbnailUrl) {
           this.thumbnailCache.set(cacheKey, thumbnailUrl);
           return thumbnailUrl;
         }
       } catch (error) {
-        console.warn('Failed to load offline thumbnail, using online URL:', error);
+        console.warn('❌ Failed to load offline thumbnail, using online URL:', error);
       }
     }
 
@@ -69,29 +86,154 @@ export class OfflineMediaService {
     });
     this.thumbnailCache.clear();
   }
-
   /**
    * Kiểm tra xem bài hát có files offline không
    * @param songId - ID của bài hát
    * @returns Promise<{hasAudio: boolean, hasThumbnail: boolean}>
    */
   async checkOfflineFiles(songId: string): Promise<{hasAudio: boolean, hasThumbnail: boolean}> {
-    if (Capacitor.getPlatform() !== 'web') {
+    try {
+      if (Capacitor.getPlatform() === 'web') {
+        // Web platform: Check IndexedDB
+        return await this.indexedDBService.checkOfflineFiles(songId);
+      } else {
+        // Native platform: Check database and filesystem
+        const song = await this.databaseService.getSongById(songId);
+
+        const hasAudio = !!(song?.filePath && song.isDownloaded);
+
+        // Check thumbnail trong database
+        const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
+        const hasThumbnail = !!thumbnailBlob;
+
+        return { hasAudio, hasThumbnail };
+      }
+    } catch (error) {
+      console.warn('❌ Failed to check offline files:', error);
       return { hasAudio: false, hasThumbnail: false };
     }
-
-    return await this.indexedDBService.checkOfflineFiles(songId);
   }
-
   /**
    * Lấy thông tin storage usage
    * @returns Promise<{audioSize: number, thumbnailSize: number, totalSize: number}>
    */
   async getStorageUsage(): Promise<{audioSize: number, thumbnailSize: number, totalSize: number}> {
-    if (Capacitor.getPlatform() !== 'web') {
+    try {
+      if (Capacitor.getPlatform() === 'web') {
+        // Web platform: IndexedDB usage
+        return await this.indexedDBService.getStorageUsage();
+      } else {
+        // Native platform: Filesystem + Database usage
+        let audioSize = 0;
+        let thumbnailSize = 0;
+
+        try {          // Lấy tất cả bài hát và filter những bài đã download
+          const allSongs = await this.databaseService.getAllSongs();
+          const downloadedSongs = allSongs.filter(song => song.isDownloaded && song.filePath);
+
+          for (const song of downloadedSongs) {
+            // Kiểm tra file audio
+            if (song.filePath) {
+              try {
+                const stats = await Filesystem.stat({
+                  path: song.filePath
+                });
+                audioSize += stats.size;
+              } catch (error) {
+                console.warn('❌ Failed to get file size for:', song.filePath);
+              }
+            }
+
+            // Kiểm tra thumbnail size trong database
+            const thumbnailBlob = await this.databaseService.getThumbnailBlob(song.id);
+            if (thumbnailBlob) {
+              thumbnailSize += thumbnailBlob.size;
+            }
+          }
+        } catch (error) {
+          console.warn('❌ Failed to calculate storage usage:', error);
+        }
+
+        return {
+          audioSize,
+          thumbnailSize,
+          totalSize: audioSize + thumbnailSize
+        };
+      }
+    } catch (error) {
+      console.warn('❌ Failed to get storage usage:', error);
       return { audioSize: 0, thumbnailSize: 0, totalSize: 0 };
     }
+  }
 
-    return await this.indexedDBService.getStorageUsage();
+  /**
+   * Xóa file audio offline trên native platform
+   * @param filePath - Đường dẫn file cần xóa
+   * @returns Promise<boolean>
+   */
+  async deleteOfflineAudioFile(filePath: string): Promise<boolean> {
+    if (Capacitor.getPlatform() === 'web') {
+      return false; // Web platform không hỗ trợ delete file path
+    }
+
+    try {
+      await Filesystem.deleteFile({
+        path: filePath
+      });
+      console.log('✅ Deleted offline audio file:', filePath);
+      return true;
+    } catch (error) {
+      console.warn('❌ Failed to delete offline audio file:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Kiểm tra file audio có tồn tại không trên native platform
+   * @param filePath - Đường dẫn file
+   * @returns Promise<boolean>
+   */
+  async checkAudioFileExists(filePath: string): Promise<boolean> {
+    if (Capacitor.getPlatform() === 'web') {
+      return false;
+    }
+
+    try {
+      const stat = await Filesystem.stat({
+        path: filePath
+      });
+      return stat.type === 'file';
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Lấy kích thước của file audio
+   * @param filePath - Đường dẫn file
+   * @returns Promise<number> - Size in bytes
+   */
+  async getAudioFileSize(filePath: string): Promise<number> {
+    if (Capacitor.getPlatform() === 'web') {
+      return 0;
+    }
+
+    try {
+      const stat = await Filesystem.stat({
+        path: filePath
+      });
+      return stat.size;
+    } catch (error) {
+      console.warn('❌ Failed to get file size:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Cleanup tất cả các resources khi app bị destroy
+   */
+  async cleanup(): Promise<void> {
+    this.clearAllThumbnailCache();
+    console.log('✅ OfflineMediaService cleanup completed');
   }
 }

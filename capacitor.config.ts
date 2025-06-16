@@ -32,10 +32,10 @@ const config: CapacitorConfig = {
       iosSpinnerStyle: 'small',
       splashFullScreen: true,
       splashImmersive: true,
-    },
-    Filesystem: {
-      androidRequestWriteExternalStoragePermission: true,
-      androidRequestReadExternalStoragePermission: true,
+    },    Filesystem: {
+      // Disable external storage permissions for Directory.Cache usage
+      androidRequestWriteExternalStoragePermission: false,
+      androidRequestReadExternalStoragePermission: false,
     },
     LocalNotifications: {
       smallIcon: "ic_stat_icon_config_sample",

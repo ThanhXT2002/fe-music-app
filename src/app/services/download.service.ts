@@ -4,6 +4,7 @@ import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } fro
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
+import { PermissionService } from './permission.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { RefreshService } from './refresh.service';
@@ -23,6 +24,18 @@ export interface DownloadTask {
   addedAt: Date;
   // Thêm thông tin từ API
   songData?: DataSong;
+  // Better progress tracking
+  progressDetails?: DownloadProgressDetails;
+}
+
+export interface DownloadProgressDetails {
+  phase: 'initializing' | 'downloading' | 'saving' | 'processing' | 'completing';
+  downloadedBytes: number;
+  totalBytes: number;
+  speed: number; // bytes per second
+  timeRemaining: number; // seconds
+  message: string;
+  startTime: Date;
 }
 
 
@@ -36,12 +49,12 @@ export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
 
-  private activeDownloads = new Map<string, any>();
-  constructor(
+  private activeDownloads = new Map<string, any>();  constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
-    private refreshService: RefreshService
+    private refreshService: RefreshService,
+    private permissionService: PermissionService
   ) {
     this.loadDownloadsFromStorage();
   }
@@ -131,19 +144,35 @@ export class DownloadService {
     const download = this.getDownload(id);
     if (!download) return;
 
-    this.updateDownload(id, {
-      status: 'completed',
-      progress: 100,
-      filePath
-    });
+    try {
+      // Validate file nếu có filePath (native platform)
+      if (filePath) {
+        const isValid = await this.validateDownloadedFile(filePath);
+        if (!isValid) {
+          throw new Error('Downloaded file validation failed');
+        }
+      }
 
-    // Lưu bài hát vào database nếu có songData
-    if (download.songData) {
-      await this.saveSongToDatabase(download.songData, filePath);
+      // Update download status với progress tracking chi tiết
+      this.updateDownloadProgressWithDetails(id, 100, 'completed',
+        filePath ? 'File saved to device' : 'Saved to browser storage');
+
+      // Lưu bài hát vào database nếu có songData
+      if (download.songData) {
+        await this.saveSongToDatabase(download.songData, filePath);
+        console.log('✅ Song saved to database:', download.title);
+      }
+
+      // Remove from active downloads
+      this.activeDownloads.delete(id);
+
+      // Trigger refresh để update UI
+      this.refreshService.triggerRefresh();
+
+    } catch (error) {
+      console.error('❌ Failed to complete download:', error);
+      this.failDownload(id, `Completion failed: ${error}`);
     }
-
-    // Remove from active downloads
-    this.activeDownloads.delete(id);
   }
 
   // Mark download as failed
@@ -363,36 +392,48 @@ export class DownloadService {
       }
     }
   }
-
   /**
    * Xử lý download cho native platform
    * @param id - ID của download task
    * @param audioUrl - URL của file audio
    * @param signal - AbortSignal
-   */
-  private async handleNativeDownload(id: string, audioUrl: string, signal: AbortSignal) {
+   */  private async handleNativeDownload(id: string, audioUrl: string, signal: AbortSignal) {
     const download = this.getDownload(id);
     if (!download) return;
 
     try {
-      // Download file từ URL
+      // Bước 1: Kiểm tra storage permissions
+      this.updateDownloadProgressWithDetails(id, 5, 'downloading', 'Kiểm tra quyền truy cập...');
+      const hasStoragePermission = await this.checkStoragePermissions();
+
+      if (!hasStoragePermission) {
+        throw new Error('Storage permission denied. Please enable storage access in app settings.');
+      }
+
+      // Bước 2: Đảm bảo thư mục tồn tại
+      await this.ensureMusicDirectoryExists();
+      this.updateDownloadProgressWithDetails(id, 10, 'downloading', 'Chuẩn bị thư mục...');
+
+      // Bước 3: Download file từ URL
+      this.updateDownloadProgressWithDetails(id, 15, 'downloading', 'Bắt đầu tải file...');
       const response = await fetch(audioUrl, { signal });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const total = parseInt(response.headers.get('content-length') || '0');
+      }      const total = parseInt(response.headers.get('content-length') || '0');
       const reader = response.body?.getReader();
 
       if (!reader) {
         throw new Error('Unable to read response body');
       }
 
+      // Initialize detailed progress tracking
+      this.initializeProgressDetails(id, total);
+
       const chunks: Uint8Array[] = [];
       let received = 0;
 
-      // Đọc file theo chunks và update progress
+      // Đọc file theo chunks với detailed progress tracking
       while (true) {
         const { done, value } = await reader.read();
 
@@ -403,34 +444,32 @@ export class DownloadService {
         }
 
         chunks.push(value);
-        received += value.length;
-
-        // Update progress
+        received += value.length;        // Update progress với speed calculation (15% -> 80%)
         if (total > 0) {
-          const progress = Math.round((received / total) * 100);
-          this.updateDownloadProgress(id, progress);
+          this.updateProgressWithSpeed(id, received, total, 'downloading');
         }
       }
 
-      // Combine chunks
+      // Bước 4: Combine chunks và lưu file (80% -> 90%)
+      this.updateDownloadProgressWithDetails(id, 80, 'downloading', 'Đang lưu file...', { phase: 'saving' });
       const blob = new Blob(chunks);
-
-      // Lưu file vào device
       const filePath = await this.saveFileToDevice(download, blob);
+      this.updateDownloadProgressWithDetails(id, 90, 'downloading', 'Đang xử lý...', { phase: 'processing' });
 
-      // Download và save thumbnail
+      // Bước 5: Download và save thumbnail (90% -> 100%)
       await this.downloadThumbnailForNative(download);
+      this.updateDownloadProgressWithDetails(id, 100, 'completed', 'Hoàn thành!', { phase: 'completing' });
 
       // Complete download
       await this.completeDownload(id, filePath);
 
     } catch (error) {
       if (!signal.aborted) {
+        console.error('❌ Native download failed:', error);
         throw error;
       }
     }
   }
-
   /**
    * Lưu file vào device (chỉ cho native)
    * @param download - Download task
@@ -441,17 +480,26 @@ export class DownloadService {
     const safeFileName = this.createSafeFileName(download.title, download.artist);
     const fileName = `${safeFileName}.m4a`;
 
-    // Chuyển blob thành base64
-    const base64Data = await this.blobToBase64(blob);
+    try {
+      // Đảm bảo thư mục music tồn tại
+      await this.ensureMusicDirectoryExists();
 
-    // Lưu file vào Documents/music/
-    const result = await Filesystem.writeFile({
-      path: `music/${fileName}`,
-      data: base64Data,
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8
-    });
-    return result.uri;
+      // Chuyển blob thành base64
+      const base64Data = await this.blobToBase64(blob);      // Lưu file vào thư mục phù hợp theo platform
+      const result = await Filesystem.writeFile({
+        path: `TxtMusic/${fileName}`,
+        data: base64Data,
+        directory: Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents,
+        encoding: Encoding.UTF8
+      });
+
+      console.log('✅ File saved to:', result.uri);
+      return result.uri;
+
+    } catch (error) {
+      console.error('❌ Failed to save file to device:', error);
+      throw new Error(`Failed to save audio file: ${error}`);
+    }
   }
 
   /**
@@ -642,6 +690,111 @@ export class DownloadService {
     }
   }
 
+  /**
+   * Đảm bảo thư mục TxtMusic tồn tại
+   */  private async ensureMusicDirectoryExists(): Promise<void> {
+    try {
+      const directory = Capacitor.getPlatform() === 'android' ? Directory.Cache : Directory.Documents;
+
+      // Kiểm tra xem thư mục có tồn tại không
+      try {
+        await Filesystem.stat({
+          path: 'TxtMusic',
+          directory: directory
+        });
+        console.log('✅ TxtMusic directory exists');
+      } catch (error) {
+        // Thư mục không tồn tại, tạo mới
+        console.log('📁 Creating TxtMusic directory...');
+        await Filesystem.mkdir({
+          path: 'TxtMusic',
+          directory: directory,
+          recursive: true
+        });
+        console.log('✅ TxtMusic directory created');
+      }
+    } catch (error) {
+      console.error('❌ Failed to ensure music directory exists:', error);
+      throw new Error(`Failed to create music directory: ${error}`);
+    }
+  }
+  /**
+   * Lấy thông tin về storage và permissions
+   */
+  private async getStorageInfo(): Promise<{
+    hasPermission: boolean;
+    directory: Directory;
+    path: string;
+  }> {
+    const platform = Capacitor.getPlatform();
+
+    if (platform === 'android') {
+      // Trên Android, sử dụng Cache directory (không cần permission)
+      return {
+        hasPermission: true,
+        directory: Directory.Cache,
+        path: 'TxtMusic'
+      };
+    } else if (platform === 'ios') {
+      // Trên iOS, sử dụng Documents
+      return {
+        hasPermission: true,
+        directory: Directory.Documents,
+        path: 'TxtMusic'
+      };
+    } else {
+      // Web fallback (không sử dụng filesystem)
+      throw new Error('Filesystem not supported on web platform');
+    }
+  }  /**
+   * Kiểm tra và yêu cầu storage permissions
+   */
+  private async checkStoragePermissions(): Promise<boolean> {
+    try {
+      // Với Directory.Cache trên Android, không cần permission check
+      if (Capacitor.getPlatform() === 'android') {
+        console.log('✅ Using Directory.Cache on Android - no permissions needed');
+        return true;
+      }      // Cho iOS và các platform khác
+      const permissionResult = await this.permissionService.checkStoragePermissions();
+
+      if (!permissionResult.granted) {
+        console.error('❌ Storage permission denied:', permissionResult.message);
+        return false;
+      }
+
+      // Test write một file nhỏ để đảm bảo filesystem hoạt động
+      try {
+        const storageInfo = await this.getStorageInfo();
+
+        // Test write một file nhỏ
+        const testResult = await Filesystem.writeFile({
+          path: 'TxtMusic/.test',
+          data: 'test',
+          directory: storageInfo.directory,
+          encoding: Encoding.UTF8
+        });
+
+        // Xóa file test
+        await Filesystem.deleteFile({
+          path: 'TxtMusic/.test',
+          directory: storageInfo.directory
+        });
+
+        console.log('✅ Storage test write successful');
+        return true;
+
+      } catch (writeError) {
+        console.error('❌ Storage test write failed:', writeError);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Error checking storage permissions:', error);
+      return false;
+    }
+  }
+
   // download youtube video
   getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
     const params = new HttpParams().set('url', url);
@@ -665,6 +818,190 @@ export class DownloadService {
     ];
 
     return patterns.some((pattern) => pattern.test(url));
+  }
+  /**
+   * Cải thiện progress tracking với thông tin chi tiết
+   */
+  private updateDownloadProgressWithDetails(
+    id: string,
+    progress: number,
+    status?: DownloadTask['status'],
+    details?: string,
+    progressDetails?: Partial<DownloadProgressDetails>
+  ) {
+    const downloads = this.currentDownloads;
+    const downloadIndex = downloads.findIndex(d => d.id === id);
+
+    if (downloadIndex !== -1) {
+      const currentDownload = downloads[downloadIndex];
+
+      downloads[downloadIndex] = {
+        ...currentDownload,
+        progress: Math.min(Math.max(progress, 0), 100), // Clamp between 0-100
+        status: status || currentDownload.status,
+        error: status === 'error' ? details : undefined,        progressDetails: progressDetails ? {
+          phase: progressDetails.phase || currentDownload.progressDetails?.phase || 'downloading',
+          downloadedBytes: progressDetails.downloadedBytes ?? currentDownload.progressDetails?.downloadedBytes ?? 0,
+          totalBytes: progressDetails.totalBytes ?? currentDownload.progressDetails?.totalBytes ?? 0,
+          speed: progressDetails.speed ?? currentDownload.progressDetails?.speed ?? 0,
+          timeRemaining: progressDetails.timeRemaining ?? currentDownload.progressDetails?.timeRemaining ?? 0,
+          message: details || progressDetails.message || currentDownload.progressDetails?.message || '',
+          startTime: progressDetails.startTime || currentDownload.progressDetails?.startTime || new Date()
+        } : currentDownload.progressDetails
+      };
+
+      this.downloadsSubject.next([...downloads]);
+
+      // Log progress cho debugging
+      if (progress % 10 === 0 || status === 'completed' || status === 'error') {
+        console.log(`📊 Download ${id}: ${progress}% ${status ? `(${status})` : ''} ${details ? `- ${details}` : ''}`);
+      }
+    }
+  }
+
+  /**
+   * Khởi tạo progress details cho download mới
+   */
+  private initializeProgressDetails(id: string, totalBytes: number = 0) {
+    const details: DownloadProgressDetails = {
+      phase: 'initializing',
+      downloadedBytes: 0,
+      totalBytes,
+      speed: 0,
+      timeRemaining: 0,
+      message: 'Khởi tạo download...',
+      startTime: new Date()
+    };
+
+    this.updateDownloadProgressWithDetails(id, 0, 'downloading', undefined, details);
+  }
+
+  /**
+   * Cập nhật progress với tính toán speed và time remaining
+   */
+  private updateProgressWithSpeed(
+    id: string,
+    downloadedBytes: number,
+    totalBytes: number,
+    phase: DownloadProgressDetails['phase'] = 'downloading'
+  ) {
+    const download = this.getDownload(id);
+    if (!download?.progressDetails) return;
+
+    const now = new Date();
+    const elapsed = (now.getTime() - download.progressDetails.startTime.getTime()) / 1000; // seconds
+    const speed = elapsed > 0 ? downloadedBytes / elapsed : 0;
+    const progress = totalBytes > 0 ? Math.round((downloadedBytes / totalBytes) * 100) : 0;
+
+    let timeRemaining = 0;
+    if (speed > 0 && totalBytes > downloadedBytes) {
+      timeRemaining = (totalBytes - downloadedBytes) / speed;
+    }
+
+    const progressDetails: Partial<DownloadProgressDetails> = {
+      phase,
+      downloadedBytes,
+      totalBytes,
+      speed,
+      timeRemaining,
+      message: this.getPhaseMessage(phase, progress, speed, timeRemaining)
+    };
+
+    this.updateDownloadProgressWithDetails(id, progress, 'downloading', undefined, progressDetails);
+  }
+
+  /**
+   * Tạo message phù hợp cho từng phase
+   */
+  private getPhaseMessage(
+    phase: DownloadProgressDetails['phase'],
+    progress: number,
+    speed: number,
+    timeRemaining: number
+  ): string {
+    switch (phase) {
+      case 'initializing':
+        return 'Đang khởi tạo...';
+      case 'downloading':
+        const speedMB = speed / (1024 * 1024);
+        const timeStr = this.formatTime(timeRemaining);
+        return `${progress}% - ${speedMB.toFixed(1)} MB/s - ${timeStr} còn lại`;
+      case 'saving':
+        return 'Đang lưu file...';
+      case 'processing':
+        return 'Đang xử lý...';
+      case 'completing':
+        return 'Hoàn thành...';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Format thời gian còn lại
+   */
+  private formatTime(seconds: number): string {
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+    return `${Math.round(seconds / 3600)}h`;
+  }
+
+  /**
+   * Lấy thông tin chi tiết về file đã lưu
+   */
+  private async getFileInfo(filePath: string): Promise<{
+    size: number;
+    exists: boolean;
+    uri: string;
+  }> {
+    try {
+      // Extract path và directory từ URI
+      const storageInfo = await this.getStorageInfo();
+      const fileName = filePath.split('/').pop() || '';
+
+      const stat = await Filesystem.stat({
+        path: `${storageInfo.path}/${fileName}`,
+        directory: storageInfo.directory
+      });
+
+      return {
+        size: stat.size,
+        exists: true,
+        uri: filePath
+      };
+    } catch (error) {
+      console.warn('⚠️ Failed to get file info:', error);
+      return {
+        size: 0,
+        exists: false,
+        uri: filePath
+      };
+    }
+  }
+
+  /**
+   * Validate downloaded file
+   */
+  private async validateDownloadedFile(filePath: string, expectedSize?: number): Promise<boolean> {
+    try {
+      const fileInfo = await this.getFileInfo(filePath);
+
+      if (!fileInfo.exists) {
+        console.error('❌ Downloaded file does not exist');
+        return false;
+      }
+
+      if (expectedSize && fileInfo.size < expectedSize * 0.9) { // Allow 10% tolerance
+        console.error('❌ Downloaded file size mismatch:', fileInfo.size, 'expected:', expectedSize);
+        return false;
+      }
+
+      console.log('✅ Downloaded file validated:', fileInfo);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to validate downloaded file:', error);
+      return false;
+    }
   }
 
 }

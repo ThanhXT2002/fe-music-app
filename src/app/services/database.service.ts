@@ -4,7 +4,6 @@ import { Capacitor } from '@capacitor/core';
 import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
-import { OfflineMediaService } from './offline-media.service';
 /**
  * Service quản lý cơ sở dữ liệu SQLite cho ứng dụng nhạc
  * Xử lý tất cả các thao tác CRUD với bài hát, album, nghệ sĩ và playlist
@@ -28,11 +27,9 @@ export class DatabaseService {
   // Flag để track initialization process
   private isInitializing = false;
   // Connection name để tránh duplicate
-  private connectionName = DB_XTMUSIC;
-  constructor(
+  private connectionName = DB_XTMUSIC;  constructor(
     indexedDBService: IndexedDBService,
-    private refreshService: RefreshService,
-    private offlineMediaService: OfflineMediaService
+    private refreshService: RefreshService
   ) {
     this.indexedDB = indexedDBService;
     this.platform = Capacitor.getPlatform();
@@ -542,16 +539,18 @@ export class DatabaseService {
     const songs: Song[] = [];
 
     for (const row of rows) {
-      let thumbnailUrl = row.thumbnail_url; // Default URL
-
-      // Load thumbnail từ blob nếu đã download
+      let thumbnailUrl = row.thumbnail_url; // Default URL      // Load thumbnail từ blob nếu đã download
       if (row.isDownloaded === 1) {
         if (this.platform === 'web') {
-          thumbnailUrl = await this.offlineMediaService.getThumbnailUrl(
-            row.id,
-            row.thumbnail_url,
-            true
-          );
+          // Web: Cố gắng load từ IndexedDB
+          try {
+            const thumbnailBlob = await this.indexedDB.getThumbnailFile(row.id);
+            if (thumbnailBlob) {
+              thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+            }
+          } catch (error) {
+            console.warn('Failed to load thumbnail from IndexedDB:', error);
+          }
         } else {
           // Native: Load từ SQLite blob
           const thumbnailBlob = await this.getThumbnailBlob(row.id);
