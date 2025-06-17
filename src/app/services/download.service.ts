@@ -49,7 +49,10 @@ export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
 
-  private activeDownloads = new Map<string, any>();  constructor(
+  private activeDownloads = new Map<string, any>();
+  private indexedDBInitialized = false;
+
+  constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
@@ -57,6 +60,31 @@ export class DownloadService {
     private permissionService: PermissionService
   ) {
     this.loadDownloadsFromStorage();
+    this.initializeIndexedDB();
+  }
+
+  /**
+   * Initialize IndexedDB for web platform
+   */
+  private async initializeIndexedDB() {
+    try {
+      if (Capacitor.getPlatform() === 'web' && !this.indexedDBInitialized) {
+        await this.indexedDBService.initDB();
+        this.indexedDBInitialized = true;
+        console.log('✅ IndexedDB initialized in DownloadService');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize IndexedDB in DownloadService:', error);
+    }
+  }
+
+  /**
+   * Ensure IndexedDB is initialized before using it
+   */
+  private async ensureIndexedDBReady(): Promise<void> {
+    if (Capacitor.getPlatform() === 'web' && !this.indexedDBInitialized) {
+      await this.initializeIndexedDB();
+    }
   }
 
   get currentDownloads(): DownloadTask[] {
@@ -95,7 +123,6 @@ export class DownloadService {
     const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
 
     // Bắt đầu quá trình download
     this.startDownload(downloadTask.id);
@@ -116,8 +143,6 @@ export class DownloadService {
     const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
-
     this.startDownload(downloadTask.id);
     return downloadTask.id;
   }
@@ -135,7 +160,6 @@ export class DownloadService {
       };
 
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
     }  }
 
   // Mark download as completed
@@ -211,14 +235,12 @@ export class DownloadService {
     const currentDownloads = this.currentDownloads.filter(d => d.id !== id);
     this.downloadsSubject.next(currentDownloads);
     this.activeDownloads.delete(id);
-    this.saveDownloadsToStorage();
   }
 
   // Clear completed downloads
   clearCompleted() {
     const currentDownloads = this.currentDownloads.filter(d => d.status !== 'completed');
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
   }
 
   // Clear all downloads
@@ -231,7 +253,6 @@ export class DownloadService {
 
     this.activeDownloads.clear();
     this.downloadsSubject.next([]);
-    this.saveDownloadsToStorage();
   }
 
   // Get download by ID
@@ -297,7 +318,6 @@ export class DownloadService {
       };
 
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
     }
   }
 
@@ -377,11 +397,12 @@ export class DownloadService {
       totalProgress = 60;
       this.updateDownloadProgress(id, totalProgress);
 
-      if (signal.aborted) return;
-
-      // Step 3: Save audio to IndexedDB (10% of total progress)
+      if (signal.aborted) return;      // Step 3: Ensure IndexedDB is initialized and save audio (10% of total progress)
       let audioSaved = false;
       try {
+        // Ensure IndexedDB is ready before saving
+        await this.ensureIndexedDBReady();
+
         audioSaved = await this.indexedDBService.saveAudioFile(
           songData.id,
           audioBlob,
@@ -397,11 +418,10 @@ export class DownloadService {
       }
 
       totalProgress = 80;
-      this.updateDownloadProgress(id, totalProgress);
-
-      // Step 4: Save thumbnail to IndexedDB (10% of total progress)
+      this.updateDownloadProgress(id, totalProgress);      // Step 4: Save thumbnail to IndexedDB (10% of total progress)
       let thumbnailSaved = false;
       try {
+        // IndexedDB is already initialized from the previous step
         thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
           songData.id,
           thumbnailBlob,
@@ -720,18 +740,6 @@ export class DownloadService {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
 
-  private saveDownloadsToStorage() {
-    try {
-      const downloadsToSave = this.currentDownloads.map(d => ({
-        ...d,
-        // Don't save large data or sensitive info
-      }));
-
-      localStorage.setItem('xtmusic_downloads', JSON.stringify(downloadsToSave));
-    } catch (error) {
-      console.error('Failed to save downloads to storage:', error);
-    }
-  }
 
   private loadDownloadsFromStorage() {
     try {

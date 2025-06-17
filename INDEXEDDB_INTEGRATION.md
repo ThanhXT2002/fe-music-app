@@ -165,7 +165,7 @@ async addSong(song: Song): Promise<boolean> {
 ```typescript
 {
   keyPath: 'songId',
-  indexes: ['searchedAt', 'title', 'artist', 'isDownloaded']
+  indexes: ['searchedAt', 'title', 'artist']
 }
 ```
 

@@ -15,9 +15,29 @@ export class IndexedDBService {
   constructor() {}
 
   /**
+   * Kiểm tra xem IndexedDB đã sẵn sàng chưa
+   */
+  isReady(): boolean {
+    return this.db !== null;
+  }
+
+  /**
+   * Lấy danh sách object stores hiện có
+   */
+  getObjectStoreNames(): string[] {
+    if (!this.db) return [];
+    return Array.from(this.db.objectStoreNames);
+  }
+
+  /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
+    // Nếu database đã được khởi tạo, return true
+    if (this.db) {
+      return true;
+    }
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
@@ -28,10 +48,12 @@ export class IndexedDBService {
 
       request.onsuccess = () => {
         this.db = request.result;
+        console.log('IndexedDB opened successfully');
         resolve(true);
       };
 
       request.onupgradeneeded = (event) => {
+        console.log('IndexedDB upgrade needed, creating object stores...');
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Tạo object stores (tương đương với tables trong SQLite)
@@ -90,23 +112,42 @@ export class IndexedDBService {
       thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
   }
-
   /**
    * Thêm hoặc cập nhật record
    */
   async put(storeName: string, data: any): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('IndexedDB is not initialized');
+      return false;
+    }
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([storeName], 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.put(data);
+      try {
+        // Check if object store exists
+        if (!this.db!.objectStoreNames.contains(storeName)) {
+          console.error(`Object store "${storeName}" does not exist`);
+          reject(new Error(`Object store "${storeName}" does not exist`));
+          return;
+        }
 
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => {
-        console.error(`Error putting data to ${storeName}:`, request.error);
-        reject(false);
-      };
+        const transaction = this.db!.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.put(data);
+
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => {
+          console.error(`Error putting data to ${storeName}:`, request.error);
+          reject(new Error(`Error putting data to ${storeName}: ${request.error}`));
+        };
+
+        transaction.onerror = () => {
+          console.error(`Transaction error for ${storeName}:`, transaction.error);
+          reject(new Error(`Transaction error for ${storeName}: ${transaction.error}`));
+        };
+      } catch (error) {
+        console.error(`Exception in put method for ${storeName}:`, error);
+        reject(error);
+      }
     });
   }
 
