@@ -76,3 +76,5 @@ key-auth-google.json
 google-services.json
 
 .vercel
+BACKEND_API_REQUIREMENTS.md
+INDEXEDDB_MIGRATION_ROADMAP.md
