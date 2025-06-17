@@ -3,11 +3,18 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.tranxuanthanhtxt.MusicApp',
   appName: 'XTMusic',
-  webDir: 'www',
-  server: {
-    androidScheme: 'http',
-    allowNavigation: ['*'],
+  webDir: 'www',  server: {
+    androidScheme: 'https',
+    allowNavigation: [
+      'https://api-music.tranxuanthanhtxt.com',
+      'https://youtube.com',
+      'https://youtu.be',
+      'https://googlevideo.com',
+      'https://ytimg.com'
+    ],
     cleartext: true,
+    hostname: 'localhost',
+    iosScheme: 'ionic',
   },
   plugins: {
     Keyboard: {

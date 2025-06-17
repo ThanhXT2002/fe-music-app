@@ -24,6 +24,7 @@ import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
 import { ThemeService } from './app/services/theme.service';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
+import { networkInterceptor } from './app/interceptors/network.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { SafeAreaService } from './app/services/safe-area.service';
 import { DebugService } from './app/services/debug.service';
@@ -42,7 +43,7 @@ bootstrapApplication(AppComponent, {
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
-    provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
+    provideHttpClient(withFetch(), withInterceptors([authInterceptor, networkInterceptor])),
     importProvidersFrom(BrowserAnimationsModule),
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
     provideAuth(() => getAuth()),

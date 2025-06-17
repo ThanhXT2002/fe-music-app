@@ -18,6 +18,10 @@ import { PermissionService } from './services/permission.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 // Thêm OfflineMediaService để debug thumbnail
 import { OfflineMediaService } from './services/offline-media.service';
+import { ProductionDebugService } from './services/production-debug.service';
+import { Native504DebugService } from './services/native-504-debug.service';
+import { CorsTestService } from './services/cors-test.service';
+import { isDevMode } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -36,8 +40,11 @@ export class AppComponent implements OnInit, OnDestroy {
     private playbackRestoreService: PlaybackRestoreService,
     private permissionService: PermissionService,
     // Thêm OfflineMediaService để debug
-    private offlineMediaService: OfflineMediaService
-  ) {    // Expose debug methods to global window object for console testing
+    private offlineMediaService: OfflineMediaService,
+    private productionDebugService: ProductionDebugService,
+    private native504DebugService: Native504DebugService,
+    private corsTestService: CorsTestService
+  ) {// Expose debug methods to global window object for console testing
     (window as any).debugThumbnails = async () => {
       console.log('🧪 Starting thumbnail debug...');
       await this.offlineMediaService.debugListThumbnails();
@@ -66,6 +73,50 @@ export class AppComponent implements OnInit, OnDestroy {
       }
     };
     (window as any).debugOfflineMedia = this.offlineMediaService;
+
+    // Expose 504 debug service for console testing
+    (window as any).debug504 = async () => {
+      console.log('🐛 Starting 504 debug analysis...');
+      await this.native504DebugService.debug504Issues();
+    };
+
+    (window as any).get504Recommendations = () => {
+      console.log('💡 504 Recommendations:');
+      const recommendations = this.native504DebugService.getRecommendations();
+      recommendations.forEach(rec => console.log(rec));
+      return recommendations;
+    };
+
+    // Expose CORS test methods
+    (window as any).testCors = async () => {
+      console.log('🧪 Starting CORS test...');
+      await this.corsTestService.testCorsConfiguration();
+    };
+
+    (window as any).testCorsHeaders = async () => {
+      console.log('🧪 Checking CORS headers...');
+      await this.corsTestService.checkCorsHeaders();
+    };
+
+    (window as any).testMultipleOrigins = async () => {
+      console.log('🧪 Testing multiple origins...');
+      await this.corsTestService.testMultipleOrigins();
+    };
+
+    (window as any).debugNetworkAndCors = async () => {
+      console.log('🧪 Starting comprehensive network and CORS debug...');
+
+      // Test network connectivity first
+      await this.native504DebugService.debug504Issues();
+
+      // Then test CORS
+      await this.corsTestService.testCorsConfiguration();
+
+      // Check CORS headers
+      await this.corsTestService.checkCorsHeaders();
+
+      console.log('✅ Network and CORS debug completed!');
+    };
   }
 
 
@@ -109,6 +160,17 @@ export class AppComponent implements OnInit, OnDestroy {
     // Request permissions for native platforms
     if (Capacitor.isNativePlatform()) {
       await this.requestNativePermissions();
+    }
+
+    // Start production debug monitoring
+    if (Capacitor.isNativePlatform() && !isDevMode()) {
+      console.log('🔍 Starting production debug monitoring...');
+      this.productionDebugService.startNetworkMonitoring();
+
+      // Debug network issues after a short delay
+      setTimeout(() => {
+        this.productionDebugService.debugNetworkIssues();
+      }, 2000);
     }
 
     if (Capacitor.isNativePlatform()) {

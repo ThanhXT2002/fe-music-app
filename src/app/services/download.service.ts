@@ -5,6 +5,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { PermissionService } from './permission.service';
+import { NetworkService } from './network.service';
+import { YouTubeErrorService } from './youtube-error.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { RefreshService } from './refresh.service';
@@ -50,14 +52,14 @@ export class DownloadService {
   public downloads$ = this.downloadsSubject.asObservable();
 
   private activeDownloads = new Map<string, any>();
-  private indexedDBInitialized = false;
-
-  constructor(
+  private indexedDBInitialized = false;  constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private networkService: NetworkService,
+    private youtubeErrorService: YouTubeErrorService
   ) {
     this.loadDownloadsFromStorage();
     this.initializeIndexedDB();
@@ -90,13 +92,18 @@ export class DownloadService {
   get currentDownloads(): DownloadTask[] {
     return this.downloadsSubject.value;
   }
-
   /**
    * Download bài hát từ API response và lưu vào database
    * @param songData - Data từ API response
    * @returns Promise<string> - ID của download task
    */
   async downloadSong(songData: DataSong): Promise<string> {
+    // Check network connectivity first
+    const isOnline = await this.networkService.isOnline();
+    if (!isOnline) {
+      throw new Error('Không có kết nối internet. Vui lòng kiểm tra và thử lại.');
+    }
+
     // Kiểm tra xem bài hát đã được download chưa
     const existingTask = this.currentDownloads.find(d =>
       d.songData?.id === songData.id && d.status === 'completed'
@@ -885,21 +892,66 @@ export class DownloadService {
       console.error('❌ Error checking storage permissions:', error);
       return false;
     }
-  }
-
-  // download youtube video
+  }  // download youtube video
   getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
-    const params = new HttpParams().set('url', url);
-    return this.http
-      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, {
-        params,
-      })
-      .pipe(
-        catchError((error) => {
-          console.error('Error downloading from YouTube:', error);
-          throw error;
-        })
-      );
+    // Check network connectivity
+    return new Observable(observer => {
+      this.networkService.isOnline().then(isOnline => {
+        if (!isOnline) {
+          observer.error(new Error('Không có kết nối internet. Vui lòng kiểm tra và thử lại.'));
+          return;
+        }        const params = new HttpParams().set('url', url);
+
+        // Platform-specific configuration
+        const isNative = Capacitor.isNativePlatform();
+        const platform = Capacitor.getPlatform();
+
+        let headers: any = {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        };
+
+        // Add native-specific headers for better server communication
+        if (isNative) {
+          headers = {
+            ...headers,
+            'X-Platform': platform,
+            'X-Request-Type': 'youtube-download',
+            'X-Client-Version': '1.0.0',
+            // Signal server that this is a native request that may need longer processing
+            'X-Timeout-Extended': 'true'
+          };
+        }
+
+        this.http
+          .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, {
+            params,
+            headers
+          })
+          .pipe(            catchError((error) => {
+              console.error('Error downloading from YouTube:', error);
+
+              // Sử dụng YouTube Error Service để phân tích lỗi
+              const errorMessage = this.youtubeErrorService.formatUserMessage(error);
+
+              // Log chi tiết cho debug
+              const analysis = this.youtubeErrorService.analyzeYouTubeError(error);
+              console.error('YouTube Error Analysis:', {
+                status: error.status,
+                message: analysis.message,
+                suggestions: analysis.suggestions,
+                canRetry: analysis.canRetry,
+                severity: analysis.severity
+              });
+
+              throw new Error(errorMessage);
+            })
+          )
+          .subscribe(observer);
+      }).catch(error => {
+        observer.error(error);
+      });
+    });
   }
 
     validateYoutubeUrl(url: string): boolean {
