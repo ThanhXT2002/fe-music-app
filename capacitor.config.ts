@@ -5,17 +5,17 @@ const config: CapacitorConfig = {
   appName: 'XTMusic',
   webDir: 'www',
   server: {
-    androidScheme: 'https',
-    allowNavigation: [
-      'https://i.ytimg.com',
-      'https://img.youtube.com']
-  },  plugins: {
+    androidScheme: 'http',
+    allowNavigation: ['*'],
+    cleartext: true,
+  },
+  plugins: {
     Keyboard: {
-      resize: "none",
-      resizeOnFullScreen: false
+      resize: 'none',
+      resizeOnFullScreen: false,
     },
     StatusBar: {
-      style: "default"
+      style: 'default',
     },
     SafeArea: {
       enabled: true,
@@ -32,15 +32,16 @@ const config: CapacitorConfig = {
       iosSpinnerStyle: 'small',
       splashFullScreen: true,
       splashImmersive: true,
-    },    Filesystem: {
+    },
+    Filesystem: {
       // Disable external storage permissions for Directory.Cache usage
       androidRequestWriteExternalStoragePermission: false,
       androidRequestReadExternalStoragePermission: false,
     },
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample",
-      iconColor: "#488AFF",
-      sound: "beep.wav",
+      smallIcon: 'ic_stat_icon_config_sample',
+      iconColor: '#488AFF',
+      sound: 'beep.wav',
     },
     CapacitorSQLite: {
       iosDatabaseLocation: 'Library/CapacitorDatabase',
