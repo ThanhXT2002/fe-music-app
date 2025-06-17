@@ -10,7 +10,7 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 2; // Tăng version để trigger upgrade
+  private dbVersion = 3; // Tăng version để trigger upgrade và tạo thumbnailFiles store
 
   constructor() {}
 
@@ -320,7 +320,6 @@ export class IndexedDBService {
 
     return await this.put('audioFiles', audioFile);
   }
-
   /**
    * Lưu thumbnail file blob vào IndexedDB
    * @param songId - ID của bài hát
@@ -329,7 +328,18 @@ export class IndexedDBService {
    * @returns Promise<boolean>
    */
   async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db) {
+      console.error('IndexedDB is not initialized for thumbnail save');
+      return false;
+    }
+
+    console.log('💾 Saving thumbnail to IndexedDB:', {
+      songId,
+      blobSize: blob.size,
+      mimeType,
+      hasDB: !!this.db,
+      objectStores: this.getObjectStoreNames()
+    });
 
     const thumbnailFile = {
       songId: songId,
@@ -339,7 +349,9 @@ export class IndexedDBService {
       createdAt: new Date()
     };
 
-    return await this.put('thumbnailFiles', thumbnailFile);
+    const success = await this.put('thumbnailFiles', thumbnailFile);
+    console.log('💾 Thumbnail save result:', success);
+    return success;
   }
 
   /**
@@ -353,17 +365,31 @@ export class IndexedDBService {
     const audioFile = await this.get('audioFiles', songId);
     return audioFile ? audioFile.blob : null;
   }
-
   /**
    * Lấy thumbnail file blob theo songId
    * @param songId - ID của bài hát
    * @returns Promise<Blob | null>
    */
   async getThumbnailFile(songId: string): Promise<Blob | null> {
-    if (!this.db) return null;
+    if (!this.db) {
+      console.error('IndexedDB is not initialized for thumbnail get');
+      return null;
+    }
 
+    console.log('🔍 Getting thumbnail from IndexedDB:', songId);
     const thumbnailFile = await this.get('thumbnailFiles', songId);
-    return thumbnailFile ? thumbnailFile.blob : null;
+
+    if (thumbnailFile) {
+      console.log('✅ Found thumbnail in IndexedDB:', {
+        songId,
+        blobSize: thumbnailFile.blob.size,
+        mimeType: thumbnailFile.mimeType
+      });
+      return thumbnailFile.blob;
+    } else {
+      console.log('❌ No thumbnail found in IndexedDB for:', songId);
+      return null;
+    }
   }
 
   /**
@@ -448,6 +474,28 @@ export class IndexedDBService {
     } catch (error) {
       console.error('Error getting storage usage:', error);
       return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+    }
+  }
+
+  /**
+   * Debug: Lấy tất cả thumbnails từ IndexedDB
+   */
+  async getAllThumbnails(): Promise<any[]> {
+    try {
+      const transaction = this.db!.transaction(['thumbnailFiles'], 'readonly');
+      const store = transaction.objectStore('thumbnailFiles');
+      const request = store.getAll();
+
+      return new Promise((resolve, reject) => {
+        request.onsuccess = () => {
+          console.log('📊 All thumbnails in IndexedDB:', request.result);
+          resolve(request.result);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('❌ Error getting all thumbnails:', error);
+      return [];
     }
   }
 }

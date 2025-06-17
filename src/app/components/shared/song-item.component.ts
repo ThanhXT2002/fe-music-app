@@ -17,6 +17,7 @@ import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { apps } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { OfflineMediaService } from 'src/app/services/offline-media.service';
 
 @Component({
   selector: 'app-song-item',
@@ -36,9 +37,9 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
       [title]="isCurrentSong ? 'Click to open player' : 'Click to play'"
     >
       <div class="flex items-center space-x-3">
-        <!-- Thumbnail -->
+        <!-- Thumbnail - sử dụng actualThumbnailUrl thay vì song.thumbnail -->
         <img
-          [src]="song.thumbnail"
+          [src]="actualThumbnailUrl"
           [alt]="song.title"
           class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2  shadow-2xl shadow-rose-500"
           [ngClass]="{
@@ -46,6 +47,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
             'spin-paused border-purple-500': !isThisSongPlaying,
             'border-blue-500': isCurrentSong && !isThisSongPlaying
           }"
+          (error)="onThumbnailError($event)"
         />
         <!-- Song Info -->
         <div class="flex-1 min-w-0">
@@ -122,7 +124,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SongItemComponent implements OnInit {
+export class SongItemComponent implements OnInit, OnDestroy {
   @Input() song!: Song;
   @Input() showAlbum: boolean = true;
   @Input() showArtist: boolean = true;
@@ -136,12 +138,20 @@ export class SongItemComponent implements OnInit {
   @Output() showMenu = new EventEmitter<Song>();
   @Output() toggleFavorite = new EventEmitter<Song>();
   @Output() openPlayer = new EventEmitter<void>();
+
   currentSong: Song | null = null;
   isPlaying = false;
+
+  // Thêm property để quản lý thumbnail URL thực tế
+  actualThumbnailUrl: string = '';
+  private placeholderUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Tm8gSW1hZ2U8L3RleHQ+PC9zdmc+';
+
   constructor(
     private audioPlayerService: AudioPlayerService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    // Thêm OfflineMediaService
+    private offlineMediaService: OfflineMediaService
   ) {
     addIcons({ apps });
 
@@ -154,11 +164,63 @@ export class SongItemComponent implements OnInit {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     // Get initial state
     const state = this.audioPlayerService.playbackState();
     this.currentSong = state.currentSong;
     this.isPlaying = state.isPlaying;
+
+    // Load thumbnail từ offline storage
+    await this.loadThumbnail();
+  }
+
+  ngOnDestroy() {
+    // Clear thumbnail cache khi component destroy
+    if (this.song?.id) {
+      this.offlineMediaService.clearThumbnailCache(this.song.id);
+    }
+  }
+  /**
+   * Load thumbnail từ offline storage (IndexedDB cho web, SQLite cho native)
+   */
+  private async loadThumbnail() {
+    try {
+      if (!this.song?.id) {
+        this.actualThumbnailUrl = this.placeholderUrl;
+        this.cdr.markForCheck();
+        return;
+      }
+
+      console.log(`🎵 Loading thumbnail for song: "${this.song.title}" (ID: ${this.song.id})`);
+
+      // Dùng OfflineMediaService để load thumbnail offline-first
+      const thumbnailUrl = await this.offlineMediaService.getThumbnailUrl(
+        this.song.id,
+        this.song.thumbnail || ''
+      );
+
+      this.actualThumbnailUrl = thumbnailUrl;
+      this.cdr.markForCheck();
+
+      console.log(`📷 Thumbnail loaded for "${this.song.title}" (ID: ${this.song.id}):`,
+        thumbnailUrl.startsWith('blob:') ? 'Offline (blob)' :
+        thumbnailUrl.startsWith('data:') ? 'Placeholder' : 'Other'
+      );
+
+    } catch (error) {
+      console.warn('❌ Failed to load thumbnail:', error);
+      this.actualThumbnailUrl = this.placeholderUrl;
+      this.cdr.markForCheck();
+    }
+  }
+
+  /**
+   * Xử lý lỗi khi load thumbnail
+   */
+  onThumbnailError(event: any) {
+    console.warn('❌ Thumbnail load error for song:', this.song?.title);
+    this.actualThumbnailUrl = this.placeholderUrl;
+    this.cdr.markForCheck();
   }
 
   get isCurrentSong(): boolean {

@@ -421,14 +421,22 @@ export class DownloadService {
       this.updateDownloadProgress(id, totalProgress);      // Step 4: Save thumbnail to IndexedDB (10% of total progress)
       let thumbnailSaved = false;
       try {
+        console.log('🖼️ Saving thumbnail to IndexedDB:', {
+          songId: songData.id,
+          thumbnailType,
+          blobSize: thumbnailBlob.size
+        });
+
         // IndexedDB is already initialized from the previous step
         thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
           songData.id,
           thumbnailBlob,
           thumbnailType
         );
+
+        console.log('✅ Thumbnail saved to IndexedDB:', thumbnailSaved);
       } catch (err: any) {
-        console.error('Failed to save thumbnail file to IndexedDB:', err);
+        console.error('❌ Failed to save thumbnail file to IndexedDB:', err);
         throw new Error('Failed to save thumbnail file to IndexedDB: ' + (err && (err.message || err.toString()) || err));
       }
 
@@ -582,7 +590,6 @@ export class DownloadService {
       throw new Error(`Failed to save audio file: ${error}`);
     }
   }
-
   /**
    * Download và lưu thumbnail cho native platform
    * @param download - Download task
@@ -591,6 +598,11 @@ export class DownloadService {
     if (!download.thumbnail || !download.songData) return;
 
     try {
+      console.log('🖼️ Starting thumbnail download for native:', {
+        songId: download.songData.id,
+        title: download.title,
+        thumbnailUrl: download.thumbnail
+      });
 
       const response = await fetch(download.thumbnail);
 
@@ -599,6 +611,10 @@ export class DownloadService {
       }
 
       const thumbnailBlob = await response.blob();
+      console.log('📷 Thumbnail downloaded:', {
+        size: thumbnailBlob.size,
+        type: thumbnailBlob.type
+      });
 
       // Lưu vào SQLite
       const saved = await this.databaseService.saveThumbnailFile(
@@ -607,8 +623,10 @@ export class DownloadService {
         thumbnailBlob.type || 'image/jpeg'
       );
 
-      if (!saved) {
-       console.warn('⚠️ Failed to save thumbnail for native:', download.title);
+      if (saved) {
+        console.log('✅ Thumbnail saved to SQLite for:', download.title);
+      } else {
+        console.warn('⚠️ Failed to save thumbnail for native:', download.title);
       }
 
     } catch (error) {

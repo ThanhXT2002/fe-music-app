@@ -584,8 +584,7 @@ export class DatabaseService {
     }
 
     return songs;
-  }
-  /**
+  }  /**
    * Lưu thumbnail file vào storage
    * @param songId - ID của bài hát
    * @param blob - Thumbnail blob
@@ -603,6 +602,12 @@ export class DatabaseService {
           return false;
         }
 
+        console.log('💾 Saving thumbnail to SQLite:', {
+          songId,
+          blobSize: blob.size,
+          mimeType
+        });
+
         // Chuyển blob thành base64 để lưu vào SQLite
         const base64Data = await this.blobToBase64(blob);
 
@@ -615,11 +620,10 @@ export class DatabaseService {
         return true;
       }
     } catch (error) {
-      console.error('Error saving thumbnail file:', error);
+      console.error('❌ Error saving thumbnail file:', error);
       return false;
     }
   }
-
   /**
    * Lấy thumbnail blob từ storage
    * @param songId - ID của bài hát
@@ -636,6 +640,7 @@ export class DatabaseService {
           return null;
         }
 
+        console.log('🔍 Getting thumbnail from SQLite:', songId);
         const result = await this.db.query(
           'SELECT blob, mimeType FROM thumbnail_files WHERE songId = ?',
           [songId]
@@ -643,15 +648,22 @@ export class DatabaseService {
 
         if (result.values && result.values.length > 0) {
           const row = result.values[0];
+          console.log('✅ Found thumbnail in SQLite:', {
+            songId,
+            mimeType: row.mimeType,
+            base64Length: row.blob.length
+          });
+
           // Chuyển base64 thành blob
           const base64Data = row.blob;
           return this.base64ToBlob(base64Data, row.mimeType);
+        } else {
+          console.log('❌ No thumbnail found in SQLite for:', songId);
+          return null;
         }
-
-        return null;
       }
     } catch (error) {
-      console.error('Error getting thumbnail blob:', error);
+      console.error('❌ Error getting thumbnail blob:', error);
       return null;
     }
   }
@@ -1537,5 +1549,40 @@ export class DatabaseService {
     }
 
     throw new Error('executeWithRetry: Should not reach here');
+  }
+  /**
+   * Debug: Lấy tất cả bài hát đã download
+   */
+  async getDownloadedSongs(): Promise<any[]> {
+    try {
+      const query = 'SELECT * FROM songs ORDER BY createdAt DESC';
+      const result = await CapacitorSQLite.query({
+        database: DB_XTMUSIC,
+        statement: query
+      });
+      console.log('📊 All downloaded songs:', result.values);
+      return result.values || [];
+    } catch (error) {
+      console.error('❌ Error getting downloaded songs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Debug: Lấy tất cả thumbnails từ SQLite
+   */
+  async getAllThumbnails(): Promise<any[]> {
+    try {
+      const query = 'SELECT songId, length(thumbnailData) as size FROM songs WHERE thumbnailData IS NOT NULL';
+      const result = await CapacitorSQLite.query({
+        database: DB_XTMUSIC,
+        statement: query
+      });
+      console.log('📊 All thumbnails in SQLite:', result.values);
+      return result.values || [];
+    } catch (error) {
+      console.error('❌ Error getting all thumbnails:', error);
+      return [];
+    }
   }
 }

@@ -16,6 +16,8 @@ import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
 import { PermissionService } from './services/permission.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+// Thêm OfflineMediaService để debug thumbnail
+import { OfflineMediaService } from './services/offline-media.service';
 
 @Component({
   selector: 'app-root',
@@ -32,8 +34,28 @@ export class AppComponent implements OnInit, OnDestroy {
     private dbService: DatabaseService,
     private appLifecycleService: AppLifecycleService,
     private playbackRestoreService: PlaybackRestoreService,
-    private permissionService: PermissionService
-  ) {}
+    private permissionService: PermissionService,
+    // Thêm OfflineMediaService để debug
+    private offlineMediaService: OfflineMediaService
+  ) {    // Expose debug methods to global window object for console testing
+    (window as any).debugThumbnails = async () => {
+      console.log('🧪 Starting thumbnail debug...');
+      await this.offlineMediaService.debugListThumbnails();
+    };
+    (window as any).testThumbnailStorage = async () => {
+      console.log('🧪 Testing thumbnail storage...');
+      await this.offlineMediaService.debugTestThumbnailStorage();
+    };
+    (window as any).checkDownloadedSongs = async () => {
+      console.log('🧪 Getting all downloaded songs...');
+      return await this.offlineMediaService.getDownloadedSongs();
+    };
+    (window as any).checkAllThumbnails = async () => {
+      console.log('🧪 Getting all thumbnails...');
+      return await this.offlineMediaService.getAllThumbnails();
+    };
+    (window as any).debugOfflineMedia = this.offlineMediaService;
+  }
 
 
   ngOnInit() {
@@ -52,6 +74,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    this.cleanupDatabase();
   }
 
   /**
@@ -64,7 +87,9 @@ export class AppComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('❌ App cleanup: Failed to close database:', error);
     }
-  }  async initializeApp() {
+  }
+
+  async initializeApp() {
     await this.platform.ready();
 
     // Khởi tạo database ngay sau khi platform ready
