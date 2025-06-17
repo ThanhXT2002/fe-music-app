@@ -289,9 +289,7 @@ export class DatabaseService {
         songId TEXT NOT NULL,
         playedAt TEXT NOT NULL,
         FOREIGN KEY (songId) REFERENCES songs(id) ON DELETE CASCADE
-      );`,
-
-      `CREATE TABLE IF NOT EXISTS search_history (
+      );`,      `CREATE TABLE IF NOT EXISTS search_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         songId TEXT NOT NULL,
         title TEXT NOT NULL,
@@ -301,7 +299,7 @@ export class DatabaseService {
         duration INTEGER NOT NULL,
         duration_formatted TEXT,
         keywords TEXT,
-        searchedAt TEXT NOT NULL
+        searchedAt TEXT NOT NULL,
         UNIQUE(songId)
       );`,
 
@@ -590,10 +588,10 @@ export class DatabaseService {
    * @param blob - Thumbnail blob
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
-   */
-  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+   */  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
     try {
-      if (this.platform === 'web') {
+      // LUÔN sử dụng Capacitor.getPlatform() thay vì this.platform để tránh lỗi fallback
+      if (Capacitor.getPlatform() === 'web') {
         return await this.indexedDB.saveThumbnailFile(songId, blob, mimeType);
       } else {
         // Native: Lưu vào SQLite
@@ -628,19 +626,21 @@ export class DatabaseService {
    * Lấy thumbnail blob từ storage
    * @param songId - ID của bài hát
    * @returns Promise<Blob | null>
-   */
-  async getThumbnailBlob(songId: string): Promise<Blob | null> {
+   */  async getThumbnailBlob(songId: string): Promise<Blob | null> {
+    console.log('🔍 getThumbnailBlob - Platform:', this.platform, 'Capacitor.getPlatform():', Capacitor.getPlatform());
     try {
-      if (this.platform === 'web') {
+      // LUÔN sử dụng Capacitor.getPlatform() thay vì this.platform để tránh lỗi fallback
+      if (Capacitor.getPlatform() === 'web') {
+        console.log('🌐 Using IndexedDB for thumbnail (platform is web)');
         return await this.indexedDB.getThumbnailFile(songId);
       } else {
         // Native: Lấy từ SQLite
         if (!this.db) {
           console.error('Database not initialized');
           return null;
-        }
+        }        console.log('🔍 Getting thumbnail from SQLite:', songId);
 
-        console.log('🔍 Getting thumbnail from SQLite:', songId);
+        // Chỉ tìm trong thumbnail_files table
         const result = await this.db.query(
           'SELECT blob, mimeType FROM thumbnail_files WHERE songId = ?',
           [songId]
@@ -648,7 +648,7 @@ export class DatabaseService {
 
         if (result.values && result.values.length > 0) {
           const row = result.values[0];
-          console.log('✅ Found thumbnail in SQLite:', {
+          console.log('✅ Found thumbnail in thumbnail_files table:', {
             songId,
             mimeType: row.mimeType,
             base64Length: row.blob.length
@@ -657,10 +657,10 @@ export class DatabaseService {
           // Chuyển base64 thành blob
           const base64Data = row.blob;
           return this.base64ToBlob(base64Data, row.mimeType);
-        } else {
-          console.log('❌ No thumbnail found in SQLite for:', songId);
-          return null;
         }
+
+        console.log('❌ No thumbnail found in SQLite for:', songId);
+        return null;
       }
     } catch (error) {
       console.error('❌ Error getting thumbnail blob:', error);

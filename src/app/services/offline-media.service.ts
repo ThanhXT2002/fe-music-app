@@ -41,10 +41,9 @@ export class OfflineMediaService {
     if (isSongDownloaded) {
       console.log('💾 Song is downloaded, loading offline thumbnail...');
       try {
-        let thumbnailUrl: string | null = null;
-        if (Capacitor.isNativePlatform()) {
+        let thumbnailUrl: string | null = null;        if (Capacitor.isNativePlatform()) {
           // Native platform: Lấy từ SQLite database
-          console.log('📱 Native: Loading thumbnail from SQLite database');
+          console.log('📱 Native: Loading thumbnail from SQLite database. Platform:', Capacitor.getPlatform());
           const thumbnailBlob = await this.databaseService.getThumbnailBlob(songId);
           if (thumbnailBlob) {
             thumbnailUrl = URL.createObjectURL(thumbnailBlob);

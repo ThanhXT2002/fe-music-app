@@ -49,10 +49,21 @@ export class AppComponent implements OnInit, OnDestroy {
     (window as any).checkDownloadedSongs = async () => {
       console.log('🧪 Getting all downloaded songs...');
       return await this.offlineMediaService.getDownloadedSongs();
-    };
-    (window as any).checkAllThumbnails = async () => {
+    };    (window as any).checkAllThumbnails = async () => {
       console.log('🧪 Getting all thumbnails...');
       return await this.offlineMediaService.getAllThumbnails();
+    };
+    (window as any).debugThumbnailSQLite = async () => {
+      console.log('🧪 Debug thumbnail SQLite...');
+      // Get all downloaded songs first
+      const songs = await this.offlineMediaService.getDownloadedSongs();
+      console.log('📊 Downloaded songs:', songs.length);
+
+      // Check each song for thumbnail
+      for (const song of songs.slice(0, 5)) {
+        const thumbnail = await this.offlineMediaService.getThumbnailUrl(song.id, song.thumbnail_url || '');
+        console.log(`- ${song.id} (${song.title}): ${thumbnail.startsWith('blob:') ? 'Has thumbnail' : 'No thumbnail'}`);
+      }
     };
     (window as any).debugOfflineMedia = this.offlineMediaService;
   }
