@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from '../../services/database.service';
-import { DataSong, Song } from '../../interfaces/song.interface';
+import { DataSong, Song, SearchHistoryItem } from '../../interfaces/song.interface';
 
 @Component({
   selector: 'app-database-test',
@@ -72,22 +72,21 @@ export class DatabaseTestPage implements OnInit {
       // Test 5: Search songs
       this.addResult('🔍 Testing search songs...');
       const searchResults = await this.databaseService.searchSongs('Test');
-      this.addResult(`✅ Found ${searchResults.length} songs in search`);
-
-      // Test 6: Add to search history
+      this.addResult(`✅ Found ${searchResults.length} songs in search`);      // Test 6: Add to search history
       this.addResult('🔍 Testing add to search history...');
-      const testSearchData: DataSong = {
-        id: 'test-search-1',
+      const testSearchData: SearchHistoryItem = {
+        songId: 'test-search-1',
         title: 'Test Search Song',
         artist: 'Test Search Artist',
         thumbnail_url: 'https://via.placeholder.com/100',
         audio_url: 'https://example.com/search-audio.mp3',
         duration: 240,
         duration_formatted: '4:00',
-        keywords: ['test', 'search']
+        keywords: ['test', 'search'],
+        searchedAt: new Date()
       };
 
-      const historyResult = await this.databaseService.addToSearchHistory(testSearchData);
+      const historyResult = await this.databaseService.addSearchHistory(testSearchData);
       if (historyResult) {
         this.addResult('✅ Added to search history successfully');
       } else {
@@ -107,12 +106,10 @@ export class DatabaseTestPage implements OnInit {
       // Test 9: Get favorite songs
       this.addResult('🔍 Testing get favorite songs...');
       const favorites = await this.databaseService.getFavoriteSongs();
-      this.addResult(`✅ Retrieved ${favorites.length} favorite songs`);
-
-      // Test 10: Get search history stats
-      this.addResult('🔍 Testing get search history stats...');
-      const stats = await this.databaseService.getSearchHistoryStats();
-      this.addResult(`✅ Stats - Total: ${stats.totalSongs}, Downloaded: ${stats.downloadedSongs}, Pending: ${stats.pendingSongs}`);
+      this.addResult(`✅ Retrieved ${favorites.length} favorite songs`);      // Test 10: Get database stats
+      this.addResult('🔍 Testing get database stats...');
+      const stats = await this.databaseService.getDatabaseStats();
+      this.addResult(`✅ Stats - Songs: ${stats.songsCount}, Playlists: ${stats.playlistsCount}, History: ${stats.historyCount}`);
 
       this.addResult('🎉 All tests completed!');
 
@@ -141,7 +138,7 @@ export class DatabaseTestPage implements OnInit {
 
   async clearData() {
     this.addResult('🔍 Clearing all data...');
-    const result = await this.databaseService.clearAllData();
+    const result = await this.databaseService.clearDatabase();
     if (result) {
       this.addResult('✅ All data cleared successfully');
     } else {

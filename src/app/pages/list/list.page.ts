@@ -113,7 +113,7 @@ export class ListPage implements OnInit, OnDestroy {
       const allSongs = await this.databaseService.getAllSongs();
 
       // Load recent songs
-      const recentSongs = await this.databaseService.getRecentlyPlayedSongs(50);
+      const recentSongs = await this.databaseService.getRecentlyPlayed(50);
 
       // Load favorite songs
       const favoriteSongs = await this.databaseService.getFavoriteSongs();

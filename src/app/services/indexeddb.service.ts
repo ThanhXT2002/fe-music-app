@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
 
 /**
  * Service wrapper cho IndexedDB để sử dụng trên web platform
@@ -496,6 +497,232 @@ export class IndexedDBService {
     } catch (error) {
       console.error('❌ Error getting all thumbnails:', error);
       return [];
+    }
+  }
+
+  // ===== SONG SPECIFIC METHODS =====
+
+  /**
+   * Add a song to the database
+   */
+  async addSong(song: Song): Promise<boolean> {
+    return await this.put('songs', song);
+  }
+
+  /**
+   * Get all songs from database
+   */
+  async getAllSongs(): Promise<Song[]> {
+    const songs = await this.getAll('songs');
+    return songs as Song[];
+  }
+
+  /**
+   * Get song by ID
+   */
+  async getSongById(id: string): Promise<Song | null> {
+    const song = await this.get('songs', id);
+    return song as Song || null;
+  }
+
+  /**
+   * Update song information
+   */
+  async updateSong(song: Song): Promise<boolean> {
+    return await this.put('songs', song);
+  }
+
+  /**
+   * Delete song from database
+   */
+  async deleteSong(songId: string): Promise<boolean> {
+    return await this.delete('songs', songId);
+  }
+
+  /**
+   * Search songs by title or artist
+   */
+  async searchSongs(query: string): Promise<Song[]> {
+    const allSongs = await this.getAllSongs();
+    const searchQuery = query.toLowerCase();
+
+    return allSongs.filter(song =>
+      song.title.toLowerCase().includes(searchQuery) ||
+      song.artist.toLowerCase().includes(searchQuery)
+    );
+  }
+
+  // ===== SEARCH HISTORY METHODS =====
+  /**
+   * Add search history item
+   */
+  async addSearchHistory(item: SearchHistoryItem): Promise<boolean> {
+    // Set searchedAt if not provided
+    if (!item.searchedAt) {
+      item.searchedAt = new Date();
+    }
+    return await this.put('search_history', item);
+  }
+
+  /**
+   * Get search history (sorted by date, newest first)
+   */
+  async getSearchHistory(): Promise<SearchHistoryItem[]> {
+    const history = await this.getAll('search_history');
+    return (history as SearchHistoryItem[]).sort((a, b) =>
+      new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime()
+    );
+  }
+
+  /**
+   * Clear all search history
+   */
+  async clearSearchHistory(): Promise<boolean> {
+    return await this.clear('search_history');
+  }
+
+  /**
+   * Delete specific search history item
+   */
+  async deleteSearchHistoryItem(songId: string): Promise<boolean> {
+    return await this.delete('search_history', songId);
+  }
+
+  // ===== RECENTLY PLAYED METHODS =====
+
+  /**
+   * Add song to recently played
+   */
+  async addRecentlyPlayed(songId: string): Promise<boolean> {
+    const recentItem = {
+      id: Date.now(), // Use timestamp as ID
+      songId: songId,
+      playedAt: new Date().toISOString()
+    };
+    return await this.put('recently_played', recentItem);
+  }
+
+  /**
+   * Get recently played songs
+   */
+  async getRecentlyPlayed(limit: number = 50): Promise<Song[]> {
+    const recentItems = await this.getAll('recently_played');
+
+    // Sort by played date (newest first) and limit
+    const sortedItems = recentItems
+      .sort((a: any, b: any) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
+      .slice(0, limit);
+
+    // Get actual song data
+    const songs: Song[] = [];
+    for (const item of sortedItems) {
+      const song = await this.getSongById(item.songId);
+      if (song) {
+        songs.push(song);
+      }
+    }
+
+    return songs;
+  }
+
+  /**
+   * Clear recently played history
+   */
+  async clearRecentlyPlayed(): Promise<boolean> {
+    return await this.clear('recently_played');
+  }
+
+  // ===== PLAYLIST METHODS =====
+  /**
+   * Create a new playlist
+   */
+  async createPlaylist(playlist: Playlist): Promise<boolean> {
+    // Set dates if not provided
+    const now = new Date();
+    if (!playlist.createdDate) playlist.createdDate = now;
+    if (!playlist.updatedDate) playlist.updatedDate = now;
+
+    return await this.put('playlists', playlist);
+  }
+
+  /**
+   * Get all playlists
+   */
+  async getAllPlaylists(): Promise<Playlist[]> {
+    const playlists = await this.getAll('playlists');
+    return playlists as Playlist[];
+  }
+
+  /**
+   * Get playlist by ID
+   */
+  async getPlaylistById(id: string): Promise<Playlist | null> {
+    const playlist = await this.get('playlists', id);
+    return playlist as Playlist || null;
+  }
+  /**
+   * Update playlist
+   */
+  async updatePlaylist(playlist: Playlist): Promise<boolean> {
+    playlist.updatedDate = new Date();
+    return await this.put('playlists', playlist);
+  }
+
+  /**
+   * Delete playlist
+   */
+  async deletePlaylist(playlistId: string): Promise<boolean> {
+    return await this.delete('playlists', playlistId);
+  }
+
+  // ===== THUMBNAIL BLOB METHODS =====
+
+  /**
+   * Save thumbnail blob for a song
+   */
+  async saveThumbnailBlob(songId: string, blob: Blob): Promise<boolean> {
+    const thumbnailData = {
+      songId: songId,
+      blob: blob,
+      mimeType: blob.type,
+      size: blob.size,
+      createdAt: new Date().toISOString()
+    };
+    return await this.put('thumbnailFiles', thumbnailData);
+  }
+
+  /**
+   * Get thumbnail blob for a song
+   */
+  async getThumbnailBlob(songId: string): Promise<Blob | null> {
+    const thumbnailData = await this.get('thumbnailFiles', songId);
+    return thumbnailData ? thumbnailData.blob : null;
+  }
+
+  /**
+   * Delete thumbnail blob for a song
+   */
+  async deleteThumbnailBlob(songId: string): Promise<boolean> {
+    return await this.delete('thumbnailFiles', songId);
+  }
+
+  // ===== DATABASE UTILITY METHODS =====
+
+  /**
+   * Clear entire database
+   */
+  async clearDatabase(): Promise<boolean> {
+    try {
+      const storeNames = ['songs', 'search_history', 'recently_played', 'playlists', 'thumbnailFiles', 'audioFiles'];
+
+      for (const storeName of storeNames) {
+        await this.clear(storeName);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error clearing database:', error);
+      return false;
     }
   }
 }

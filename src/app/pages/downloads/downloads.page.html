@@ -106,9 +106,7 @@
               <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ result.duration_formatted }}
               </p>
-            </div>
-
-            <!-- Download Button -->
+            </div>            <!-- Download Button -->
             <div class="flex-shrink-0">
               @if(isDownloaded(result.id)) {
                 <!-- Downloaded -->
@@ -123,14 +121,19 @@
                     {{ getDownloadProgress(result.id) }}%
                   </p>
                 </div>
-              } @else {
-                <!-- Download Button -->
+              } @else if(isReadyForDownload(result.id)) {
+                <!-- Ready for Download -->
                 <button
-                  (click)="downloadSong(result)"
+                  (click)="manualDownloadSong(result.id)"
                   class="btn-icon text-purple-600 hover:text-purple-700"
                 >
                   <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"></i>
                 </button>
+              } @else {
+                <!-- Processing (Spinner) -->
+                <div class="text-gray-400">
+                  <div class="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
               }
             </div>
           </div>
@@ -204,9 +207,7 @@
                 <p class="text-xs text-gray-600 dark:text-gray-400">
                   {{ song.duration_formatted }}
                 </p>
-              </div>
-
-              <!-- Download Status -->
+              </div>              <!-- Download Status -->
               <div class="flex-shrink-0">
                 @if(isDownloaded(song.songId)) {
                   <!-- Already Downloaded -->
@@ -221,6 +222,14 @@
                       {{ getDownloadProgress(song.songId) }}%
                     </p>
                   </div>
+                } @else if(isReadyForDownload(song.songId)) {
+                  <!-- Ready for Download -->
+                  <button
+                    (click)="manualDownloadSong(song.songId)"
+                    class="btn-icon text-purple-600 hover:text-purple-700"
+                  >
+                    <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"></i>
+                  </button>
                 } @else {
                   <!-- Download Button -->
                   <button

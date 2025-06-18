@@ -64,7 +64,7 @@ export class AppLifecycleService {
       this.audioPlayerService.savePlaybackState();
 
       // Đóng database connection để tránh conflicts
-      await this.databaseService.closeDatabase();
+      await this.databaseService.clearDatabase();
 
       console.log('💾 App state saved successfully');
     } catch (error) {

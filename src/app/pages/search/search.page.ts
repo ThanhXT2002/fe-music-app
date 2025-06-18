@@ -61,8 +61,7 @@ async processYouTubeUrl(url: string) {
       .pipe(
         tap(response => {
           if (response.success) {
-            const song = response.data;
-            // Convert API response to search result format
+            const song = response.data;            // Convert API response to search result format
             const result: DataSong = {
               id: song.id,
               title: song.title,
@@ -70,7 +69,7 @@ async processYouTubeUrl(url: string) {
               duration: song.duration,
               duration_formatted: song.duration_formatted,
               thumbnail_url: song.thumbnail_url,
-              audio_url: song.audio_url,
+              audio_url: song.original_url, // Use original_url as audio_url for compatibility
               keywords: song.keywords || [],
             };
 

@@ -93,7 +93,7 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   private async cleanupDatabase() {
     try {
-      await this.dbService.closeDatabase();
+      await this.dbService.clearDatabase();
       console.log('🧹 App cleanup: Database closed successfully');
     } catch (error) {
       console.error('❌ App cleanup: Failed to close database:', error);
