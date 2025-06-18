@@ -6,7 +6,6 @@ import { Capacitor } from '@capacitor/core';
 
 import { DatabaseService } from '../../services/database.service';
 import { IndexedDBService } from '../../services/indexeddb.service';
-import { StorageManagerService } from '../../services/storage-manager.service';
 import { DownloadService, DownloadTask, SongStatus } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import {
@@ -348,7 +347,7 @@ export class DownloadsPage implements OnInit {  constructor(
 
       // Process thumbnails for offline display
       const processedSongs = await Promise.all(
-        songs.map(async (song) => {
+        songs.map(async (song: Song) => {
           // Get offline thumbnail (embedded in IndexedDB)
           const thumbnailUrl = await this.getOfflineThumbnail(song);
           return {
@@ -361,7 +360,7 @@ export class DownloadsPage implements OnInit {  constructor(
       this.downloadHistory.set(processedSongs);
 
       // Update downloaded song IDs for UI state
-      const downloadedIds = new Set(songs.map(song => song.id));
+      const downloadedIds = new Set(songs.map((song: Song) => song.id));
       this.downloadedSongIds.set(downloadedIds);
       console.log(`✅ Loaded ${songs.length} downloaded songs, IDs: [${Array.from(downloadedIds).join(', ')}]`);
 
