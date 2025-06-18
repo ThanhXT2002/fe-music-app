@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
+import { StorageManagerService } from './storage-manager.service';
 
 /**
  * Service quản lý cơ sở dữ liệu IndexedDB cho ứng dụng nhạc (Unified for Web & Native)
@@ -18,19 +19,17 @@ export class DatabaseService {
   private isDbReady = false;
   // Flag để track initialization process
   private isInitializing = false;
-
   constructor(
     indexedDBService: IndexedDBService,
-    private refreshService: RefreshService
+    private refreshService: RefreshService,
+    private storageManager: StorageManagerService
   ) {
     this.indexedDB = indexedDBService;
     // Khởi tạo database khi service được tạo
     this.initializeDatabase().catch(error => {
       console.error('❌ Failed to initialize database in constructor:', error);
     });
-  }
-
-  /**
+  }  /**
    * Khởi tạo cơ sở dữ liệu IndexedDB cho cả web và native
    */
   async initializeDatabase() {
@@ -43,11 +42,32 @@ export class DatabaseService {
     this.isInitializing = true;
 
     try {
+      console.log('🔧 Initializing database with persistent storage...');
+
+      // CRITICAL: Setup persistent storage FIRST
+      const persistentGranted = await this.storageManager.setupPersistentStorage();
+
+      // Get detailed storage info for debugging
+      const storageInfo = await this.storageManager.getStorageInfo();
+      console.log('📊 Storage Info:', storageInfo);
+
+      // Warn if incognito mode
+      if (storageInfo.isIncognito) {
+        console.warn('⚠️ INCOGNITO MODE DETECTED - Data will be lost when browser closes!');
+      }
+
+      // Warn if persistent storage not granted
+      if (!persistentGranted) {
+        console.warn('⚠️ PERSISTENT STORAGE NOT GRANTED - Data may be cleared by browser!');
+      }
+
+      // Initialize IndexedDB
       await this.indexedDB.initDB();
       this.isDbReady = true;
-      console.log('✅ IndexedDB initialized successfully for unified storage');
+      console.log('✅ Database initialized successfully with storage persistence');
+
     } catch (error) {
-      console.error('❌ Error initializing IndexedDB database:', error);
+      console.error('❌ Error initializing database:', error);
       this.isDbReady = false;
       throw error;
     } finally {
@@ -542,6 +562,39 @@ export class DatabaseService {
     } catch (error) {
       console.error('❌ Error importing data:', error);
       return false;
+    }
+  }
+
+  /**
+   * Get comprehensive database and storage status for debugging
+   */
+  async getDebugInfo(): Promise<any> {
+    try {
+      const debugInfo: any = {
+        database: {
+          isReady: this.isDbReady,
+          isInitializing: this.isInitializing,
+          indexedDBStatus: this.indexedDB.getDBStatus()
+        }
+      };
+
+      // Storage manager info
+      debugInfo.storage = await this.storageManager.getStorageInfo();
+
+      // Data counts
+      try {
+        debugInfo.data = {
+          songsCount: (await this.getAllSongs()).length,
+          searchHistoryCount: (await this.getSearchHistory()).length,
+          // playlistsCount: (await this.getAllPlaylists()).length
+        };
+      } catch (error) {
+        debugInfo.data = { error: 'Could not load data counts' };
+      }
+
+      return debugInfo;
+    } catch (error: any) {
+      return { error: error?.message || 'Unknown error' };
     }
   }
 }

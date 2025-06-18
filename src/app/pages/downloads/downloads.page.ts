@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 
 import { DatabaseService } from '../../services/database.service';
 import { IndexedDBService } from '../../services/indexeddb.service';
+import { StorageManagerService } from '../../services/storage-manager.service';
 import { DownloadService, DownloadTask, SongInfo, SongStatus } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import {
@@ -44,7 +45,8 @@ export class DownloadsPage implements OnInit {  constructor(
     private toastController: ToastController,
     private platform: Platform,
     private offlineMediaService: OfflineMediaService,
-    private indexedDBService: IndexedDBService
+    private indexedDBService: IndexedDBService,
+    private storageManager: StorageManagerService
   ) {}
 
   searchQuery = signal('');
@@ -59,27 +61,36 @@ export class DownloadsPage implements OnInit {  constructor(
 
   // Song processing status tracking (for API V3 workflow)
   songStatusMap = signal<Map<string, { status: SongStatus, isPolling: boolean, downloadProgress: number }>>(new Map());
-
   async ngOnInit() {
-    await this.loadSearchHistory();
-    await this.loadDownloadedSongs(); // Load downloaded songs
+    try {
+      // Ensure database is initialized first
+      console.log('🔄 Initializing database...');
+      await this.databaseService.initializeDatabase();
+      console.log('✅ Database initialized successfully');
 
-    // Subscribe to download changes
-    this.downloadService.downloads$.subscribe((downloads) => {
-      this.downloads.set(downloads);      // Cập nhật downloaded songs khi có task hoàn thành
-      const completedSongs = downloads
-        .filter(d => d.status === 'completed' && d.songInfo?.id)
-        .map(d => d.songInfo!.id);
+      await this.loadSearchHistory();
+      await this.loadDownloadedSongs(); // Load downloaded songs
 
-      if (completedSongs.length > 0) {
-        const currentDownloaded = this.downloadedSongIds();
-        const updatedDownloaded = new Set([...currentDownloaded, ...completedSongs]);
-        this.downloadedSongIds.set(updatedDownloaded);
-      }
-    });
+      // Subscribe to download changes
+      this.downloadService.downloads$.subscribe((downloads) => {
+        this.downloads.set(downloads);        // Cập nhật downloaded songs khi có task hoàn thành
+        const completedSongs = downloads
+          .filter(d => d.status === 'completed' && d.songInfo?.id)
+          .map(d => d.songInfo!.id);
 
-    // Auto-paste from clipboard on load
-    await this.tryAutoPaste();
+        if (completedSongs.length > 0) {
+          const currentDownloaded = this.downloadedSongIds();
+          const updatedDownloaded = new Set([...currentDownloaded, ...completedSongs]);
+          this.downloadedSongIds.set(updatedDownloaded);
+        }
+      });
+
+      // Auto-paste from clipboard on load
+      await this.tryAutoPaste();
+    } catch (error) {
+      console.error('❌ Error in ngOnInit:', error);
+      await this.showToast('Lỗi khởi tạo ứng dụng!', 'danger');
+    }
   }
   /**
    * Tự động paste từ clipboard nếu có URL YouTube hợp lệ (chỉ cho native)
@@ -326,18 +337,25 @@ export class DownloadsPage implements OnInit {  constructor(
       this.searchHistory(query);
     }
   }
-
   async loadSearchHistory() {
-    const history = await this.databaseService.getSearchHistory();
-    this.searchHistoryItem.set(history);
-  }
-  /**
+    try {
+      console.log('🔄 Loading search history...');
+      const history = await this.databaseService.getSearchHistory();
+      this.searchHistoryItem.set(history);
+      console.log(`✅ Loaded ${history.length} search history items`);
+    } catch (error) {
+      console.error('❌ Error loading search history:', error);
+      this.searchHistoryItem.set([]);
+    }
+  }  /**
    * Load danh sách songs đã download từ IndexedDB
    */
   private async loadDownloadedSongs() {
     try {
+      console.log('🔄 Loading downloaded songs...');
       // Get all completed songs from IndexedDB
       const songs = await this.databaseService.getAllSongs();
+      console.log(`📱 Found ${songs.length} downloaded songs`);
 
       // Process thumbnails for offline display
       const processedSongs = await Promise.all(
@@ -356,10 +374,12 @@ export class DownloadsPage implements OnInit {  constructor(
       // Update downloaded song IDs for UI state
       const downloadedIds = new Set(songs.map(song => song.id));
       this.downloadedSongIds.set(downloadedIds);
+      console.log(`✅ Loaded ${songs.length} downloaded songs, IDs: [${Array.from(downloadedIds).join(', ')}]`);
 
     } catch (error) {
-      console.error('Error loading downloaded songs:', error);
+      console.error('❌ Error loading downloaded songs:', error);
       this.downloadHistory.set([]);
+      this.downloadedSongIds.set(new Set());
     }
   }
 
@@ -983,12 +1003,10 @@ Hoặc paste thủ công:
           downloadProgress: 0
         });
         this.songStatusMap.set(new Map(statusMap));
-      }
-
-      await this.showToast(`❌ Lỗi tải xuống: ${error?.message || 'Unknown error'}`, 'danger');
+      }      await this.showToast(`❌ Lỗi tải xuống: ${error?.message || 'Unknown error'}`, 'danger');
     }
   }
-  /**
+    /**
    * Check if song is already downloaded
    */
   isSongDownloaded(songId: string): boolean {

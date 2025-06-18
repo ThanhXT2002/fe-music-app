@@ -29,32 +29,39 @@ export class IndexedDBService {
     if (!this.db) return [];
     return Array.from(this.db.objectStoreNames);
   }
-
   /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
     // Nếu database đã được khởi tạo, return true
     if (this.db) {
+      console.log('✅ IndexedDB already initialized');
       return true;
     }
+
+    console.log('🔄 Initializing IndexedDB...');
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
-        console.error('Error opening IndexedDB:', request.error);
+        console.error('❌ Error opening IndexedDB:', request.error);
         reject(false);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('IndexedDB opened successfully');
+        console.log('✅ IndexedDB opened successfully');
+        console.log('📊 Available object stores:', Array.from(this.db.objectStoreNames));
+
+        // Check if we have data
+        this.debugExistingData();
+
         resolve(true);
       };
 
       request.onupgradeneeded = (event) => {
-        console.log('IndexedDB upgrade needed, creating object stores...');
+        console.log('🔧 IndexedDB upgrade needed, creating object stores...');
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Tạo object stores (tương đương với tables trong SQLite)
@@ -722,6 +729,125 @@ export class IndexedDBService {
       return true;
     } catch (error) {
       console.error('Error clearing database:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get database status info for debugging
+   */
+  getDBStatus(): any {
+    return {
+      isReady: this.isReady(),
+      dbName: this.dbName,
+      dbVersion: this.dbVersion,
+      db: this.db,
+      objectStores: this.getObjectStoreNames()
+    };
+  }
+
+  /**
+   * Reset IndexedDB - for debugging purposes
+   */
+  async resetDB(): Promise<boolean> {
+    try {
+      if (this.db) {
+        this.db.close();
+        this.db = null;
+      }
+
+      // Delete the database
+      const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+
+      return new Promise((resolve, reject) => {
+        deleteRequest.onsuccess = () => {
+          console.log('IndexedDB deleted successfully');
+          resolve(true);
+        };
+
+        deleteRequest.onerror = () => {
+          console.error('Error deleting IndexedDB:', deleteRequest.error);
+          reject(false);
+        };
+      });
+    } catch (error) {
+      console.error('Error resetting IndexedDB:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Debug method - check existing data in database
+   */
+  private async debugExistingData() {
+    if (!this.db) return;
+
+    try {
+      // Check songs
+      const songsTransaction = this.db.transaction(['songs'], 'readonly');
+      const songsStore = songsTransaction.objectStore('songs');
+      const songsRequest = songsStore.count();
+
+      songsRequest.onsuccess = () => {
+        console.log(`🎵 Found ${songsRequest.result} songs in database`);
+      };
+
+      // Check search history
+      if (this.db.objectStoreNames.contains('search_history')) {
+        const historyTransaction = this.db.transaction(['search_history'], 'readonly');
+        const historyStore = historyTransaction.objectStore('search_history');
+        const historyRequest = historyStore.count();
+
+        historyRequest.onsuccess = () => {
+          console.log(`📚 Found ${historyRequest.result} search history items`);
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error checking existing data:', error);
+    }
+  }
+
+  /**
+   * Check storage quota and persistent storage
+   */
+  async checkStorageInfo(): Promise<any> {
+    try {
+      const storageInfo: any = {};
+
+      // Check if storage API is available
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const estimate = await navigator.storage.estimate();
+        storageInfo.quota = estimate.quota;
+        storageInfo.usage = estimate.usage;
+        storageInfo.available = estimate.quota ? estimate.quota - (estimate.usage || 0) : 'Unknown';
+      }
+
+      // Check persistent storage
+      if ('storage' in navigator && 'persist' in navigator.storage) {
+        storageInfo.persistent = await navigator.storage.persist();
+      }
+
+      console.log('💾 Storage Info:', storageInfo);
+      return storageInfo;
+    } catch (error) {
+      console.error('❌ Error checking storage info:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Request persistent storage
+   */
+  async requestPersistentStorage(): Promise<boolean> {
+    try {
+      if ('storage' in navigator && 'persist' in navigator.storage) {
+        const granted = await navigator.storage.persist();
+        console.log(granted ? '✅ Persistent storage granted' : '⚠️ Persistent storage denied');
+        return granted;
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Error requesting persistent storage:', error);
       return false;
     }
   }
