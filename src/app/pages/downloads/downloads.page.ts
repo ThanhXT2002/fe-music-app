@@ -16,6 +16,7 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
 import { OfflineMediaService } from '../../services/offline-media.service';
+import { DownloadSongYoutubeService } from 'src/app/services/api/download-song-youtube.service';
 
 @Component({
   selector: 'app-downloads',
@@ -25,14 +26,19 @@ import { OfflineMediaService } from '../../services/offline-media.service';
   imports: [CommonModule, FormsModule],
 })
 export class DownloadsPage implements OnInit {
-  private databaseService = inject(DatabaseService);
-  downloadService = inject(DownloadService);
-  private audioPlayerService = inject(AudioPlayerService);
-  private clipboardService = inject(ClipboardService);
-  private alertController = inject(AlertController);
-  private toastController = inject(ToastController);
-  private platform = inject(Platform);
-  private offlineMediaService = inject(OfflineMediaService);
+  constructor(
+    private databaseService: DatabaseService,
+    public downloadService: DownloadService,
+    private audioPlayerService: AudioPlayerService,
+    private clipboardService: ClipboardService,
+    private alertController: AlertController,
+    private toastController: ToastController,
+    private platform: Platform,
+    private offlineMediaService: OfflineMediaService,
+    private downloadSongYoutubeService :DownloadSongYoutubeService
+  ) {}
+
+
   searchQuery = signal('');
   searchResults = signal<DataSong[]>([]);
   isSearching = signal(false);
@@ -112,31 +118,8 @@ export class DownloadsPage implements OnInit {
       await this.searchHistory(query);
     }
   }
-
   async processYouTubeUrl(url: string) {
-    try {
-      this.isSearching.set(true);
-
-      const response = await firstValueFrom(
-        this.downloadService.getYoutubeUrlInfo(url)
-      );
-
-      if (response.success) {
-        const song = response.data;
-        await this.databaseService.addToSearchHistory(song);
-        this.showSongInfo(song);
-        // Reload search history to show the new item
-        await this.loadSearchHistory();
-      } else {
-        console.error('API returned error:', response.message);
-        this.searchResults.set([]);
-      }
-    } catch (error) {
-      console.error('Error processing YouTube URL:', error);
-      this.searchResults.set([]);
-    } finally {
-      this.isSearching.set(false);
-    }
+    await this.downloadFromYouTubeUrl(url);
   }
 
   showSongInfo(song: DataSong) {
@@ -152,10 +135,8 @@ export class DownloadsPage implements OnInit {
     };
 
     this.searchResults.set([result]);
-  }
-
-  /**
-   * Download bài hát từ search results
+  }  /**
+   * Download bài hát từ search results với API V3 chunked download
    * @param songData - Data bài hát từ API
    */
   async downloadSong(songData: DataSong) {
@@ -165,9 +146,13 @@ export class DownloadsPage implements OnInit {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
-      // Bắt đầu download
+
+      // API V3: Use existing downloadSong method (will be updated to always chunked)
       const downloadId = await this.downloadService.downloadSong(songData);
-      await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
+      await this.showToast(`Đang tải "${songData.title}" (chunked streaming)...`, 'primary');
+
+      // Track download progress
+      this.trackDownloadProgress(downloadId, songData.title);
     } catch (error) {
       console.error('Download error:', error);
       await this.showToast('Lỗi khi tải bài hát!', 'danger');
@@ -277,7 +262,6 @@ export class DownloadsPage implements OnInit {
       this.isSearching.set(false);
     }
   }
-
   onSearchYoutubeUrl() {
     const query = this.searchQuery().trim();
 
@@ -286,7 +270,7 @@ export class DownloadsPage implements OnInit {
     }
 
     if (this.downloadService.validateYoutubeUrl(query)) {
-      this.processYouTubeUrl(query);
+      this.downloadFromYouTubeUrl(query);
     } else {
       this.searchHistory(query);
     }
@@ -296,17 +280,36 @@ export class DownloadsPage implements OnInit {
     const history = await this.databaseService.getSearchHistory(20);
     this.searchHistoryItem.set(history);
   }
-
   /**
-   * Load danh sách songs đã download từ database
+   * Load danh sách songs đã download từ IndexedDB
    */
   private async loadDownloadedSongs() {
-    // Lấy tất cả bài hát đã download
-    const songs = await this.databaseService.getAllSongs();
-    for (const song of songs) {
-      (song as any).thumbnailUrl = await this.getOfflineThumbnail(song);
+    try {
+      // Get all completed songs from IndexedDB
+      const songs = await this.databaseService.getAllSongs();
+
+      // Process thumbnails for offline display
+      const processedSongs = await Promise.all(
+        songs.map(async (song) => {
+          // Get offline thumbnail (embedded in IndexedDB)
+          const thumbnailUrl = await this.getOfflineThumbnail(song);
+          return {
+            ...song,
+            thumbnailUrl
+          };
+        })
+      );
+
+      this.downloadHistory.set(processedSongs);
+
+      // Update downloaded song IDs for UI state
+      const downloadedIds = new Set(songs.map(song => song.id));
+      this.downloadedSongIds.set(downloadedIds);
+
+    } catch (error) {
+      console.error('Error loading downloaded songs:', error);
+      this.downloadHistory.set([]);
     }
-    this.downloadHistory.set(songs);
   }
 
   /**
@@ -368,11 +371,10 @@ export class DownloadsPage implements OnInit {
 
       if (clipboardText.trim()) {
         this.searchQuery.set(clipboardText.trim());
-        this.onSearchInput({ target: { value: clipboardText.trim() } } as any);
-
-        // Nếu là YouTube URL, tự động xử lý
+        this.onSearchInput({ target: { value: clipboardText.trim() } } as any);        // Nếu là YouTube URL, tự động download với chunked streaming
         if (this.downloadService.validateYoutubeUrl(clipboardText.trim())) {
-          await this.showToast('Đã dán link YouTube!', 'success');
+          await this.downloadFromYouTubeUrl(clipboardText.trim());
+          await this.showToast('Đã dán và bắt đầu tải chunked!', 'success');
         }
       } else {
         await this.showToast(
@@ -542,10 +544,8 @@ Hoặc paste thủ công:
       if (result.success && result.content) {
         // Sử dụng cleanUrl nếu có, hoặc content gốc
         const finalUrl = result.cleanUrl || result.content;
-        this.searchQuery.set(finalUrl);
-
-        // Tự động xử lý YouTube URL
-        await this.processYouTubeUrl(finalUrl);
+        this.searchQuery.set(finalUrl);        // Tự động download với chunked streaming
+        await this.downloadFromYouTubeUrl(finalUrl);
 
         // Hiển thị thông báo thành công với suggestion
         const message =
@@ -570,6 +570,90 @@ Hoặc paste thủ công:
   }
 
   /**
+   * Enhanced smart paste with API V3 chunked download
+   */
+  async smartPasteAndDownload() {
+    this.isClipboardLoading.set(true);
+
+    try {
+      const result = await this.clipboardService.autoPasteWithValidation();
+
+      if (result.success && result.content) {
+        const finalUrl = result.cleanUrl || result.content;
+        this.searchQuery.set(finalUrl);        // Auto-download with chunked streaming
+        if (this.downloadService.validateYoutubeUrl(finalUrl)) {
+          await this.downloadFromYouTubeUrl(finalUrl);
+          await this.showToast('🚀 Tự động tải bằng chunked streaming!', 'success');
+        } else {
+          await this.showToast('URL không hợp lệ', 'warning');
+        }
+      } else if (result.needsManualPaste) {
+        await this.showManualPasteInstructions();
+      } else {
+        const errorMessage = result.suggestion || result.error || 'Không thể đọc clipboard';
+        await this.showToast(errorMessage, 'warning');
+        this.focusSearchInput();
+      }
+    } catch (error) {
+      console.error('Smart paste failed:', error);
+      await this.showToast('Lỗi khi đọc clipboard', 'danger');
+      await this.showManualPasteInstructions();
+    } finally {
+      this.isClipboardLoading.set(false);
+    }
+  }
+  /**
+   * Get chunked download progress details
+   */
+  getChunkedDownloadDetails(songId: string): {
+    speed: string;
+    timeRemaining: string;
+    downloadedSize: string;
+    totalSize: string;
+  } | null {
+    const download = this.getDownloadStatus(songId);
+
+    if (!download || download.status !== 'downloading' || !download.progressDetails) {
+      return null;
+    }
+
+    // Use progressDetails if available
+    const details = download.progressDetails;
+    const now = Date.now();
+    const elapsed = (now - details.startTime.getTime()) / 1000; // seconds
+    const downloadedBytes = details.downloadedBytes;
+    const totalBytes = details.totalBytes;
+    const speed = details.speed;
+    const timeRemaining = details.timeRemaining;
+
+    return {
+      speed: this.formatSpeed(speed),
+      timeRemaining: this.formatTime(timeRemaining),
+      downloadedSize: this.formatBytes(downloadedBytes),
+      totalSize: this.formatBytes(totalBytes)
+    };
+  }
+
+  private formatSpeed(bytesPerSecond: number): string {
+    if (bytesPerSecond < 1024) return `${bytesPerSecond.toFixed(0)} B/s`;
+    if (bytesPerSecond < 1024 * 1024) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
+    return `${(bytesPerSecond / (1024 * 1024)).toFixed(1)} MB/s`;
+  }
+
+  private formatTime(seconds: number): string {
+    if (seconds < 60) return `${seconds.toFixed(0)}s`;
+    if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+    return `${(seconds / 3600).toFixed(1)}h`;
+  }
+
+  private formatBytes(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+  }
+  /**
    * Lấy thumbnail offline (ưu tiên offline, fallback online)
    */
   async getOfflineThumbnail(song: Song | DataSong): Promise<string> {
@@ -585,5 +669,130 @@ Hoặc paste thủ công:
 
   onSongClick(song: Song) {
     this.audioPlayerService.playSong(song, this.downloadHistory());
+  }
+
+  /**
+   * Track download progress for chunked downloads
+   * @param downloadId - ID của download task
+   * @param songTitle - Tên bài hát để hiển thị
+   */
+  private trackDownloadProgress(downloadId: string, songTitle: string) {
+    const subscription = this.downloadService.downloads$.subscribe(downloads => {
+      const download = downloads.find(d => d.id === downloadId);
+
+      if (download) {
+        switch (download.status) {
+          case 'downloading':
+            // Progress được cập nhật real-time từ chunked stream
+            break;
+          case 'completed':
+            this.showToast(`✅ Đã tải xong "${songTitle}"!`, 'success');
+            this.loadDownloadedSongs(); // Refresh downloaded songs list
+            subscription.unsubscribe();
+            break;          case 'error':
+            this.showToast(`❌ Lỗi tải "${songTitle}": ${download.error}`, 'danger');
+            subscription.unsubscribe();
+            break;
+        }
+      }
+    });
+  }  /**
+   * Download from YouTube URL with enhanced error handling
+   * @param youtubeUrl - YouTube URL
+   */
+  async downloadFromYouTubeUrl(youtubeUrl: string) {
+    try {
+      this.isSearching.set(true);
+
+      // Step 1: Get song info (instant response from API V3)
+      const response = await firstValueFrom(
+        this.downloadSongYoutubeService.getYoutubeUrlInfo(youtubeUrl)
+      );
+
+      if (response) {
+        // Convert SongInfo to DataSong format
+        const songData: DataSong = {
+          id: response.id,
+          title: response.title,
+          artist: response.artist,
+          thumbnail_url: response.thumbnail_url,
+          duration: response.duration,
+          duration_formatted: response.duration_formatted,
+          keywords: response.keywords,
+          audio_url: '' // Will be set by download service
+        };
+
+        // Step 2: Start chunked download immediately
+        await this.downloadSong(songData);
+
+        // Step 3: Add to search history
+        await this.databaseService.addToSearchHistory(songData);
+        await this.loadSearchHistory();
+
+        this.showSongInfo(songData);
+      } else {
+        throw new Error('Failed to get song info');
+      }
+    } catch (error: any) {
+      console.error('YouTube download error:', error);
+      await this.showToast(`Lỗi xử lý URL YouTube: ${error?.message || 'Unknown error'}`, 'danger');
+    } finally {
+      this.isSearching.set(false);
+    }
+  }
+
+  /**
+   * Enhanced paste method with smart YouTube URL detection and auto-download
+   */
+  async onPasteEnhanced(event?: Event) {
+    this.isClipboardLoading.set(true);
+
+    try {
+      let clipboardText = '';
+
+      if (event) {
+        const pasteEvent = event as ClipboardEvent;
+        if (pasteEvent.clipboardData) {
+          clipboardText = pasteEvent.clipboardData.getData('text');
+        }
+      } else {
+        const result = await this.clipboardService.readFromUserAction();
+        if (result.success && result.content) {
+          clipboardText = result.content;
+          if (result.method === 'web') {
+            await this.showToast('Đã đọc clipboard thành công!', 'success');
+          }
+        } else if (result.error) {
+          if (result.error === 'PERMISSION_DENIED') {
+            await this.showPermissionDeniedInstructions();
+          } else if (result.error === 'NOT_SUPPORTED') {
+            await this.showManualPasteInstructions();
+          } else {
+            await this.showToast('Không thể đọc clipboard. Vui lòng paste thủ công.', 'warning');
+            this.focusSearchInput();
+          }
+          return;
+        }
+      }
+
+      if (clipboardText.trim()) {
+        this.searchQuery.set(clipboardText.trim());
+
+        // Auto-process YouTube URLs with chunked download
+        if (this.downloadService.validateYoutubeUrl(clipboardText.trim())) {
+          await this.downloadFromYouTubeUrl(clipboardText.trim());
+          await this.showToast('✅ Đã dán và bắt đầu tải chunked!', 'success');
+        } else {
+          this.onSearchInput({ target: { value: clipboardText.trim() } } as any);
+        }
+      } else {
+        await this.showToast('Clipboard trống hoặc không có nội dung hợp lệ', 'warning');
+      }
+    } catch (error) {
+      console.error('Paste failed:', error);
+      await this.showManualPasteInstructions();
+    } finally {
+      this.isClipboardLoading.set(false);
+    }
   }
 }

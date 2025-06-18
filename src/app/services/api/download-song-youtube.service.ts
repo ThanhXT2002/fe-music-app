@@ -3,7 +3,8 @@ import { Injectable } from "@angular/core";
 
 import { BehaviorSubject, interval, map, Observable, switchMap, takeWhile } from "rxjs";
 import { ApiResponse, SongInfo, SongStatus } from "src/app/models/song.model";
-import { environment } from 'src/environments/environment';
+import { environment } from "src/environments/environment";
+
 
 @Injectable({
   providedIn: 'root'
@@ -22,7 +23,7 @@ export class DownloadSongYoutubeService {
   /**
    * Lấy thông tin bài hát từ YouTube URL và bắt đầu tải về
    */
-  getSongInfo(youtubeUrl: string): Observable<SongInfo> {
+  getYoutubeUrlInfo(youtubeUrl: string): Observable<SongInfo> {
     return this.http.post<ApiResponse<SongInfo>>(`${this.apiUrl}/songs/info`, { youtube_url: youtubeUrl })
       .pipe(
         map(response => {
