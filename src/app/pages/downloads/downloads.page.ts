@@ -212,8 +212,7 @@ export class DownloadsPage implements OnInit {  constructor(
    */
   getDownloadStatus(songId: string): DownloadTask | undefined {
     return this.downloadService.getDownloadBySongId(songId);
-  }
-  /**
+  }  /**
    * Kiểm tra xem bài hát có đang download không
    * @param songId - ID bài hát
    * @returns boolean
@@ -222,10 +221,21 @@ export class DownloadsPage implements OnInit {  constructor(
     const statusInfo = this.songStatusMap().get(songId);
     if (!statusInfo) return false;
 
-    // Show as downloading if:
-    // 1. Still polling (processing)
-    // 2. Currently downloading (progress > 0 but < 100)
-    return statusInfo.isPolling || (statusInfo.downloadProgress > 0 && statusInfo.downloadProgress < 100);
+    // Only show as downloading if actively downloading (progress > 0 but < 100)
+    return statusInfo.downloadProgress > 0 && statusInfo.downloadProgress < 100;
+  }
+
+  /**
+   * Kiểm tra xem bài hát có đang trong quá trình polling/processing không
+   * @param songId - ID bài hát
+   * @returns boolean
+   */
+  isPolling(songId: string): boolean {
+    const statusInfo = this.songStatusMap().get(songId);
+    if (!statusInfo) return false;
+
+    // Show as polling if still checking status and not downloading yet
+    return statusInfo.isPolling && statusInfo.downloadProgress === 0;
   }
 
   /**
