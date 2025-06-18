@@ -70,6 +70,43 @@ export class StorageManagerService {
   }
 
   /**
+   * Aggressively request persistent storage - try multiple times if needed
+   */
+  async requestPersistentStorageAggressively(): Promise<boolean> {
+    try {
+      console.log('🚀 Requesting persistent storage aggressively...');
+
+      if (!('storage' in navigator) || !('persist' in navigator.storage)) {
+        console.warn('⚠️ Persistent storage API not supported');
+        return false;
+      }
+
+      // First, check if we already have it
+      const alreadyPersistent = await navigator.storage.persisted();
+      if (alreadyPersistent) {
+        console.log('✅ Persistent storage already granted');
+        return true;
+      }
+
+      // Try to request it
+      console.log('📋 Requesting persistent storage permission...');
+      const granted = await navigator.storage.persist();
+
+      if (granted) {
+        console.log('✅ Persistent storage GRANTED on first try!');
+        return true;
+      }
+
+      console.warn('⚠️ Persistent storage DENIED - browser requires user interaction');
+      return false;
+
+    } catch (error) {
+      console.error('❌ Error requesting persistent storage:', error);
+      return false;
+    }
+  }
+
+  /**
    * Check storage quota and usage
    */
   private async checkStorageQuota(): Promise<void> {
@@ -165,13 +202,13 @@ export class StorageManagerService {
         info.usage = estimate.usage;
         info.quotaFormatted = this.formatBytes(estimate.quota || 0);
         info.usageFormatted = this.formatBytes(estimate.usage || 0);
-      }
-
-      // Check incognito mode
+      }      // Check incognito mode
       info.isIncognito = await this.isIncognitoMode();
 
       // Check IndexedDB support
-      info.indexedDBSupported = 'indexedDB' in window;    } catch (error: any) {
+      info.indexedDBSupported = 'indexedDB' in window;
+
+    } catch (error: any) {
       console.error('❌ Error getting storage info:', error);
       info.error = error?.message || 'Unknown error';
     }

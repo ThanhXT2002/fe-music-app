@@ -597,4 +597,190 @@ export class DatabaseService {
       return { error: error?.message || 'Unknown error' };
     }
   }
+
+  /**
+   * Add a persistence marker to IndexedDB to test if data survives reload
+   */
+  async addPersistenceMarker() {
+    try {
+      const now = new Date();
+      const marker: SearchHistoryItem = {
+        songId: 'persistence_marker_' + now.getTime(),
+        title: '🔄 Persistence Test Marker',
+        artist: 'System Test',
+        thumbnail_url: '',
+        audio_url: '',
+        duration: 0,
+        duration_formatted: '0:00',
+        keywords: ['persistence', 'test', 'marker'],
+        searchedAt: now
+      };
+
+      console.log('🏷️ Adding persistence marker to IndexedDB:', marker.songId);
+      const success = await this.addSearchHistory(marker);
+
+      if (success) {
+        console.log('✅ Persistence marker added successfully');
+
+        // Store marker info in localStorage for comparison
+        localStorage.setItem('last_persistence_marker', JSON.stringify({
+          songId: marker.songId,
+          timestamp: now.getTime(),
+          date: now.toISOString()
+        }));
+
+      } else {
+        console.error('❌ Failed to add persistence marker');
+      }
+
+      return success;
+    } catch (error) {
+      console.error('❌ Error adding persistence marker:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if persistence markers from previous sessions exist
+   */
+  async checkPersistenceMarkers() {
+    try {
+      console.log('🔍 Checking for persistence markers from previous sessions...');
+
+      // Get all search history
+      const history = await this.getSearchHistory();
+
+      // Find persistence markers
+      const markers = history.filter(item => item.songId.startsWith('persistence_marker_'));
+
+      console.log(`📋 Found ${markers.length} persistence markers in IndexedDB`);
+
+      if (markers.length > 0) {
+        // Show details of found markers
+        markers.forEach((marker, index) => {
+          const age = new Date().getTime() - new Date(marker.searchedAt).getTime();
+          const ageMinutes = Math.round(age / (1000 * 60));
+          console.log(`  ${index + 1}. ${marker.songId} - ${ageMinutes} minutes old`);
+        });
+
+        // Check localStorage marker
+        const lastMarker = localStorage.getItem('last_persistence_marker');
+        if (lastMarker) {
+          const markerData = JSON.parse(lastMarker);
+          const foundInDB = markers.find(m => m.songId === markerData.songId);
+
+          if (foundInDB) {
+            console.log('✅ Persistence test PASSED - marker found in both localStorage and IndexedDB');
+          } else {
+            console.error('❌ Persistence test FAILED - marker in localStorage but NOT in IndexedDB');
+          }
+        }
+
+        // Clean up old markers (keep only last 3)
+        if (markers.length > 3) {
+          console.log('🧹 Cleaning up old persistence markers...');
+          // Sort by timestamp and keep only the newest 3
+          const sorted = markers.sort((a, b) => new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime());
+          const toDelete = sorted.slice(3);
+
+          for (const marker of toDelete) {
+            try {
+              await this.deleteSearchHistoryItem(marker.songId);
+              console.log(`🗑️ Deleted old marker: ${marker.songId}`);
+            } catch (e) {
+              console.log(`⚠️ Could not delete marker ${marker.songId}:`, e);
+            }
+          }
+        }
+
+      } else {
+        console.log('📝 No persistence markers found (first run or data was cleared)');
+      }
+
+      return markers.length;
+
+    } catch (error) {
+      console.error('❌ Error checking persistence markers:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Verify what data actually exists in IndexedDB on app startup
+   */
+  async verifyDataPersistence() {
+    try {
+      console.log('🔍 Verifying IndexedDB data persistence...');
+
+      // Check all stores for data
+      const songs = await this.indexedDB.getAll('songs');
+      const history = await this.indexedDB.getAll('search_history');
+      const playlists = await this.indexedDB.getAll('playlists');
+      const recentlyPlayed = await this.indexedDB.getAll('recently_played');
+      const userPrefs = await this.indexedDB.getAll('user_preferences');
+
+      console.log('📊 IndexedDB Data Count:');
+      console.log(`  - Songs: ${songs.length}`);
+      console.log(`  - Search History: ${history.length}`);
+      console.log(`  - Playlists: ${playlists.length}`);
+      console.log(`  - Recently Played: ${recentlyPlayed.length}`);
+      console.log(`  - User Preferences: ${userPrefs.length}`);
+
+      // Show recent history items if any
+      if (history.length > 0) {
+        console.log('📝 Recent search history items:');
+        history.slice(-3).forEach((item, index) => {
+          console.log(`  ${index + 1}. ${item.title} by ${item.artist} (${new Date(item.searchedAt).toLocaleString()})`);
+        });
+      }
+
+      // Calculate total data size estimate
+      const totalItems = songs.length + history.length + playlists.length + recentlyPlayed.length + userPrefs.length;
+      console.log(`📈 Total items in IndexedDB: ${totalItems}`);
+
+      return {
+        songs: songs.length,
+        history: history.length,
+        playlists: playlists.length,
+        recentlyPlayed: recentlyPlayed.length,
+        userPrefs: userPrefs.length,
+        total: totalItems
+      };
+
+    } catch (error) {
+      console.error('❌ Error verifying data persistence:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Test write operation - FOR DEBUGGING ONLY
+   */
+  async testWriteOperation() {
+    console.log('🧪 Testing immediate write operation...');    const testData: SearchHistoryItem = {
+      songId: 'test_write_' + Date.now(),
+      title: 'Test Write Operation',
+      artist: 'Test Artist',
+      thumbnail_url: 'test_thumb_url',
+      audio_url: 'test_audio_url',
+      duration: 180,
+      duration_formatted: '3:00',
+      keywords: ['test', 'write'],
+      searchedAt: new Date()
+    };
+
+    try {
+      await this.addSearchHistory(testData);
+      console.log('✅ Test write operation successful');
+
+      // Verify by reading back
+      const history = await this.getSearchHistory();
+      console.log('📚 Current search history count:', history.length);
+
+      return true;
+    } catch (error) {
+      console.error('❌ Test write operation failed:', error);
+      return false;
+    }
+  }
 }

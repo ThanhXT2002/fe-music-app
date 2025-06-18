@@ -1,17 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
+import {
+  Song,
+  Album,
+  Artist,
+  Playlist,
+  SearchHistoryItem,
+  DataSong,
+} from '../interfaces/song.interface';
 
 /**
  * Service wrapper cho IndexedDB để sử dụng trên web platform
  * Cung cấp các phương thức tương tự SQLite cho web browser
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
   private dbVersion = 3; // Tăng version để trigger upgrade và tạo thumbnailFiles store
+  private initPromise: Promise<boolean> | null = null; // Track initialization promise
 
   constructor() {}
 
@@ -28,11 +36,15 @@ export class IndexedDBService {
   getObjectStoreNames(): string[] {
     if (!this.db) return [];
     return Array.from(this.db.objectStoreNames);
-  }
-  /**
+  }  /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
+    // Nếu đã có promise initialization đang chờ, return promise đó
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
     // Nếu database đã được khởi tạo, return true
     if (this.db) {
       console.log('✅ IndexedDB already initialized');
@@ -41,20 +53,34 @@ export class IndexedDBService {
 
     console.log('🔄 Initializing IndexedDB...');
 
-    return new Promise((resolve, reject) => {
+    // Tạo promise mới và lưu lại
+    this.initPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
         console.error('❌ Error opening IndexedDB:', request.error);
+        this.initPromise = null; // Reset promise on error
         reject(false);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
         console.log('✅ IndexedDB opened successfully');
-        console.log('📊 Available object stores:', Array.from(this.db.objectStoreNames));
+        console.log(
+          '📊 Available object stores:',
+          Array.from(this.db.objectStoreNames)
+        );
 
-        // Check if we have data
+        // Add error handler for database
+        this.db.onerror = (event) => {
+          console.error('❌ IndexedDB error:', event);
+        };
+
+        this.db.onclose = () => {
+          console.warn('⚠️ IndexedDB connection closed');
+          this.db = null;
+          this.initPromise = null;
+        };        // Check if we have data
         this.debugExistingData();
 
         resolve(true);
@@ -68,23 +94,30 @@ export class IndexedDBService {
         this.createObjectStores(db);
       };
     });
+
+    return this.initPromise;
   }
   /**
    * Tạo các object stores (tables)
    */
   private createObjectStores(db: IDBDatabase) {
+    console.log('🔧 Creating object stores...');
+
     // Songs store
     if (!db.objectStoreNames.contains('songs')) {
+      console.log('📦 Creating songs store...');
       const songsStore = db.createObjectStore('songs', { keyPath: 'id' });
-      songsStore.createIndex('title', 'title', { unique: false });      songsStore.createIndex('artist', 'artist', { unique: false });
+      songsStore.createIndex('title', 'title', { unique: false });
+      songsStore.createIndex('artist', 'artist', { unique: false });
       songsStore.createIndex('addedDate', 'addedDate', { unique: false });
+    }
 
-    } else {
-      // Store đã tồn tại, có thể cần thêm index mới
-      const transaction = db.transaction(['songs'], 'versionchange');
-      const songsStore = transaction.objectStore('songs');
-    }// Search history store
-    if (!db.objectStoreNames.contains('search_history')) {      const historyStore = db.createObjectStore('search_history', { keyPath: 'songId' });
+    // Search history store
+    if (!db.objectStoreNames.contains('search_history')) {
+      console.log('📦 Creating search_history store...');
+      const historyStore = db.createObjectStore('search_history', {
+        keyPath: 'songId',
+      });
       historyStore.createIndex('searchedAt', 'searchedAt', { unique: false });
       historyStore.createIndex('title', 'title', { unique: false });
       historyStore.createIndex('artist', 'artist', { unique: false });
@@ -92,22 +125,31 @@ export class IndexedDBService {
 
     // Recently played store
     if (!db.objectStoreNames.contains('recently_played')) {
-      const recentStore = db.createObjectStore('recently_played', { keyPath: 'id', autoIncrement: true });
+      console.log('📦 Creating recently_played store...');
+      const recentStore = db.createObjectStore('recently_played', {
+        keyPath: 'id',
+        autoIncrement: true,
+      });
       recentStore.createIndex('songId', 'songId', { unique: false });
       recentStore.createIndex('playedAt', 'playedAt', { unique: false });
     }
 
     // Playlists store
     if (!db.objectStoreNames.contains('playlists')) {
-      const playlistsStore = db.createObjectStore('playlists', { keyPath: 'id' });
+      console.log('📦 Creating playlists store...');
+      const playlistsStore = db.createObjectStore('playlists', {
+        keyPath: 'id',
+      });
       playlistsStore.createIndex('name', 'name', { unique: false });
-    }    // User preferences store
-    if (!db.objectStoreNames.contains('user_preferences')) {
-      db.createObjectStore('user_preferences', { keyPath: 'key' });
     }
 
-    // Audio files store for offline audio blobs
+    // User preferences store
+    if (!db.objectStoreNames.contains('user_preferences')) {
+      console.log('📦 Creating user_preferences store...');
+      db.createObjectStore('user_preferences', { keyPath: 'key' });
+    }    // Audio files store for offline audio blobs
     if (!db.objectStoreNames.contains('audioFiles')) {
+      console.log('📦 Creating audioFiles store...');
       const audioStore = db.createObjectStore('audioFiles', { keyPath: 'songId' });
       audioStore.createIndex('mimeType', 'mimeType', { unique: false });
       audioStore.createIndex('createdAt', 'createdAt', { unique: false });
@@ -115,25 +157,44 @@ export class IndexedDBService {
 
     // Thumbnail files store for offline thumbnail blobs
     if (!db.objectStoreNames.contains('thumbnailFiles')) {
+      console.log('📦 Creating thumbnailFiles store...');
       const thumbStore = db.createObjectStore('thumbnailFiles', { keyPath: 'songId' });
       thumbStore.createIndex('mimeType', 'mimeType', { unique: false });
       thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
+
+    console.log('✅ All object stores created successfully');
+  }
+  /**
+   * Đảm bảo database đã sẵn sàng trước khi thực hiện operations
+   */
+  private async ensureReady(): Promise<boolean> {
+    if (this.db) {
+      return true;
+    }
+
+    console.log('🔄 Database not ready, initializing...');
+    return await this.initDB();
   }
   /**
    * Thêm hoặc cập nhật record
    */
   async put(storeName: string, data: any): Promise<boolean> {
-    if (!this.db) {
-      console.error('IndexedDB is not initialized');
+    // Đảm bảo database đã sẵn sàng
+    const isReady = await this.ensureReady();
+    if (!isReady || !this.db) {
+      console.error('❌ IndexedDB is not ready for write operations');
       return false;
     }
+
+    console.log(`📝 Writing to store "${storeName}":`, data);
 
     return new Promise((resolve, reject) => {
       try {
         // Check if object store exists
         if (!this.db!.objectStoreNames.contains(storeName)) {
-          console.error(`Object store "${storeName}" does not exist`);
+          console.error(`❌ Object store "${storeName}" does not exist`);
+          console.log('📊 Available stores:', Array.from(this.db!.objectStoreNames));
           reject(new Error(`Object store "${storeName}" does not exist`));
           return;
         }
@@ -145,12 +206,21 @@ export class IndexedDBService {
         request.onsuccess = () => resolve(true);
         request.onerror = () => {
           console.error(`Error putting data to ${storeName}:`, request.error);
-          reject(new Error(`Error putting data to ${storeName}: ${request.error}`));
+          reject(
+            new Error(`Error putting data to ${storeName}: ${request.error}`)
+          );
         };
 
         transaction.onerror = () => {
-          console.error(`Transaction error for ${storeName}:`, transaction.error);
-          reject(new Error(`Transaction error for ${storeName}: ${transaction.error}`));
+          console.error(
+            `Transaction error for ${storeName}:`,
+            transaction.error
+          );
+          reject(
+            new Error(
+              `Transaction error for ${storeName}: ${transaction.error}`
+            )
+          );
         };
       } catch (error) {
         console.error(`Exception in put method for ${storeName}:`, error);
@@ -158,12 +228,16 @@ export class IndexedDBService {
       }
     });
   }
-
   /**
    * Lấy record theo key
    */
   async get(storeName: string, key: string): Promise<any | null> {
-    if (!this.db) return null;
+    // Đảm bảo database đã sẵn sàng
+    const isReady = await this.ensureReady();
+    if (!isReady || !this.db) {
+      console.error('❌ IndexedDB is not ready for read operations');
+      return null;
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], 'readonly');
@@ -177,12 +251,20 @@ export class IndexedDBService {
       };
     });
   }
-
   /**
    * Lấy tất cả records từ store
    */
-  async getAll(storeName: string, indexName?: string, query?: IDBValidKey | IDBKeyRange): Promise<any[]> {
-    if (!this.db) return [];
+  async getAll(
+    storeName: string,
+    indexName?: string,
+    query?: IDBValidKey | IDBKeyRange
+  ): Promise<any[]> {
+    // Đảm bảo database đã sẵn sàng
+    const isReady = await this.ensureReady();
+    if (!isReady || !this.db) {
+      console.error('❌ IndexedDB is not ready for read operations');
+      return [];
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], 'readonly');
@@ -201,17 +283,24 @@ export class IndexedDBService {
 
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => {
-        console.error(`Error getting all data from ${storeName}:`, request.error);
+        console.error(
+          `Error getting all data from ${storeName}:`,
+          request.error
+        );
         reject([]);
       };
     });
   }
-
   /**
    * Xóa record theo key
    */
   async delete(storeName: string, key: string): Promise<boolean> {
-    if (!this.db) return false;
+    // Đảm bảo database đã sẵn sàng
+    const isReady = await this.ensureReady();
+    if (!isReady || !this.db) {
+      console.error('❌ IndexedDB is not ready for delete operations');
+      return false;
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([storeName], 'readwrite');
@@ -229,7 +318,11 @@ export class IndexedDBService {
   /**
    * Tìm kiếm records
    */
-  async search(storeName: string, indexName: string, query: string): Promise<any[]> {
+  async search(
+    storeName: string,
+    indexName: string,
+    query: string
+  ): Promise<any[]> {
     if (!this.db) return [];
 
     return new Promise((resolve, reject) => {
@@ -241,7 +334,7 @@ export class IndexedDBService {
       request.onsuccess = () => {
         const results = request.result || [];
         // Filter results that contain the query string (case insensitive)
-        const filteredResults = results.filter(item => {
+        const filteredResults = results.filter((item) => {
           const value = item[indexName];
           if (typeof value === 'string') {
             return value.toLowerCase().includes(query.toLowerCase());
@@ -315,7 +408,11 @@ export class IndexedDBService {
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */
-  async saveAudioFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+  async saveAudioFile(
+    songId: string,
+    blob: Blob,
+    mimeType: string
+  ): Promise<boolean> {
     if (!this.db) return false;
 
     const audioFile = {
@@ -323,7 +420,7 @@ export class IndexedDBService {
       blob: blob,
       mimeType: mimeType,
       size: blob.size,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     return await this.put('audioFiles', audioFile);
@@ -335,7 +432,11 @@ export class IndexedDBService {
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */
-  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+  async saveThumbnailFile(
+    songId: string,
+    blob: Blob,
+    mimeType: string
+  ): Promise<boolean> {
     if (!this.db) {
       console.error('IndexedDB is not initialized for thumbnail save');
       return false;
@@ -346,7 +447,7 @@ export class IndexedDBService {
       blobSize: blob.size,
       mimeType,
       hasDB: !!this.db,
-      objectStores: this.getObjectStoreNames()
+      objectStores: this.getObjectStoreNames(),
     });
 
     const thumbnailFile = {
@@ -354,7 +455,7 @@ export class IndexedDBService {
       blob: blob,
       mimeType: mimeType,
       size: blob.size,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     const success = await this.put('thumbnailFiles', thumbnailFile);
@@ -391,7 +492,7 @@ export class IndexedDBService {
       console.log('✅ Found thumbnail in IndexedDB:', {
         songId,
         blobSize: thumbnailFile.blob.size,
-        mimeType: thumbnailFile.mimeType
+        mimeType: thumbnailFile.mimeType,
       });
       return thumbnailFile.blob;
     } else {
@@ -443,8 +544,10 @@ export class IndexedDBService {
    * @param songId - ID của bài hát
    * @returns Promise<{hasAudio: boolean, hasThumbnail: boolean}>
    */
-  async checkOfflineFiles(songId: string): Promise<{hasAudio: boolean, hasThumbnail: boolean}> {
-    if (!this.db) return {hasAudio: false, hasThumbnail: false};
+  async checkOfflineFiles(
+    songId: string
+  ): Promise<{ hasAudio: boolean; hasThumbnail: boolean }> {
+    if (!this.db) return { hasAudio: false, hasThumbnail: false };
 
     try {
       const audioFile = await this.get('audioFiles', songId);
@@ -452,11 +555,11 @@ export class IndexedDBService {
 
       return {
         hasAudio: !!audioFile,
-        hasThumbnail: !!thumbnailFile
+        hasThumbnail: !!thumbnailFile,
       };
     } catch (error) {
       console.error('Error checking offline files:', error);
-      return {hasAudio: false, hasThumbnail: false};
+      return { hasAudio: false, hasThumbnail: false };
     }
   }
 
@@ -464,24 +567,34 @@ export class IndexedDBService {
    * Lấy tổng dung lượng storage đã sử dụng
    * @returns Promise<{audioSize: number, thumbnailSize: number, totalSize: number}>
    */
-  async getStorageUsage(): Promise<{audioSize: number, thumbnailSize: number, totalSize: number}> {
-    if (!this.db) return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+  async getStorageUsage(): Promise<{
+    audioSize: number;
+    thumbnailSize: number;
+    totalSize: number;
+  }> {
+    if (!this.db) return { audioSize: 0, thumbnailSize: 0, totalSize: 0 };
 
     try {
       const audioFiles = await this.getAll('audioFiles');
       const thumbnailFiles = await this.getAll('thumbnailFiles');
 
-      const audioSize = audioFiles.reduce((total, file) => total + (file.size || 0), 0);
-      const thumbnailSize = thumbnailFiles.reduce((total, file) => total + (file.size || 0), 0);
+      const audioSize = audioFiles.reduce(
+        (total, file) => total + (file.size || 0),
+        0
+      );
+      const thumbnailSize = thumbnailFiles.reduce(
+        (total, file) => total + (file.size || 0),
+        0
+      );
 
       return {
         audioSize,
         thumbnailSize,
-        totalSize: audioSize + thumbnailSize
+        totalSize: audioSize + thumbnailSize,
       };
     } catch (error) {
       console.error('Error getting storage usage:', error);
-      return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+      return { audioSize: 0, thumbnailSize: 0, totalSize: 0 };
     }
   }
 
@@ -529,7 +642,7 @@ export class IndexedDBService {
    */
   async getSongById(id: string): Promise<Song | null> {
     const song = await this.get('songs', id);
-    return song as Song || null;
+    return (song as Song) || null;
   }
 
   /**
@@ -553,9 +666,10 @@ export class IndexedDBService {
     const allSongs = await this.getAllSongs();
     const searchQuery = query.toLowerCase();
 
-    return allSongs.filter(song =>
-      song.title.toLowerCase().includes(searchQuery) ||
-      song.artist.toLowerCase().includes(searchQuery)
+    return allSongs.filter(
+      (song) =>
+        song.title.toLowerCase().includes(searchQuery) ||
+        song.artist.toLowerCase().includes(searchQuery)
     );
   }
 
@@ -576,8 +690,9 @@ export class IndexedDBService {
    */
   async getSearchHistory(): Promise<SearchHistoryItem[]> {
     const history = await this.getAll('search_history');
-    return (history as SearchHistoryItem[]).sort((a, b) =>
-      new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime()
+    return (history as SearchHistoryItem[]).sort(
+      (a, b) =>
+        new Date(b.searchedAt).getTime() - new Date(a.searchedAt).getTime()
     );
   }
 
@@ -604,7 +719,7 @@ export class IndexedDBService {
     const recentItem = {
       id: Date.now(), // Use timestamp as ID
       songId: songId,
-      playedAt: new Date().toISOString()
+      playedAt: new Date().toISOString(),
     };
     return await this.put('recently_played', recentItem);
   }
@@ -617,7 +732,10 @@ export class IndexedDBService {
 
     // Sort by played date (newest first) and limit
     const sortedItems = recentItems
-      .sort((a: any, b: any) => new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime())
+      .sort(
+        (a: any, b: any) =>
+          new Date(b.playedAt).getTime() - new Date(a.playedAt).getTime()
+      )
       .slice(0, limit);
 
     // Get actual song data
@@ -665,7 +783,7 @@ export class IndexedDBService {
    */
   async getPlaylistById(id: string): Promise<Playlist | null> {
     const playlist = await this.get('playlists', id);
-    return playlist as Playlist || null;
+    return (playlist as Playlist) || null;
   }
   /**
    * Update playlist
@@ -693,7 +811,7 @@ export class IndexedDBService {
       blob: blob,
       mimeType: blob.type,
       size: blob.size,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
     return await this.put('thumbnailFiles', thumbnailData);
   }
@@ -720,7 +838,14 @@ export class IndexedDBService {
    */
   async clearDatabase(): Promise<boolean> {
     try {
-      const storeNames = ['songs', 'search_history', 'recently_played', 'playlists', 'thumbnailFiles', 'audioFiles'];
+      const storeNames = [
+        'songs',
+        'search_history',
+        'recently_played',
+        'playlists',
+        'thumbnailFiles',
+        'audioFiles',
+      ];
 
       for (const storeName of storeNames) {
         await this.clear(storeName);
@@ -742,7 +867,7 @@ export class IndexedDBService {
       dbName: this.dbName,
       dbVersion: this.dbVersion,
       db: this.db,
-      objectStores: this.getObjectStoreNames()
+      objectStores: this.getObjectStoreNames(),
     };
   }
 
@@ -794,7 +919,10 @@ export class IndexedDBService {
 
       // Check search history
       if (this.db.objectStoreNames.contains('search_history')) {
-        const historyTransaction = this.db.transaction(['search_history'], 'readonly');
+        const historyTransaction = this.db.transaction(
+          ['search_history'],
+          'readonly'
+        );
         const historyStore = historyTransaction.objectStore('search_history');
         const historyRequest = historyStore.count();
 
@@ -819,7 +947,9 @@ export class IndexedDBService {
         const estimate = await navigator.storage.estimate();
         storageInfo.quota = estimate.quota;
         storageInfo.usage = estimate.usage;
-        storageInfo.available = estimate.quota ? estimate.quota - (estimate.usage || 0) : 'Unknown';
+        storageInfo.available = estimate.quota
+          ? estimate.quota - (estimate.usage || 0)
+          : 'Unknown';
       }
 
       // Check persistent storage
@@ -842,7 +972,11 @@ export class IndexedDBService {
     try {
       if ('storage' in navigator && 'persist' in navigator.storage) {
         const granted = await navigator.storage.persist();
-        console.log(granted ? '✅ Persistent storage granted' : '⚠️ Persistent storage denied');
+        console.log(
+          granted
+            ? '✅ Persistent storage granted'
+            : '⚠️ Persistent storage denied'
+        );
         return granted;
       }
       return false;

@@ -1,7 +1,6 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterOutlet } from '@angular/router';
 import { Subject } from 'rxjs';
 import { PWAService } from './services/pwa.service';
 import { ThemeService } from 'src/app/services/theme.service';
@@ -10,14 +9,12 @@ import { Platform } from '@ionic/angular';
 import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
-import { SplashScreen } from '@capacitor/splash-screen';
 import { DatabaseService } from './services/database.service';
+import { StorageManagerService } from './services/storage-manager.service';
+import { NotificationService } from './services/notification.service';
 import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
 import { PermissionService } from './services/permission.service';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-// Thêm OfflineMediaService để debug thumbnail
-import { OfflineMediaService } from './services/offline-media.service';
 
 @Component({
   selector: 'app-root',
@@ -26,84 +23,65 @@ import { OfflineMediaService } from './services/offline-media.service';
   standalone: true
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();  constructor(
+  private destroy$ = new Subject<void>();
+  constructor(
     private pwaService: PWAService,
     private themeService: ThemeService,
     private safeAreaService: SafeAreaService,
     private platform: Platform,
     private dbService: DatabaseService,
+    private storageManager: StorageManagerService,
+    private notificationService: NotificationService,
     private appLifecycleService: AppLifecycleService,
     private playbackRestoreService: PlaybackRestoreService,
-    private permissionService: PermissionService,
-    // Thêm OfflineMediaService để debug
-    private offlineMediaService: OfflineMediaService
-  ) {    // Expose debug methods to global window object for console testing
-    (window as any).debugThumbnails = async () => {
-      console.log('🧪 Starting thumbnail debug...');
-      await this.offlineMediaService.debugListThumbnails();
+    private permissionService: PermissionService
+  ) {    // Only expose essential debug methods for persistence testing
+    (window as any).checkStorageInfo = async () => {
+      const info = await this.storageManager.getStorageInfo();
+      console.log('📊 Storage Info:', info);
+      return info;
     };
-    (window as any).testThumbnailStorage = async () => {
-      console.log('🧪 Testing thumbnail storage...');
-      await this.offlineMediaService.debugTestThumbnailStorage();
-    };
-    (window as any).checkDownloadedSongs = async () => {
-      console.log('🧪 Getting all downloaded songs...');
-      return await this.offlineMediaService.getDownloadedSongs();
-    };    (window as any).checkAllThumbnails = async () => {
-      console.log('🧪 Getting all thumbnails...');
-      return await this.offlineMediaService.getAllThumbnails();
-    };
-    (window as any).debugThumbnailSQLite = async () => {
-      console.log('🧪 Debug thumbnail SQLite...');
-      // Get all downloaded songs first
-      const songs = await this.offlineMediaService.getDownloadedSongs();
-      console.log('📊 Downloaded songs:', songs.length);
-
-      // Check each song for thumbnail
-      for (const song of songs.slice(0, 5)) {
-        const thumbnail = await this.offlineMediaService.getThumbnailUrl(song.id, song.thumbnail_url || '');
-        console.log(`- ${song.id} (${song.title}): ${thumbnail.startsWith('blob:') ? 'Has thumbnail' : 'No thumbnail'}`);
+    (window as any).testPersistence = () => this.testPersistence();
+    (window as any).requestPersistentStorage = async () => {
+      console.log('🚀 Manually requesting persistent storage...');
+      const granted = await this.storageManager.requestPersistentStorageAggressively();
+      if (granted) {
+        console.log('✅ Persistent storage granted!');
+        await this.notificationService.showToast({
+          message: '✅ Persistent storage granted! Your data will now be saved permanently.',
+          color: 'success',
+          duration: 5000
+        });
+      } else {
+        console.warn('⚠️ Persistent storage denied');
+        await this.notificationService.showPersistentStorageWarning();
       }
+      return granted;
     };
-    (window as any).debugOfflineMedia = this.offlineMediaService;
-  }
-
-
-  ngOnInit() {
+  }  ngOnInit() {
     this.initializeApp();
-    // Khởi tạo PWA service
+
+    // Initialize PWA service
     this.pwaService.onNetworkStatusChange();
 
-    // Kiểm tra updates định kỳ (mỗi 30 phút)
+    // Check for updates periodically (every 30 minutes)
     setInterval(() => {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
 
-    // DEBUG: Test basic filesystem on app startup
-    this.debugFilesystemOnStartup();
-  }
-  ngOnDestroy() {
+    // Test storage persistence - minimal and clear
+    this.testPersistence();
+  }  ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    this.cleanupDatabase();
   }
-
-  /**
-   * Cleanup database khi app destroy
-   */
-  private async cleanupDatabase() {
-    try {
-      await this.dbService.clearDatabase();
-      console.log('🧹 App cleanup: Database closed successfully');
-    } catch (error) {
-      console.error('❌ App cleanup: Failed to close database:', error);
-    }
-  }
-
   async initializeApp() {
     await this.platform.ready();
 
-    // Khởi tạo database ngay sau khi platform ready
+    // First priority: Request persistent storage as early as possible
+    await this.setupPersistentStorage();
+
+    // Initialize database right after platform ready
     await this.initializeDatabaseWithRetry();
 
     // Request permissions for native platforms
@@ -115,15 +93,10 @@ export class AppComponent implements OnInit, OnDestroy {
       await StatusBar.setOverlaysWebView({ overlay: false });
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#00000000' });
-
-    // No need to manage splash screen here anymore - SplashActivity handles it
     }
+
     this.safeAreaService.applyToContent();
-
-    // Check for saved playback state and show restore prompt if available
-    // await this.checkForPlaybackRestore();
   }
-
   /**
    * Request native permissions
    */
@@ -143,7 +116,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Khởi tạo database với retry mechanism
+   * Initialize database with retry mechanism
    */
   private async initializeDatabaseWithRetry(maxRetries: number = 3): Promise<void> {
     for (let i = 0; i < maxRetries; i++) {
@@ -156,97 +129,77 @@ export class AppComponent implements OnInit, OnDestroy {
         console.error(`❌ Database initialization attempt ${i + 1} failed:`, error);
 
         if (i < maxRetries - 1) {
-          // Đợi trước khi retry
+          // Wait before retry
           await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
         } else {
           console.error('❌ All database initialization attempts failed');
-          // App vẫn có thể chạy mà không có database, nhưng với functionality hạn chế
+          // App can still run without database, but with limited functionality
         }
       }
     }
   }
-
-  // private async checkForPlaybackRestore(): Promise<void> {
-  //   try {
-  //     // Wait a bit for the UI to be ready
-  //     await new Promise(resolve => setTimeout(resolve, 1000));
-
-  //     const hasSavedState = await this.playbackRestoreService.checkForSavedState();
-  //     if (hasSavedState) {
-  //       await this.playbackRestoreService.showRestoreToast();
-  //     }
-  //   } catch (error) {
-  //     console.error('Error checking for playback restore:', error);
-  //   }
-  // }
 
   /**
-   * DEBUG: Test filesystem functionality on app startup
+   * MINIMAL persistence test - focus on the core issue
    */
-  private async debugFilesystemOnStartup() {
+  private async testPersistence() {
     try {
-      console.log('🚀 DEBUG: Starting filesystem test on app startup...');
-      console.log('📱 Platform:', Capacitor.getPlatform());
-      console.log('🔧 Is Native:', Capacitor.isNativePlatform());
+      console.log('🧪 PERSISTENCE TEST: Checking if data survives reload...');
 
-      if (!Capacitor.isNativePlatform()) {
-        console.log('⚠️ Web platform - skipping filesystem test');
-        return;
+      // 1. Check storage status
+      const storageInfo = await this.storageManager.getStorageInfo();
+      console.log('📊 Storage Status:', {
+        isPersistent: storageInfo.isPersistent,
+        isIncognito: storageInfo.isIncognito,
+        quota: `${Math.round(storageInfo.quota / 1024 / 1024)}MB`,
+        usage: `${Math.round(storageInfo.usage / 1024 / 1024)}MB`
+      });
+
+      // 2. Check for persistence marker from previous session
+      const markerCount = await this.dbService.checkPersistenceMarkers();
+      console.log(`🔍 Found ${markerCount} persistence markers from previous sessions`);
+
+      // 3. Add new marker for next reload test
+      await this.dbService.addPersistenceMarker();
+      console.log('�️ Added new persistence marker');      // 4. Show user-facing warnings and notifications
+      if (storageInfo.isIncognito) {
+        console.error('🚨 INCOGNITO MODE - Data WILL be lost when browser closes!');
+        await this.notificationService.showIncognitoWarning();
+      } else if (!storageInfo.isPersistent) {
+        console.warn('⚠️ PERSISTENT STORAGE NOT GRANTED - Browser may clear data automatically!');
+        console.warn('💡 To fix: Allow site to store data permanently in browser settings');
+        await this.notificationService.showPersistentStorageWarning();
+      } else if (markerCount > 0) {
+        console.log(`✅ Data persisted! Found ${markerCount} markers from previous sessions`);
+        await this.notificationService.showPersistenceSuccess(markerCount);
       }
 
-      const platform = Capacitor.getPlatform();
-      const directory = platform === 'android' ? Directory.Cache : Directory.Documents;
-
-      console.log(`📂 Testing directory: ${directory}`);      // Test 1: Basic directory creation - check if exists first
-      try {
-        await Filesystem.mkdir({
-          path: 'TxtMusicDebug',
-          directory: directory,
-          recursive: true
-        });
-        console.log('✅ DEBUG: Directory creation successful');
-      } catch (dirError: any) {
-        if (dirError.message?.includes('already exists')) {
-          console.log('ℹ️ DEBUG: Directory already exists (OK)');
-        } else {
-          throw dirError;
-        }
+      if (markerCount === 0) {
+        console.log('🆕 First run or data was cleared - no persistence markers found');
+        await this.notificationService.showPersistenceFirstRun();
       }
-
-      // Test 2: Write test file
-      const testContent = 'Debug test - ' + new Date().toISOString();
-      const writeResult = await Filesystem.writeFile({
-        path: 'TxtMusicDebug/startup_test.txt',
-        data: testContent,
-        directory: directory,
-        encoding: Encoding.UTF8
-      });
-      console.log('✅ DEBUG: File write successful:', writeResult.uri);
-
-      // Test 3: Read back
-      const readResult = await Filesystem.readFile({
-        path: 'TxtMusicDebug/startup_test.txt',
-        directory: directory,
-        encoding: Encoding.UTF8
-      });
-      console.log('✅ DEBUG: File read successful:', readResult.data);
-
-      // Test 4: Check permissions
-      const permissions = await this.permissionService.checkStoragePermissions();
-      console.log('✅ DEBUG: Storage permissions:', permissions);
-
-      console.log('🎉 DEBUG: All filesystem tests passed!');
 
     } catch (error) {
-      console.error('❌ DEBUG: Filesystem test failed:', error);
-
-      // Log detailed error info
-      if (error instanceof Error) {
-        console.error('❌ DEBUG: Error name:', error.name);
-        console.error('❌ DEBUG: Error message:', error.message);
-        console.error('❌ DEBUG: Error stack:', error.stack);
-      }
+      console.error('❌ Persistence test failed:', error);
     }
   }
 
+  /**
+   * Setup persistent storage as early as possible
+   */
+  private async setupPersistentStorage(): Promise<void> {
+    try {
+      console.log('🔧 Setting up persistent storage...');
+
+      // Request persistent storage aggressively
+      const granted = await this.storageManager.requestPersistentStorageAggressively();
+
+      if (!granted) {
+        console.warn('⚠️ Persistent storage not granted - will show user warning');
+      }
+
+    } catch (error) {
+      console.error('❌ Error setting up persistent storage:', error);
+    }
+  }
 }

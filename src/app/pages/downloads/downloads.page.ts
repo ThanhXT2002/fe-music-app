@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Platform } from '@ionic/angular';
@@ -7,7 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from '../../services/database.service';
 import { IndexedDBService } from '../../services/indexeddb.service';
 import { StorageManagerService } from '../../services/storage-manager.service';
-import { DownloadService, DownloadTask, SongInfo, SongStatus } from '../../services/download.service';
+import { DownloadService, DownloadTask, SongStatus } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import {
   DataSong,
@@ -16,18 +16,8 @@ import {
 } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
-import { finalize, firstValueFrom, tap, interval, takeWhile } from 'rxjs';
+import {  interval, takeWhile } from 'rxjs';
 import { OfflineMediaService } from '../../services/offline-media.service';
-
-
-// Interface for tracking YouTube songs with processing status
-interface YouTubeSongDisplay {
-  songInfo: SongInfo;
-  songStatus: SongStatus;
-  isPolling: boolean;
-  isDownloading: boolean;
-  downloadProgress: number;
-}
 
 @Component({
   selector: 'app-downloads',
@@ -45,8 +35,7 @@ export class DownloadsPage implements OnInit {  constructor(
     private toastController: ToastController,
     private platform: Platform,
     private offlineMediaService: OfflineMediaService,
-    private indexedDBService: IndexedDBService,
-    private storageManager: StorageManagerService
+    private indexedDBService: IndexedDBService
   ) {}
 
   searchQuery = signal('');
