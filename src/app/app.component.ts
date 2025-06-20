@@ -15,6 +15,7 @@ import { DatabaseService } from './services/database.service';
 import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
 import { PermissionService } from './services/permission.service';
+import { DebugService } from './services/debug.service';
 
 @Component({
   selector: 'app-root',
@@ -31,8 +32,11 @@ export class AppComponent implements OnInit, OnDestroy {
     private dbService: DatabaseService,
     private appLifecycleService: AppLifecycleService,
     private playbackRestoreService: PlaybackRestoreService,
-    private permissionService: PermissionService
-  ) {}
+    private permissionService: PermissionService,
+    private debugService: DebugService
+  ) {
+    this.debugService.initEruda();
+  }
 
 
   ngOnInit() {

@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, catchError, Observable } from 'rxjs';
+import { BehaviorSubject, catchError, Observable, firstValueFrom } from 'rxjs';
 import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } from '../interfaces/song.interface';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -289,8 +289,7 @@ export class DownloadService {
         this.failDownload(id, 'Download failed: ' + error);
       }
     }
-  }
-  /**
+  }  /**
    * Xử lý download cho web platform - download cả audio và thumbnail
    * @param id - ID của download task
    * @param signal - AbortSignal
@@ -303,31 +302,48 @@ export class DownloadService {
     let totalProgress = 0;
 
     try {
-      // Step 1: Download audio file (60% of total progress)
+      // Step 1: Download audio file (70% of total progress)
       this.updateDownloadProgress(id, 10, 'downloading');
 
-      const audioResponse = await fetch(songData.audio_url, { signal });
-      if (!audioResponse.ok) {
-        throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
-      }
+      const audioBlob = await firstValueFrom(
+        this.http.get(songData.audio_url, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'audio/*,*/*;q=0.9',
+            'User-Agent': 'IonicApp/1.0'
+          }
+        })
+      );
 
-      const audioBlob = await audioResponse.blob();
-      totalProgress = 40;
+      totalProgress = 50;
       this.updateDownloadProgress(id, totalProgress);
 
-      // Step 2: Download thumbnail (20% of total progress)
-      const thumbResponse = await fetch(songData.thumbnail_url, { signal });
-      if (!thumbResponse.ok) {
-        throw new Error(`Failed to fetch thumbnail: ${thumbResponse.status}`);
+      // Step 2: Download thumbnail (20% of total progress) - optional
+      let thumbnailBlob: Blob | null = null;
+      try {
+        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);
+
+        thumbnailBlob = await firstValueFrom(
+          this.http.get(songData.thumbnail_url, {
+            responseType: 'blob',
+            headers: {
+              'Accept': 'image/*,*/*;q=0.9'
+            }
+          })
+        );
+
+        console.log('✅ Thumbnail downloaded successfully');
+      } catch (thumbError) {
+        console.warn('⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:', thumbError);
+        // Continue without thumbnail - this is not critical
       }
 
-      const thumbnailBlob = await thumbResponse.blob();
-      totalProgress = 60;
+      totalProgress = 70;
       this.updateDownloadProgress(id, totalProgress);
 
       if (signal.aborted) return;
 
-      // Step 3: Save audio to IndexedDB (10% of total progress)
+      // Step 3: Save audio to IndexedDB (15% of total progress)
       const audioSaved = await this.indexedDBService.saveAudioFile(
         songData.id,
         audioBlob,
@@ -338,33 +354,53 @@ export class DownloadService {
         throw new Error('Failed to save audio file to IndexedDB');
       }
 
-      totalProgress = 80;
+      totalProgress = 85;
       this.updateDownloadProgress(id, totalProgress);
 
-      // Step 4: Save thumbnail to IndexedDB (10% of total progress)
-      const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
-        songData.id,
-        thumbnailBlob,
-        thumbnailBlob.type || 'image/jpeg'
-      );
+      // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      if (thumbnailBlob) {
+        const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
+          songData.id,
+          thumbnailBlob,
+          thumbnailBlob.type || 'image/jpeg'
+        );
 
-      if (!thumbnailSaved) {
-        throw new Error('Failed to save thumbnail file to IndexedDB');
+        if (thumbnailSaved) {
+          console.log('✅ Thumbnail saved to IndexedDB');
+        } else {
+          console.warn('⚠️ Failed to save thumbnail, but continuing...');
+        }
+      } else {
+        console.log('ℹ️ No thumbnail to save (download failed or CORS blocked)');
       }
 
       totalProgress = 100;
-      this.updateDownloadProgress(id, totalProgress);      // Complete download (filePath sẽ là undefined cho web)
+      this.updateDownloadProgress(id, totalProgress);
+
+      // Complete download (filePath sẽ là undefined cho web)
       await this.completeDownload(id, undefined);
 
     } catch (error) {
-      if (!signal.aborted) {
-        console.error('Web download error:', error);
-        throw error;
+      if (signal.aborted) {
+        console.log('ℹ️ Download was aborted by user');
+        return; // Don't throw error for user-initiated abort
       }
-    }
-  }
 
-  /**
+      // Handle HTTP errors
+      if (error instanceof HttpErrorResponse) {
+        if (error.status === 0) {
+          console.error('❌ CORS or network error during download:', error);
+          throw new Error('Download blocked by CORS policy or network error. Please check your connection.');
+        } else {
+          console.error(`❌ HTTP error during download: ${error.status}`, error);
+          throw new Error(`HTTP error ${error.status}: ${error.message}`);
+        }
+      }
+
+      console.error('❌ Web download error:', error);
+      throw error;
+    }
+  }  /**
    * Xử lý download cho native platform
    * @param id - ID của download task
    * @param audioUrl - URL của file audio
@@ -375,48 +411,21 @@ export class DownloadService {
     if (!download) return;
 
     try {
-      // Download file từ URL
-      const response = await fetch(audioUrl, { signal });
+      // Download file từ URL using HttpClient
+      const audioBlob = await firstValueFrom(
+        this.http.get(audioUrl, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'audio/*,*/*;q=0.9',
+            'User-Agent': 'IonicApp/1.0'
+          }
+        })
+      );
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const total = parseInt(response.headers.get('content-length') || '0');
-      const reader = response.body?.getReader();
-
-      if (!reader) {
-        throw new Error('Unable to read response body');
-      }
-
-      const chunks: Uint8Array[] = [];
-      let received = 0;
-
-      // Đọc file theo chunks và update progress
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-        if (signal.aborted) {
-          reader.cancel();
-          return;
-        }
-
-        chunks.push(value);
-        received += value.length;
-
-        // Update progress
-        if (total > 0) {
-          const progress = Math.round((received / total) * 100);
-          this.updateDownloadProgress(id, progress);
-        }
-      }
-
-      // Combine chunks
-      const blob = new Blob(chunks);
+      if (signal.aborted) return;
 
       // Lưu file vào device
-      const filePath = await this.saveFileToDevice(download, blob);
+      const filePath = await this.saveFileToDevice(download, audioBlob);
 
       // Download và save thumbnail
       await this.downloadThumbnailForNative(download);
@@ -425,9 +434,17 @@ export class DownloadService {
       await this.completeDownload(id, filePath);
 
     } catch (error) {
-      if (!signal.aborted) {
-        throw error;
+      if (signal.aborted) {
+        console.log('ℹ️ Download was aborted by user');
+        return;
       }
+
+      if (error instanceof HttpErrorResponse) {
+        console.error(`❌ HTTP error during native download: ${error.status}`, error);
+        throw new Error(`HTTP error ${error.status}: ${error.message}`);
+      }
+
+      throw error;
     }
   }
 
@@ -453,7 +470,6 @@ export class DownloadService {
     });
     return result.uri;
   }
-
   /**
    * Download và lưu thumbnail cho native platform
    * @param download - Download task
@@ -462,14 +478,18 @@ export class DownloadService {
     if (!download.thumbnail || !download.songData) return;
 
     try {
+      // Use HttpClient instead of fetch
+      const thumbnailBlob = await firstValueFrom(
+        this.http.get(download.thumbnail, {
+          responseType: 'blob',
+          headers: {
+            'Accept': 'image/*,*/*;q=0.9',
+            'User-Agent': 'IonicApp/1.0'
+          }
+        })
+      );
 
-      const response = await fetch(download.thumbnail);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const thumbnailBlob = await response.blob();      // Lưu vào IndexedDB - saveThumbnailFile accepts Blob
+      // Lưu vào IndexedDB - saveThumbnailFile accepts Blob
       const saved = await this.databaseService.saveThumbnailFile(
         download.songData.id,
         thumbnailBlob,

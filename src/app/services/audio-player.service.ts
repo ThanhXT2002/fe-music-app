@@ -4,6 +4,8 @@ import { SavedPlaybackState } from '../interfaces/playback-state.interface';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { Capacitor } from '@capacitor/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -37,10 +39,10 @@ export class AudioPlayerService {
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
-
   constructor(
     private databaseService: DatabaseService,
-    private indexedDBService: IndexedDBService
+    private indexedDBService: IndexedDBService,
+    private http: HttpClient
   ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
@@ -84,22 +86,19 @@ export class AudioPlayerService {
 
       // 🆕 Retry logic cho streaming
       const maxRetries = 2;
-      let lastError: any;
-
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      let lastError: any;      for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const response = await fetch(song.audioUrl, {
-            headers: {
-              'ngrok-skip-browser-warning': 'true',
-              'User-Agent': 'IonicApp/1.0',
-              'Accept': 'audio/*,*/*;q=0.9'
-            }
-          });
+          const audioBlob = await firstValueFrom(
+            this.http.get(song.audioUrl, {
+              responseType: 'blob',
+              headers: {
+                'ngrok-skip-browser-warning': 'true',
+                'User-Agent': 'IonicApp/1.0',
+                'Accept': 'audio/*,*/*;q=0.9'
+              }
+            })
+          );
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-          const audioBlob = await response.blob();
           const audioObjectUrl = URL.createObjectURL(audioBlob);
           // Cache blob URL
           this.audioCache.set(cacheKey, audioObjectUrl);
