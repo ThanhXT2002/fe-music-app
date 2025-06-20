@@ -16,96 +16,93 @@ export class PermissionService {
   constructor() {}
 
   /**
-   * Check and request storage permissions
+   * Kiểm tra và yêu cầu quyền truy cập bộ nhớ.
+   * Cần thiết để tải và lưu các file nhạc.
+   * @returns {Promise<PermissionStatus>} Trạng thái của quyền.
    */
   async checkStoragePermissions(): Promise<PermissionStatus> {
     if (!Capacitor.isNativePlatform()) {
-      return { granted: true, message: 'Web platform - no permissions needed' };
+      return { granted: true, message: 'Nền tảng web - không cần quyền' };
     }
 
     try {
-      // Check current permissions
+      // Kiểm tra quyền hiện tại
       const permissions = await Filesystem.checkPermissions();
 
       if (permissions.publicStorage === 'granted') {
-        console.log('✅ Storage permissions already granted');
-        return { granted: true, message: 'Storage permissions granted' };
+        return { granted: true, message: 'Quyền truy cập bộ nhớ đã được cấp' };
       }
 
-      // Request permissions if not granted
-      console.log('🔐 Requesting storage permissions...');
+      // Yêu cầu quyền nếu chưa được cấp
       const requestResult = await Filesystem.requestPermissions();
 
       if (requestResult.publicStorage === 'granted') {
-        console.log('✅ Storage permissions granted');
-        return { granted: true, message: 'Storage permissions granted' };
+        return { granted: true, message: 'Quyền truy cập bộ nhớ đã được cấp' };
       } else {
-        console.log('❌ Storage permissions denied');
+        console.warn('⚠️ Quyền truy cập bộ nhớ đã bị từ chối');
         return {
           granted: false,
-          message: 'Storage permissions denied. Please enable in settings to download music.'
+          message: 'Quyền truy cập bộ nhớ bị từ chối. Vui lòng bật trong cài đặt để tải nhạc.'
         };
       }
 
     } catch (error) {
-      console.error('❌ Error checking storage permissions:', error);
+      console.error('❌ Lỗi khi kiểm tra quyền truy cập bộ nhớ:', error);
       return {
         granted: false,
-        message: 'Error checking storage permissions: ' + error
+        message: 'Lỗi khi kiểm tra quyền truy cập bộ nhớ: ' + error
       };
     }
   }
 
   /**
-   * Check and request notification permissions
+   * Kiểm tra và yêu cầu quyền hiển thị thông báo.
+   * Dùng để hiển thị tiến trình tải xuống.
+   * @returns {Promise<PermissionStatus>} Trạng thái của quyền.
    */
   async checkNotificationPermissions(): Promise<PermissionStatus> {
     if (!Capacitor.isNativePlatform()) {
-      return { granted: true, message: 'Web platform - no permissions needed' };
+      return { granted: true, message: 'Nền tảng web - không cần quyền' };
     }
 
     try {
-      // Check current permissions
+      // Kiểm tra quyền hiện tại
       const permissions = await LocalNotifications.checkPermissions();
 
       if (permissions.display === 'granted') {
-        console.log('✅ Notification permissions already granted');
-        return { granted: true, message: 'Notification permissions granted' };
+        return { granted: true, message: 'Quyền thông báo đã được cấp' };
       }
 
-      // Request permissions if not granted
-      console.log('🔐 Requesting notification permissions...');
+      // Yêu cầu quyền nếu chưa được cấp
       const requestResult = await LocalNotifications.requestPermissions();
 
       if (requestResult.display === 'granted') {
-        console.log('✅ Notification permissions granted');
-        return { granted: true, message: 'Notification permissions granted' };
+        return { granted: true, message: 'Quyền thông báo đã được cấp' };
       } else {
-        console.log('⚠️ Notification permissions denied');
+        console.warn('⚠️ Quyền thông báo đã bị từ chối');
         return {
           granted: false,
-          message: 'Notification permissions denied. You won\'t receive download progress notifications.'
+          message: 'Quyền thông báo bị từ chối. Bạn sẽ không nhận được thông báo về tiến trình tải xuống.'
         };
       }
 
     } catch (error) {
-      console.error('❌ Error checking notification permissions:', error);
+      console.error('❌ Lỗi khi kiểm tra quyền thông báo:', error);
       return {
         granted: false,
-        message: 'Error checking notification permissions: ' + error
+        message: 'Lỗi khi kiểm tra quyền thông báo: ' + error
       };
     }
   }
 
   /**
-   * Check all required permissions at once
+   * Kiểm tra tất cả các quyền cần thiết cùng một lúc.
+   * @returns {Promise<{storage: PermissionStatus, notifications: PermissionStatus}>} Đối tượng chứa trạng thái của các quyền.
    */
   async checkAllPermissions(): Promise<{
     storage: PermissionStatus;
     notifications: PermissionStatus;
   }> {
-    console.log('🔐 Checking all app permissions...');
-
     const [storage, notifications] = await Promise.all([
       this.checkStoragePermissions(),
       this.checkNotificationPermissions()
@@ -118,44 +115,43 @@ export class PermissionService {
   }
 
   /**
-   * Request all permissions with user-friendly prompts
+   * Yêu cầu tất cả các quyền cần thiết.
+   * @returns {Promise<boolean>} Trả về `true` nếu các quyền quan trọng được cấp, ngược lại `false`.
    */
   async requestAllPermissions(): Promise<boolean> {
     try {
-      console.log('🔐 Requesting all required permissions...');
-
       const results = await this.checkAllPermissions();
 
-      // Storage is critical, notifications are optional
+      // Quyền bộ nhớ là bắt buộc, thông báo là tùy chọn
       if (!results.storage.granted) {
-        console.error('❌ Critical storage permissions denied');
+        console.error('❌ Quyền truy cập bộ nhớ quan trọng đã bị từ chối');
         return false;
       }
 
       if (!results.notifications.granted) {
-        console.warn('⚠️ Optional notification permissions denied');
-        // Continue anyway, just log the warning
+        console.warn('⚠️ Quyền thông báo tùy chọn đã bị từ chối');
+        // Vẫn tiếp tục vì quyền này không bắt buộc
       }
 
-      console.log('✅ All required permissions granted');
       return true;
 
     } catch (error) {
-      console.error('❌ Error requesting permissions:', error);
+      console.error('❌ Lỗi khi yêu cầu các quyền:', error);
       return false;
     }
   }
 
   /**
-   * Show user-friendly permission explanation
+   * Lấy chuỗi giải thích lý do cần quyền cho người dùng.
+   * @returns {{storage: string, notifications: string}} Đối tượng chứa các chuỗi giải thích.
    */
   getPermissionExplanation(): {
     storage: string;
     notifications: string;
   } {
     return {
-      storage: 'Storage permission is required to download and save music files to your device. Without this permission, you won\'t be able to download songs for offline listening.',
-      notifications: 'Notification permission allows the app to show download progress and completion notifications. This is optional but recommended for better user experience.'
+      storage: 'Quyền truy cập bộ nhớ là cần thiết để tải và lưu các file nhạc vào thiết bị của bạn. Nếu không có quyền này, bạn sẽ không thể tải bài hát để nghe offline.',
+      notifications: 'Quyền thông báo cho phép ứng dụng hiển thị tiến trình tải xuống và thông báo khi hoàn tất. Quyền này là tùy chọn nhưng được khuyến nghị để có trải nghiệm tốt hơn.'
     };
   }
 }
