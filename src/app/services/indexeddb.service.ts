@@ -12,8 +12,7 @@ export class IndexedDBService {
   private dbName = 'xtmusic_db';
   private dbVersion = 34; // Fixed version conflict - current DB is at 33
 
-  constructor() {}
-  /**
+  constructor() {}  /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
@@ -22,56 +21,71 @@ export class IndexedDBService {
       return true;
     }
 
-    return new Promise((resolve) => {
-      console.log(`🔄 Initializing IndexedDB with version ${this.dbVersion}...`);
+    try {
+      // First, check what version the database currently has
+      const currentVersion = await this.getCurrentDBVersion();
+      console.log(`📊 Current database version: ${currentVersion}, Target version: ${this.dbVersion}`);
 
-      const request = indexedDB.open(this.dbName, this.dbVersion);
+      // If current version is higher than our target, update our target
+      if (currentVersion > this.dbVersion) {
+        this.dbVersion = currentVersion + 1;
+        console.log(`🔄 Adjusting target version to: ${this.dbVersion}`);
+      }
 
-      request.onerror = () => {
-        console.error('❌ Error opening IndexedDB:', request.error);
-        resolve(false);
-      };
+      return new Promise((resolve) => {
+        console.log(`🔄 Initializing IndexedDB with version ${this.dbVersion}...`);
 
-      request.onsuccess = () => {
-        this.db = request.result;
-        console.log('✅ IndexedDB opened successfully, version:', this.db.version);
+        const request = indexedDB.open(this.dbName, this.dbVersion);
 
-        // Kiểm tra xem tất cả object stores cần thiết đã tồn tại chưa
-        const requiredStores = ['songs', 'search_history', 'recently_played', 'playlists', 'user_preferences', 'audioFiles', 'thumbnailFiles', 'downloads'];
-        const existingStores = Array.from(this.db.objectStoreNames);
-        const missingStores = requiredStores.filter(store => !existingStores.includes(store));
-
-        console.log('📋 Existing stores:', existingStores);
-
-        if (missingStores.length > 0) {
-          console.error('❌ Missing object stores:', missingStores);
-          console.error('❌ Database schema is incomplete. This should not happen after upgrade.');
-          this.db.close();
-          this.db = null;
+        request.onerror = () => {
+          console.error('❌ Error opening IndexedDB:', request.error);
           resolve(false);
-          return;
-        }
+        };
 
-        console.log('✅ All required object stores are present');
-        resolve(true);
-      };
+        request.onsuccess = () => {
+          this.db = request.result;
+          console.log('✅ IndexedDB opened successfully, version:', this.db.version);
 
-      request.onupgradeneeded = (event) => {
-        console.log('🔄 IndexedDB upgrade needed, creating object stores...');
-        console.log('📊 Old version:', event.oldVersion, 'New version:', event.newVersion);
+          // Kiểm tra xem tất cả object stores cần thiết đã tồn tại chưa
+          const requiredStores = ['songs', 'search_history', 'recently_played', 'playlists', 'user_preferences', 'audioFiles', 'thumbnailFiles', 'downloads'];
+          const existingStores = Array.from(this.db.objectStoreNames);
+          const missingStores = requiredStores.filter(store => !existingStores.includes(store));
 
-        const db = (event.target as IDBOpenDBRequest).result;
+          console.log('📋 Existing stores:', existingStores);
 
-        // Tạo object stores (tương đương với tables trong SQLite)
-        this.createObjectStores(db);
-        console.log('✅ Object stores created successfully');
-      };
+          if (missingStores.length > 0) {
+            console.error('❌ Missing object stores:', missingStores);
+            console.error('❌ Database schema is incomplete. This should not happen after upgrade.');
+            this.db.close();
+            this.db = null;
+            resolve(false);
+            return;
+          }
 
-      request.onblocked = () => {
-        console.warn('⚠️ IndexedDB upgrade blocked - please close other tabs/windows');
-        resolve(false);
-      };
-    });
+          console.log('✅ All required object stores are present');
+          resolve(true);
+        };
+
+        request.onupgradeneeded = (event) => {
+          console.log('🔄 IndexedDB upgrade needed, creating object stores...');
+          console.log('📊 Old version:', event.oldVersion, 'New version:', event.newVersion);
+
+          const db = (event.target as IDBOpenDBRequest).result;
+
+          // Tạo object stores (tương đương với tables trong SQLite)
+          this.createObjectStores(db);
+          console.log('✅ Object stores created successfully');
+        };
+
+        request.onblocked = () => {
+          console.warn('⚠️ IndexedDB upgrade blocked - please close other tabs/windows');
+          resolve(false);
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error in initDB:', error);
+      return false;
+    }
   }
 
   /**
@@ -163,17 +177,14 @@ export class IndexedDBService {
         this.db.close();
         this.db = null;
         return await this.initDB();
-      }
-
-      // Thử một transaction đơn giản để kiểm tra kết nối
+      }      // Thử một transaction đơn giản để kiểm tra kết nối
       const testTransaction = this.db.transaction(['songs'], 'readonly');
       await new Promise((resolve, reject) => {
         testTransaction.oncomplete = () => resolve(true);
         testTransaction.onerror = () => reject(testTransaction.error);
         testTransaction.onabort = () => reject(new Error('Transaction aborted'));
 
-        // Timeout after 5 seconds
-        setTimeout(() => reject(new Error('Transaction timeout')), 5000);
+        // No timeout for mobile - let it complete naturally
       });
 
       console.log('✅ Database is healthy and ready');
@@ -190,7 +201,6 @@ export class IndexedDBService {
       return await this.initDB();
     }
   }
-
   /**
    * Thêm hoặc cập nhật record
    */
@@ -227,11 +237,12 @@ export class IndexedDBService {
           resolve(false);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Put operation timeout for ${storeName}`);
-          resolve(false);
-        }, 10000); // 10 second timeout
+        transaction.oncomplete = () => {
+          // Transaction completed successfully
+        };
+
+        // Increased timeout for mobile compatibility - no timeout for critical operations
+        // Mobile browsers can be very slow with IndexedDB
 
       } catch (error) {
         console.error(`❌ Exception in put operation for ${storeName}:`, error);
@@ -254,19 +265,13 @@ export class IndexedDBService {
       try {
         const transaction = this.db!.transaction([storeName], 'readonly');
         const store = transaction.objectStore(storeName);
-        const request = store.get(key);
-
-        request.onsuccess = () => resolve(request.result || null);
+        const request = store.get(key);        request.onsuccess = () => resolve(request.result || null);
         request.onerror = () => {
           console.error(`❌ Error getting data from ${storeName}:`, request.error);
           resolve(null);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Get operation timeout for ${storeName}`);
-          resolve(null);
-        }, 5000); // 5 second timeout
+        // No timeout - let it complete naturally on mobile
 
       } catch (error) {
         console.error(`❌ Exception in get operation for ${storeName}:`, error);
@@ -301,17 +306,12 @@ export class IndexedDBService {
           request = store.getAll();
         }
 
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => {
+        request.onsuccess = () => resolve(request.result || []);        request.onerror = () => {
           console.error(`❌ Error getting all data from ${storeName}:`, request.error);
           resolve([]);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ GetAll operation timeout for ${storeName}`);
-          resolve([]);
-        }, 10000); // 10 second timeout
+        // No timeout - let mobile complete naturally
 
       } catch (error) {
         console.error(`❌ Exception in getAll operation for ${storeName}:`, error);
@@ -336,17 +336,12 @@ export class IndexedDBService {
         const store = transaction.objectStore(storeName);
         const request = store.delete(key);
 
-        request.onsuccess = () => resolve(true);
-        request.onerror = () => {
+        request.onsuccess = () => resolve(true);        request.onerror = () => {
           console.error(`❌ Error deleting data from ${storeName}:`, request.error);
           resolve(false);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Delete operation timeout for ${storeName}`);
-          resolve(false);
-        }, 5000); // 5 second timeout
+        // No timeout for mobile compatibility
 
       } catch (error) {
         console.error(`❌ Exception in delete operation for ${storeName}:`, error);
@@ -390,18 +385,12 @@ export class IndexedDBService {
             return false;
           });
           resolve(filteredResults);
-        };
-
-        request.onerror = () => {
+        };        request.onerror = () => {
           console.error(`❌ Error searching data in ${storeName}:`, request.error);
           resolve([]);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Search operation timeout for ${storeName}`);
-          resolve([]);
-        }, 10000); // 10 second timeout
+        // No timeout for mobile compatibility
 
       } catch (error) {
         console.error(`❌ Exception in search operation for ${storeName}:`, error);
@@ -424,19 +413,13 @@ export class IndexedDBService {
       try {
         const transaction = this.db!.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
-        const request = store.clear();
-
-        request.onsuccess = () => resolve(true);
+        const request = store.clear();        request.onsuccess = () => resolve(true);
         request.onerror = () => {
           console.error(`❌ Error clearing ${storeName}:`, request.error);
           resolve(false);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Clear operation timeout for ${storeName}`);
-          resolve(false);
-        }, 5000); // 5 second timeout
+        // No timeout for mobile compatibility
 
       } catch (error) {
         console.error(`❌ Exception in clear operation for ${storeName}:`, error);
@@ -471,17 +454,12 @@ export class IndexedDBService {
         const store = transaction.objectStore(storeName);
         const request = store.count();
 
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => {
+        request.onsuccess = () => resolve(request.result);        request.onerror = () => {
           console.error(`❌ Error counting data in ${storeName}:`, request.error);
           resolve(0);
         };
 
-        // Add timeout
-        setTimeout(() => {
-          console.error(`❌ Count operation timeout for ${storeName}`);
-          resolve(0);
-        }, 5000); // 5 second timeout
+        // No timeout for mobile compatibility
 
       } catch (error) {
         console.error(`❌ Exception in count operation for ${storeName}:`, error);
@@ -497,8 +475,7 @@ export class IndexedDBService {
    * @param file - Audio file hoặc blob
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
-   */
-  async saveAudioFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
+   */  async saveAudioFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
     console.log(`🎵 Saving audio file for song: ${songId}, size: ${file.size} bytes`);
 
     const isReady = await this.ensureDatabaseReady();
@@ -519,13 +496,22 @@ export class IndexedDBService {
         createdAt: new Date()
       };
 
-      const result = await this.put('audioFiles', audioFile);
+      // Use retry logic for mobile compatibility
+      const result = await this.retryOperation(async () => {
+        const success = await this.put('audioFiles', audioFile);
+        if (!success) {
+          throw new Error('Put operation failed');
+        }
+        return success;
+      }, 3, 2000); // 3 retries, starting with 2 second delay
+
       if (result) {
         console.log(`✅ Audio file saved successfully for song: ${songId}`);
+        return true;
       } else {
-        console.error(`❌ Failed to save audio file for song: ${songId}`);
+        console.error(`❌ Failed to save audio file for song: ${songId} after retries`);
+        return false;
       }
-      return result;
     } catch (error) {
       console.error(`❌ Exception saving audio file for song ${songId}:`, error);
       return false;
@@ -538,8 +524,7 @@ export class IndexedDBService {
    * @param file - Thumbnail file hoặc blob
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
-   */
-  async saveThumbnailFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
+   */  async saveThumbnailFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
     console.log(`🖼️ Saving thumbnail file for song: ${songId}, size: ${file.size} bytes`);
 
     const isReady = await this.ensureDatabaseReady();
@@ -560,13 +545,22 @@ export class IndexedDBService {
         createdAt: new Date()
       };
 
-      const result = await this.put('thumbnailFiles', thumbnailFile);
+      // Use retry logic for mobile compatibility
+      const result = await this.retryOperation(async () => {
+        const success = await this.put('thumbnailFiles', thumbnailFile);
+        if (!success) {
+          throw new Error('Put operation failed');
+        }
+        return success;
+      }, 3, 2000); // 3 retries, starting with 2 second delay
+
       if (result) {
         console.log(`✅ Thumbnail file saved successfully for song: ${songId}`);
+        return true;
       } else {
-        console.error(`❌ Failed to save thumbnail file for song: ${songId}`);
+        console.error(`❌ Failed to save thumbnail file for song: ${songId} after retries`);
+        return false;
       }
-      return result;
     } catch (error) {
       console.error(`❌ Exception saving thumbnail file for song ${songId}:`, error);
       return false;
@@ -753,5 +747,76 @@ export class IndexedDBService {
    */
   isReady(): boolean {
     return this.db !== null;
+  }
+
+  /**
+   * Retry function with exponential backoff for mobile compatibility
+   */
+  private async retryOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T | null> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const result = await operation();
+        return result;
+      } catch (error) {
+        if (attempt === maxRetries - 1) {
+          console.error(`❌ Operation failed after ${maxRetries} attempts:`, error);
+          return null;
+        }
+
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.warn(`⚠️ Operation failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms...`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get current database version without opening it
+   */
+  private async getCurrentDBVersion(): Promise<number> {
+    return new Promise((resolve) => {
+      // Open with version 1 to check existing version
+      const request = indexedDB.open(this.dbName);
+
+      request.onsuccess = () => {
+        const db = request.result;
+        const currentVersion = db.version;
+        db.close();
+        resolve(currentVersion);
+      };
+
+      request.onerror = () => {
+        // Database doesn't exist
+        resolve(0);
+      };
+    });
+  }
+
+  /**
+   * Clear browser cache and reset for testing (development only)
+   */
+  async clearBrowserCacheForTesting(): Promise<void> {
+    if (this.db) {
+      this.db.close();
+      this.db = null;
+    }
+
+    try {
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('✅ Browser caches cleared');
+      }
+
+      console.log('🔄 Please manually clear IndexedDB in browser dev tools for complete reset');
+    } catch (error) {
+      console.error('❌ Error clearing browser cache:', error);
+    }
   }
 }
