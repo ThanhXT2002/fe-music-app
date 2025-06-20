@@ -27,15 +27,16 @@ export class DownloadsPage implements OnInit {
   private databaseService = inject(DatabaseService);
   downloadService = inject(DownloadService);
   private audioPlayerService = inject(AudioPlayerService);
-  private clipboardService = inject(ClipboardService);
-  private alertController = inject(AlertController);
+  private clipboardService = inject(ClipboardService);  private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private platform = inject(Platform);
+
   searchQuery = signal('');
-  searchResults = signal<DataSong[]>([]);
+  searchResults = signal<DataSong[]>([]); // Chỉ cho YouTube URL
   isSearching = signal(false);
   downloadHistory = signal<Song[]>([]);
   searchHistoryItem = signal<SearchHistoryItem[]>([]);
+  originalSearchHistory = signal<SearchHistoryItem[]>([]); // ✅ Lưu danh sách gốc
   isClipboardLoading = signal<boolean>(false);
 
   // Download state
@@ -81,19 +82,27 @@ export class DownloadsPage implements OnInit {
       // Silent fail cho auto-paste
     }
   }
-
   async onSearchInput(event: any) {
-    const query = event.target.value;
+    const query = event.target.value?.trim() || '';
     this.searchQuery.set(query);
 
-    if (query.trim().length < 3) {
+    // Nếu query rỗng, reset về trạng thái ban đầu
+    if (query.length === 0) {
+      this.clearSearch();
       return;
     }
 
+    // Nếu là YouTube URL, không filter lịch sử
     if (this.downloadService.validateYoutubeUrl(query)) {
+      // Reset search results, giữ nguyên lịch sử
+      this.searchResults.set([]);
+      this.searchHistoryItem.set(this.originalSearchHistory());
       return;
-    } else {
-      await this.searchHistory(query);
+    }
+
+    // Nếu là text search, filter lịch sử theo query
+    if (query.length >= 2) {
+      this.filterSearchHistory(query);
     }
   }
 
@@ -247,42 +256,56 @@ export class DownloadsPage implements OnInit {
       this.downloadService.resumeDownload(download.id);
     }
   }
-
   clearSearch() {
     this.searchQuery.set('');
-  }
-
-  async searchHistory(query: string) {
+    this.searchResults.set([]); // Clear YouTube search results
+    this.searchHistoryItem.set(this.originalSearchHistory()); // Reset về danh sách gốc
+    this.isSearching.set(false);
+  }  async searchHistory(query: string) {
     try {
       this.isSearching.set(true);
-      // Implementation for search in history if needed
+
+      // Tìm kiếm trong lịch sử IndexedDB cục bộ
+      console.log('🔍 Searching in local IndexedDB history for:', query);
+      this.filterSearchHistory(query);
+
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('❌ Error searching in history:', error);
+      await this.showToast('Lỗi khi tìm kiếm trong lịch sử.', 'danger');
     } finally {
       this.isSearching.set(false);
     }
   }
-
   onSearchYoutubeUrl() {
     const query = this.searchQuery().trim();
 
     if (query.length === 0) {
       return;
-    }
-
-    if (this.downloadService.validateYoutubeUrl(query)) {
+    }    if (this.downloadService.validateYoutubeUrl(query)) {
+      // YouTube URL → tìm kiếm API và hiển thị trong searchResults
       this.processYouTubeUrl(query);
     } else {
+      // Text search → tìm kiếm trong lịch sử cục bộ
       this.searchHistory(query);
     }
   }
-    /**
+  /**
    * Tải lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
    */
   async loadSearchHistory() {
-    const history = await this.databaseService.getSearchHistory();
-    // Lấy 20 items đầu tiên (đã được sắp xếp theo thời gian gần nhất từ database)
-    this.searchHistoryItem.set(history.slice(0, 20));
+    try {
+      const history = await this.databaseService.getSearchHistory();
+      const first20 = history.slice(0, 20);
+
+      this.originalSearchHistory.set(first20); // ✅ Lưu bản gốc
+      this.searchHistoryItem.set(first20); // Hiển thị
+
+      console.log('📋 Loaded search history:', first20.length, 'items');
+    } catch (error) {
+      console.error('❌ Error loading search history:', error);
+      this.originalSearchHistory.set([]);
+      this.searchHistoryItem.set([]);
+    }
   }
 
   /**
@@ -494,7 +517,7 @@ Hoặc paste thủ công:
     await alert.present();
   }
 
-  private focusSearchInput() {
+  focusSearchInput() {
     setTimeout(() => {
       const searchInput = document.getElementById(
         'searchInput'
@@ -543,5 +566,22 @@ Hoặc paste thủ công:
     } finally {
       this.isClipboardLoading.set(false);
     }
+  }
+
+  /**
+   * Mới: Filter lịch sử tìm kiếm theo text
+   */
+  private filterSearchHistory(query: string) {
+    const originalHistory = this.originalSearchHistory();
+    const filtered = originalHistory.filter(item =>
+      item.title.toLowerCase().includes(query.toLowerCase()) ||
+      item.artist.toLowerCase().includes(query.toLowerCase()) ||
+      (item.keywords && item.keywords.some(keyword =>
+        keyword.toLowerCase().includes(query.toLowerCase())
+      ))
+    );
+
+    this.searchHistoryItem.set(filtered);
+    console.log(`🔍 Filtered search history: ${filtered.length} results for "${query}"`);
   }
 }

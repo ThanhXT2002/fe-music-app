@@ -256,7 +256,6 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
     return await this.indexedDB.put('search_history', item);
   }
-
   /**
    * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
    */
