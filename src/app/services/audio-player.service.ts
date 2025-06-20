@@ -47,8 +47,7 @@ export class AudioPlayerService {
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
-  }
-  // 🆕 Method để load audio với offline support
+  }  // 🆕 Method để load audio với offline support
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
       // Kiểm tra cache trước
@@ -57,18 +56,30 @@ export class AudioPlayerService {
         return this.audioCache.get(cacheKey)!;
       }
 
-      // Kiểm tra nếu bài hát đã download offline (chỉ cho web platform)
-      if (Capacitor.getPlatform() === 'web' && song.isDownloaded) {
+      // Kiểm tra nếu URL là indexeddb:// hoặc bài hát đã download offline
+      const isIndexedDBUrl = song.audioUrl?.startsWith('indexeddb://');
+      const shouldLoadFromIndexedDB = isIndexedDBUrl || song.isDownloaded;
 
+      if (Capacitor.getPlatform() === 'web' && shouldLoadFromIndexedDB) {
+        console.log('🔍 Loading audio from IndexedDB for:', song.title);
 
         const audioBlob = await this.indexedDBService.getAudioFile(song.id);
         if (audioBlob) {
           const audioObjectUrl = URL.createObjectURL(audioBlob);
           this.audioCache.set(cacheKey, audioObjectUrl);
+          console.log('✅ Audio loaded from IndexedDB:', song.title);
           return audioObjectUrl;
         } else {
           console.warn('⚠️ Offline audio not found, fallback to streaming:', song.title);
-        }
+          // If it's an indexeddb:// URL but no file found, return original URL (will likely fail)
+          if (isIndexedDBUrl) {
+            throw new Error('Audio file not found in IndexedDB for song: ' + song.title);
+          }
+        }      }
+
+      // Skip streaming for indexeddb:// URLs
+      if (isIndexedDBUrl) {
+        throw new Error('Cannot stream indexeddb:// URL: ' + song.audioUrl);
       }
 
       // 🆕 Retry logic cho streaming
@@ -124,22 +135,48 @@ export class AudioPlayerService {
       console.error('Error preloading audio:', error);
     }
   }
-
   // 🔄 Modified playSong method
   async playSong(song: Song, playlist: Song[] = [], index: number = 0) {
     try {
+      // Pause current audio and reset
+      this.audio.pause();
+      this.audio.currentTime = 0;
 
       this._playbackState.update(state => ({
         ...state,
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
-        currentIndex: playlist.length > 0 ? index : 0
-      }));      // Load audio với bypass headers
+        currentIndex: playlist.length > 0 ? index : 0,
+        isPlaying: false
+      }));
+
+      // Load audio với bypass headers
       const audioUrl = await this.loadAudioWithBypass(song);
 
-      // Set audio source và play
+      // Set audio source và wait for load
       this.audio.src = audioUrl;
-      await this.audio.load();
+
+      // Wait for audio to be ready before playing
+      await new Promise<void>((resolve, reject) => {
+        const handleCanPlay = () => {
+          this.audio.removeEventListener('canplay', handleCanPlay);
+          this.audio.removeEventListener('error', handleError);
+          resolve();
+        };
+
+        const handleError = (event: Event) => {
+          this.audio.removeEventListener('canplay', handleCanPlay);
+          this.audio.removeEventListener('error', handleError);
+          reject(new Error('Failed to load audio'));
+        };
+
+        this.audio.addEventListener('canplay', handleCanPlay);
+        this.audio.addEventListener('error', handleError);
+
+        this.audio.load();
+      });
+
+      // Now safely play the audio
       await this.audio.play();
 
       // Preload next song (optional optimization)
@@ -168,12 +205,17 @@ export class AudioPlayerService {
       }
     } catch (error) {
       console.error('Error preloading next song:', error);
-    }
-  }
+    }  }
 
   // 🆕 Handle playback errors
   private handlePlaybackError(error: any, song: Song): void {
     console.error('Playback error for song:', song.title, error);
+
+    // Don't handle AbortError as it's expected during reload
+    if (error?.name === 'AbortError' || error?.message?.includes('interrupted by a new load request')) {
+      console.log('⚠️ Play request was aborted (expected during reload)');
+      return;
+    }
 
     this._playbackState.update(state => ({
       ...state,
@@ -181,6 +223,8 @@ export class AudioPlayerService {
       isPaused: false
     }));
 
+    // For other errors, show user notification
+    console.warn(`⚠️ Cannot play ${song.title}:`, error?.message || error);
     // Có thể emit event hoặc show toast notification
     // this.toastService.showError(`Cannot play ${song.title}`);
   }
@@ -246,15 +290,26 @@ export class AudioPlayerService {
         isPaused: true
       }));
       this.stopTimeUpdate();
-    });
-
-    this.audio.addEventListener('error', (e) => {
+    });    this.audio.addEventListener('error', (e) => {
       console.error('Audio error:', e);
-      this._playbackState.update(state => ({
-        ...state,
-        isPlaying: false,
-        isPaused: false
-      }));
+
+      // Handle different types of audio errors
+      const error = this.audio.error;
+      if (error) {
+        console.error('Audio error details:', {
+          code: error.code,
+          message: error.message
+        });
+
+        // Don't update state for abort errors (these are expected during reload)
+        if (error.code !== MediaError.MEDIA_ERR_ABORTED) {
+          this._playbackState.update(state => ({
+            ...state,
+            isPlaying: false,
+            isPaused: false
+          }));
+        }
+      }
     });
   }
   private updateBufferProgress() {
@@ -302,10 +357,30 @@ export class AudioPlayerService {
       await this.audio.pause();
     }
   }
-
   async resume() {
-    if (this.audio.paused && this._playbackState().currentSong) {
-      await this.audio.play();
+    try {
+      if (this.audio.paused && this._playbackState().currentSong) {
+        // Check if audio source is valid before playing
+        if (!this.audio.src || this.audio.src === '') {
+          console.warn('⚠️ No audio source, reloading current song...');
+          const currentSong = this._playbackState().currentSong;
+          if (currentSong) {
+            await this.playSong(currentSong, this._playbackState().currentPlaylist, this._playbackState().currentIndex);
+            return;
+          }
+        }
+
+        await this.audio.play();
+      }
+    } catch (error) {
+      console.error('❌ Error resuming audio:', error);
+
+      // If resume fails, try to reload current song
+      const currentSong = this._playbackState().currentSong;
+      if (currentSong) {
+        console.log('🔄 Attempting to reload current song...');
+        await this.playSong(currentSong, this._playbackState().currentPlaylist, this._playbackState().currentIndex);
+      }
     }
   }
 

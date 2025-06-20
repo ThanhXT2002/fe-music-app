@@ -507,14 +507,11 @@ export class DownloadService {
         isFavorite: false,
         genre: this.extractGenreFromKeywords(songData.keywords || []),
         isDownloaded: true // Đánh dấu đã download
-      };
-
-      // Lưu vào database
+      };      // Lưu vào database
       const success = await this.databaseService.addSong(song);
 
       if (success) {
-        // Đánh dấu đã download trong search history
-        await this.databaseService.markAsDownloaded(songData.id);
+        // No need to call markAsDownloaded since we already set isDownloaded = true
         this.refreshService.triggerRefresh();
       } else {
         console.error('❌ Failed to save song to database');

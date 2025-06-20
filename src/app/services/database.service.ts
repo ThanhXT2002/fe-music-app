@@ -50,11 +50,12 @@ export class DatabaseService {
       if (!success) {
         console.log('⚠️ Initial database initialization failed, attempting reset...');
         success = await this.indexedDB.resetDatabase();
-      }
-
-      if (success) {
+      }      if (success) {
         this.isDbReady = true;
         console.log('✅ DatabaseService: IndexedDB initialization completed');
+
+        // Fix any existing indexeddb:// URLs
+        await this.fixIndexedDBUrls();
 
         // Simple data check
         const songs = await this.indexedDB.getAll('songs');
@@ -286,17 +287,16 @@ export class DatabaseService {
 
   // DEBUG METHODS - Remove in production
   async debugAddTestSong(): Promise<boolean> {
-    console.log('🧪 Adding debug test song...');
-
-    const testSong: Song = {
+    console.log('🧪 Adding debug test song...');    const testSong: Song = {
       id: 'debug-test-' + Date.now(),
       title: 'Debug Test Song',
       artist: 'Debug Artist',
       duration: 180,
       filePath: `indexeddb://debug-test-${Date.now()}`,
-      audioUrl: `indexeddb://debug-test-${Date.now()}`,
+      audioUrl: 'https://example.com/debug-test.mp3', // Use a dummy URL
       addedDate: new Date(),
-      isFavorite: false
+      isFavorite: false,
+      isDownloaded: true // Mark as downloaded since it's stored in IndexedDB
     };
 
     const success = await this.addSong(testSong);
@@ -391,18 +391,50 @@ export class DatabaseService {
       uniqueSongs: new Set(history.map(h => h.songId)).size
     };
   }
-
   async markAsDownloaded(songId: string): Promise<boolean> {
     const song = await this.getSongById(songId);
     if (!song) return false;
 
+    // Keep original audioUrl, just mark as downloaded
+    song.isDownloaded = true;
+    // Use a custom filePath to indicate it's stored in IndexedDB
     song.filePath = `indexeddb://${songId}`;
-    song.audioUrl = `indexeddb://${songId}`;
+
     return await this.updateSong(song);
   }
 
   async closeDatabase(): Promise<void> {
     // IndexedDB doesn't need explicit close
     console.log('🔄 IndexedDB cleanup completed');
+  }
+
+  /**
+   * Fix songs with indexeddb:// URLs to use proper URLs
+   */
+  async fixIndexedDBUrls(): Promise<void> {
+    try {
+      console.log('🔧 Fixing indexeddb:// URLs...');
+
+      const songs = await this.getAllSongs();
+      let fixedCount = 0;
+
+      for (const song of songs) {
+        if (song.audioUrl?.startsWith('indexeddb://')) {
+          // If it's an indexeddb URL, try to restore the original URL
+          // For now, we'll set a placeholder URL and mark as downloaded
+          song.audioUrl = `https://api-music.tranxuanthanhtxt.com/stream/${song.id}`;
+          song.isDownloaded = true;
+
+          await this.updateSong(song);
+          fixedCount++;
+        }
+      }
+
+      if (fixedCount > 0) {
+        console.log(`✅ Fixed ${fixedCount} songs with indexeddb:// URLs`);
+      }
+    } catch (error) {
+      console.error('❌ Error fixing indexeddb URLs:', error);
+    }
   }
 }
