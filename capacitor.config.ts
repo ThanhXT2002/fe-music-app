@@ -41,26 +41,7 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_icon_config_sample",
       iconColor: "#488AFF",
       sound: "beep.wav",
-    },
-    CapacitorSQLite: {
-      iosDatabaseLocation: 'Library/CapacitorDatabase',
-      iosIsEncryption: false,
-      iosKeychainPrefix: 'xtmusic-app',
-      iosBiometric: {
-        biometricAuth: false,
-        biometricTitle: 'Biometric login for capacitor sqlite',
-      },
-      androidIsEncryption: false,
-      androidBiometric: {
-        biometricAuth: false,
-        biometricTitle: 'Biometric login for capacitor sqlite',
-        biometricSubTitle: 'Log in using your biometric',
-      },
-      electronIsEncryption: false,
-      electronWindowsLocation: 'C:\\ProgramData\\CapacitorDatabases',
-      electronMacLocation: '/Volumes/Development_Lacie/Development/Databases',
-      electronLinuxLocation: 'Databases',
-    },
+    }
   },
 };
 
