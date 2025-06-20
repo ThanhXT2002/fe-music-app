@@ -243,10 +243,29 @@ export class DatabaseService {
     return await this.indexedDB.put('search_history', item);
   }
 
-  async getSearchHistory(): Promise<SearchHistoryItem[]> {
-    if (!this.isDbReady) return [];
-    return await this.indexedDB.getAll('search_history');
+/**
+ * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
+ */
+async getSearchHistory(): Promise<SearchHistoryItem[]> {
+  if (!this.isDbReady) return [];
+
+  try {
+    // Lấy tất cả items từ IndexedDB
+    const allHistory = await this.indexedDB.getAll('search_history');
+
+    // Sắp xếp theo searchedAt DESC (gần nhất trước)
+    const sortedHistory = allHistory.sort((a, b) => {
+      const dateA = new Date(a.searchedAt).getTime();
+      const dateB = new Date(b.searchedAt).getTime();
+      return dateB - dateA; // DESC: dateB - dateA
+    });
+
+    return sortedHistory;
+  } catch (error) {
+    console.error('Error getting search history:', error);
+    return [];
   }
+}
 
   async clearSearchHistory(): Promise<boolean> {
     if (!this.isDbReady) return false;

@@ -276,10 +276,13 @@ export class DownloadsPage implements OnInit {
       this.searchHistory(query);
     }
   }
+    /**
+   * Tải lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
+   */
   async loadSearchHistory() {
     const history = await this.databaseService.getSearchHistory();
-    // Take only the last 20 items
-    this.searchHistoryItem.set(history.slice(-20));
+    // Lấy 20 items đầu tiên (đã được sắp xếp theo thời gian gần nhất từ database)
+    this.searchHistoryItem.set(history.slice(0, 20));
   }
 
   /**
