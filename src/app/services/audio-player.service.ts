@@ -49,89 +49,46 @@ export class AudioPlayerService {
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
-  }  // 🆕 Method để load audio với offline support
+  }  // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
-      // Kiểm tra cache trước
-      const cacheKey = song.audioUrl;
+      // 1. Kiểm tra cache trước (sử dụng ID bài hát làm key)
+      const cacheKey = song.id.toString();
       if (this.audioCache.has(cacheKey)) {
         return this.audioCache.get(cacheKey)!;
       }
 
-      // Kiểm tra nếu URL là indexeddb:// hoặc bài hát đã download offline
-      const isIndexedDBUrl = song.audioUrl?.startsWith('indexeddb://');
-      const shouldLoadFromIndexedDB = isIndexedDBUrl || song.isDownloaded;
+      // 2. Luôn tải từ IndexedDB
+      console.log('🔍 Loading audio from IndexedDB for:', song.title);
+      const audioBlob = await this.indexedDBService.getAudioFile(song.id);
 
-      if (Capacitor.getPlatform() === 'web' && shouldLoadFromIndexedDB) {
-        console.log('🔍 Loading audio from IndexedDB for:', song.title);
-
-        const audioBlob = await this.indexedDBService.getAudioFile(song.id);
-        if (audioBlob) {
-          const audioObjectUrl = URL.createObjectURL(audioBlob);
-          this.audioCache.set(cacheKey, audioObjectUrl);
-          console.log('✅ Audio loaded from IndexedDB:', song.title);
-          return audioObjectUrl;
-        } else {
-          console.warn('⚠️ Offline audio not found, fallback to streaming:', song.title);
-          // If it's an indexeddb:// URL but no file found, return original URL (will likely fail)
-          if (isIndexedDBUrl) {
-            throw new Error('Audio file not found in IndexedDB for song: ' + song.title);
-          }
-        }      }
-
-      // Skip streaming for indexeddb:// URLs
-      if (isIndexedDBUrl) {
-        throw new Error('Cannot stream indexeddb:// URL: ' + song.audioUrl);
+      if (audioBlob) {
+        const audioObjectUrl = URL.createObjectURL(audioBlob);
+        this.audioCache.set(cacheKey, audioObjectUrl); // Cache lại blob URL
+        console.log('✅ Audio loaded from IndexedDB:', song.title);
+        return audioObjectUrl;
+      } else {
+        // 3. Nếu không tìm thấy trong DB, báo lỗi -> không fallback
+        console.error('❌ Audio not found in IndexedDB for song:', song.title);
+        throw new Error(`Audio for '${song.title}' not found offline.`);
       }
-
-      // 🆕 Retry logic cho streaming
-      const maxRetries = 2;
-      let lastError: any;      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const audioBlob = await firstValueFrom(
-            this.http.get(song.audioUrl, {
-              responseType: 'blob',
-              headers: {
-                'ngrok-skip-browser-warning': 'true',
-                'User-Agent': 'IonicApp/1.0',
-                'Accept': 'audio/*,*/*;q=0.9'
-              }
-            })
-          );
-
-          const audioObjectUrl = URL.createObjectURL(audioBlob);
-          // Cache blob URL
-          this.audioCache.set(cacheKey, audioObjectUrl);
-          return audioObjectUrl;
-        } catch (error) {
-          lastError = error;
-          console.warn(`❌ Attempt ${attempt} failed:`, error);
-
-          // Nếu không phải lần cuối, đợi một chút trước khi retry
-          if (attempt < maxRetries) {
-            const delay = attempt * 1000; // 1s, 2s...
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-        }
-      }
-
-      // Nếu tất cả attempts đều fail
-      throw lastError;
-
     } catch (error) {
-      console.error('❌ All attempts failed for audio loading:', error);
-      return song.audioUrl;
+      console.error('❌ Failed to load audio from database:', error);
+      // Ném lại lỗi để playSong có thể xử lý
+      throw error;
     }
   }
 
   // 🆕 Method để preload audio (optional)
   async preloadAudio(song: Song): Promise<void> {
     try {
-      if (!this.audioCache.has(song.audioUrl)) {
+      const cacheKey = song.id.toString();
+      if (!this.audioCache.has(cacheKey)) {
         await this.loadAudioWithBypass(song);
       }
     } catch (error) {
-      console.error('Error preloading audio:', error);
+      // Lỗi preload không cần hiển thị cho người dùng, chỉ log
+      console.log(`Preload failed for ${song.title}: ${error}`);
     }
   }
   // 🔄 Modified playSong method
@@ -197,14 +154,15 @@ export class AudioPlayerService {
         const nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
         const nextSong = state.currentPlaylist[nextIndex];
 
-        if (nextSong && !this.audioCache.has(nextSong.audioUrl)) {
-          // Preload in background
+        if (nextSong) {
+          // Preload in background, the cache check is inside preloadAudio
           setTimeout(() => this.preloadAudio(nextSong), 2000);
         }
       }
     } catch (error) {
       console.error('Error preloading next song:', error);
-    }  }
+    }
+  }
 
   // 🆕 Handle playback errors
   private handlePlaybackError(error: any, song: Song): void {
