@@ -50,9 +50,9 @@ export class DownloadService {
       const isInitialized = await this.indexedDBService.initDB();
 
       if (isInitialized) {
-        console.log('✅ IndexedDB initialized successfully');
+        // IndexedDB initialized successfully
         await this.loadDownloadsFromIndexedDB();
-        console.log('✅ Downloads loaded successfully');
+        // Downloads loaded successfully
       } else {
         console.warn('⚠️ IndexedDB initialization failed, downloads will not persist');
       }
@@ -318,7 +318,7 @@ export class DownloadService {
       );
 
       if (signal.aborted) return;
-      console.log('✅ Audio downloaded successfully, size:', audioBlob.size, 'bytes');
+      // Audio downloaded successfully
 
       totalProgress = 50;
       this.updateDownloadProgress(id, totalProgress);
@@ -338,7 +338,7 @@ export class DownloadService {
           )
         );
 
-        console.log('✅ Thumbnail downloaded successfully');
+        // Thumbnail downloaded successfully
       } catch (thumbError) {
         console.warn('⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:', thumbError);
         // Continue without thumbnail - this is not critical
@@ -366,28 +366,28 @@ export class DownloadService {
           songData.id,
           audioBlob,
           audioBlob.type || 'audio/mpeg'
-        );
-
-        if (!audioSaved) {
+        );        if (!audioSaved) {
           throw new Error('Failed to save audio file to IndexedDB');
         }
-        console.log('✅ Audio saved to IndexedDB successfully');      } catch (saveError) {
+        // Audio saved to IndexedDB successfully
+      } catch (saveError) {
         console.error('❌ Error saving audio to IndexedDB:', saveError);
 
         // Try one more time after a delay if save fails
         console.log('🔄 Retrying save after delay...');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const retrySuccess = await this.indexedDBService.saveAudioFile(
           songData.id,
           audioBlob,
-          audioBlob.type || 'audio/mpeg'        );
+          audioBlob.type || 'audio/mpeg'
+        );
 
         if (!retrySuccess) {
           throw new Error(`Failed to save audio file after retry: ${saveError}`);
         }
 
-        console.log('✅ Audio file saved successfully on retry');
+        // Audio file saved successfully on retry
       }
 
       totalProgress = 85;

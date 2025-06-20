@@ -231,7 +231,7 @@ export class ClipboardService {
     // Method 1: Try native read
     try {
       const content = await this.read();
-      console.log('✅ Clipboard read successful (native method)');
+      // Clipboard read successful (native method)
       return {
         success: true,
         content,

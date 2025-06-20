@@ -593,7 +593,7 @@ export class IndexedDBService {
     try {
       const result = await this.delete('audioFiles', songId);
       if (result) {
-        console.log(`✅ Audio file deleted successfully for song: ${songId}`);
+        // Audio file deleted successfully
       } else {
         console.error(`❌ Failed to delete audio file for song: ${songId}`);
       }
@@ -619,7 +619,7 @@ export class IndexedDBService {
     try {
       const result = await this.delete('thumbnailFiles', songId);
       if (result) {
-        console.log(`✅ Thumbnail file deleted successfully for song: ${songId}`);
+        // Thumbnail file deleted successfully
       } else {
         console.error(`❌ Failed to delete thumbnail file for song: ${songId}`);
       }

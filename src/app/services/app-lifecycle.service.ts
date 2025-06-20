@@ -64,7 +64,7 @@ export class AppLifecycleService {
       // IndexedDB doesn't need explicit close
       console.log('🔄 IndexedDB cleanup completed');
 
-      console.log('💾 App state saved successfully');
+      // App state saved successfully
     } catch (error) {
       console.error('❌ Error saving app state:', error);
     }
@@ -80,7 +80,7 @@ export class AppLifecycleService {
       // Khởi tạo lại database connection
       await this.databaseService.initializeDatabase();
 
-      console.log('🔄 App state restored successfully');
+      // App state restored successfully
     } catch (error) {
       console.error('❌ Error restoring app state:', error);
     }

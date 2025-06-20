@@ -301,7 +301,7 @@ export class DatabaseService {
 
     const success = await this.addSong(testSong);
     if (success) {
-      console.log('✅ Debug test song added successfully:', testSong);
+      // Test song added successfully
     } else {
       console.error('❌ Failed to add debug test song');
     }
