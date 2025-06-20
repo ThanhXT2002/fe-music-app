@@ -9,6 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
 import { DebugService } from './services/debug.service';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -23,7 +24,8 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private dbService: DatabaseService,
     private permissionService: PermissionService,
-    private debugService: DebugService
+    private debugService: DebugService,
+    public themeService: ThemeService
   ) {
     this.debugService.initEruda();
   }
