@@ -40,7 +40,25 @@ export class DownloadService {
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService
   ) {
-    this.loadDownloadsFromIndexedDB();
+    this.initializeDownloads();
+  }
+  private async initializeDownloads() {
+    try {
+      console.log('🔄 Initializing DownloadService...');
+
+      // Đảm bảo IndexedDB được khởi tạo trước khi load downloads
+      const isInitialized = await this.indexedDBService.initDB();
+
+      if (isInitialized) {
+        console.log('✅ IndexedDB initialized successfully');
+        await this.loadDownloadsFromIndexedDB();
+        console.log('✅ Downloads loaded successfully');
+      } else {
+        console.warn('⚠️ IndexedDB initialization failed, downloads will not persist');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing downloads:', error);
+    }
   }
 
   get currentDownloads(): DownloadTask[] {
@@ -494,9 +512,15 @@ export class DownloadService {
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
-  }
-  private async saveDownloadsToIndexedDB() {
+  }  private async saveDownloadsToIndexedDB() {
     try {
+      // Đảm bảo IndexedDB đã được khởi tạo
+      const isInitialized = await this.indexedDBService.initDB();
+      if (!isInitialized) {
+        console.warn('⚠️ IndexedDB initialization failed, skipping download saving');
+        return;
+      }
+
       const downloadsToSave = this.currentDownloads.map(d => ({
         ...d,
         // Don't save large data or sensitive info
@@ -507,9 +531,16 @@ export class DownloadService {
       console.error('Failed to save downloads to IndexedDB:', error);
     }
   }
-
   private async loadDownloadsFromIndexedDB() {
-    try {      const savedData = await this.indexedDBService.get('downloads', 'downloads');
+    try {
+      // Đảm bảo IndexedDB đã được khởi tạo
+      const isInitialized = await this.indexedDBService.initDB();
+      if (!isInitialized) {
+        console.warn('⚠️ IndexedDB initialization failed, skipping download loading');
+        return;
+      }
+
+      const savedData = await this.indexedDBService.get('downloads', 'downloads');
       if (savedData && savedData.tasks && Array.isArray(savedData.tasks)) {
         const downloads: DownloadTask[] = savedData.tasks.map((d: any) => ({
           ...d,
@@ -526,6 +557,8 @@ export class DownloadService {
       }
     } catch (error) {
       console.error('Failed to load downloads from IndexedDB:', error);
+      // Đặt mảng rỗng nếu không thể load được
+      this.downloadsSubject.next([]);
     }
   }
 
@@ -552,6 +585,25 @@ export class DownloadService {
     ];
 
     return patterns.some((pattern) => pattern.test(url));
+  }
+
+  /**
+   * Reset IndexedDB database for development/debugging
+   */
+  async resetDatabase(): Promise<boolean> {
+    try {
+      console.log('🔄 Resetting IndexedDB database...');
+      const success = await this.indexedDBService.resetDatabase();
+      if (success) {
+        console.log('✅ Database reset successfully');
+        // Reload downloads after reset
+        await this.loadDownloadsFromIndexedDB();
+      }
+      return success;
+    } catch (error) {
+      console.error('❌ Error resetting database:', error);
+      return false;
+    }
   }
 
 }

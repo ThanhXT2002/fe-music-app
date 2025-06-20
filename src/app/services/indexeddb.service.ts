@@ -10,10 +10,9 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 31; // Increased to fix version conflict
+  private dbVersion = 32; // Increased to add downloads object store
 
-  constructor() {}
-  /**
+  constructor() {}  /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
@@ -28,6 +27,20 @@ export class IndexedDBService {
       request.onsuccess = () => {
         this.db = request.result;
         console.log('✅ IndexedDB opened successfully, version:', this.db.version);
+
+        // Kiểm tra xem tất cả object stores cần thiết đã tồn tại chưa
+        const requiredStores = ['songs', 'search_history', 'recently_played', 'playlists', 'user_preferences', 'audioFiles', 'thumbnailFiles', 'downloads'];
+        const missingStores = requiredStores.filter(store => !this.db!.objectStoreNames.contains(store));
+
+        if (missingStores.length > 0) {
+          console.warn('⚠️ Missing object stores:', missingStores, 'Need database upgrade...');
+          // Close and try to trigger upgrade by incrementing version
+          this.db.close();
+          this.dbVersion++;
+          setTimeout(() => this.initDB().then(resolve), 100);
+          return;
+        }
+
         resolve(true);
       };
 
