@@ -49,18 +49,17 @@ export class DatabaseService {
         console.log('⚠️ Initial database initialization failed, retrying...');
         await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
         success = await this.indexedDB.initDB();
-      }
-
-      if (success) {
+      }      if (success) {
         this.isDbReady = true;
-        console.log('✅ DatabaseService: IndexedDB initialization completed');
 
         // Fix any existing indexeddb:// URLs
         await this.fixIndexedDBUrls();
 
         // Simple data check
         const songs = await this.indexedDB.getAll('songs');
-        console.log(`📊 DatabaseService: Found ${songs.length} songs in database`);
+        if (songs.length === 0) {
+          console.log('ℹ️ Empty database - no songs found');
+        }
       } else {
         throw new Error('Failed to initialize IndexedDB even after reset attempt');
       }

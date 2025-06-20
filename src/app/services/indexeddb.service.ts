@@ -17,24 +17,19 @@ export class IndexedDBService {
    */
   async initDB(): Promise<boolean> {
     if (this.db) {
-      console.log('✅ IndexedDB already initialized');
       return true;
     }
 
     try {
       // First, check what version the database currently has
       const currentVersion = await this.getCurrentDBVersion();
-      console.log(`📊 Current database version: ${currentVersion}, Target version: ${this.dbVersion}`);
 
       // If current version is higher than our target, update our target
       if (currentVersion > this.dbVersion) {
         this.dbVersion = currentVersion + 1;
-        console.log(`🔄 Adjusting target version to: ${this.dbVersion}`);
       }
 
       return new Promise((resolve) => {
-        console.log(`🔄 Initializing IndexedDB with version ${this.dbVersion}...`);
-
         const request = indexedDB.open(this.dbName, this.dbVersion);
 
         request.onerror = () => {
@@ -44,37 +39,27 @@ export class IndexedDBService {
 
         request.onsuccess = () => {
           this.db = request.result;
-          console.log('✅ IndexedDB opened successfully, version:', this.db.version);
 
           // Kiểm tra xem tất cả object stores cần thiết đã tồn tại chưa
           const requiredStores = ['songs', 'search_history', 'recently_played', 'playlists', 'user_preferences', 'audioFiles', 'thumbnailFiles', 'downloads'];
           const existingStores = Array.from(this.db.objectStoreNames);
           const missingStores = requiredStores.filter(store => !existingStores.includes(store));
 
-          console.log('📋 Existing stores:', existingStores);
-
           if (missingStores.length > 0) {
             console.error('❌ Missing object stores:', missingStores);
-            console.error('❌ Database schema is incomplete. This should not happen after upgrade.');
             this.db.close();
             this.db = null;
             resolve(false);
             return;
           }
 
-          console.log('✅ All required object stores are present');
           resolve(true);
         };
 
         request.onupgradeneeded = (event) => {
-          console.log('🔄 IndexedDB upgrade needed, creating object stores...');
-          console.log('📊 Old version:', event.oldVersion, 'New version:', event.newVersion);
-
           const db = (event.target as IDBOpenDBRequest).result;
-
           // Tạo object stores (tương đương với tables trong SQLite)
           this.createObjectStores(db);
-          console.log('✅ Object stores created successfully');
         };
 
         request.onblocked = () => {
@@ -156,13 +141,11 @@ export class IndexedDBService {
       db.createObjectStore('downloads', { keyPath: 'id' });
     }
   }
-
   /**
    * Kiểm tra tình trạng database và đảm bảo sẵn sàng sử dụng
    */
   async ensureDatabaseReady(): Promise<boolean> {
     if (!this.db) {
-      console.log('🔄 Database not initialized, initializing...');
       return await this.initDB();
     }
 
@@ -177,17 +160,16 @@ export class IndexedDBService {
         this.db.close();
         this.db = null;
         return await this.initDB();
-      }      // Thử một transaction đơn giản để kiểm tra kết nối
+      }
+
+      // Thử một transaction đơn giản để kiểm tra kết nối
       const testTransaction = this.db.transaction(['songs'], 'readonly');
       await new Promise((resolve, reject) => {
         testTransaction.oncomplete = () => resolve(true);
         testTransaction.onerror = () => reject(testTransaction.error);
         testTransaction.onabort = () => reject(new Error('Transaction aborted'));
-
-        // No timeout for mobile - let it complete naturally
       });
 
-      console.log('✅ Database is healthy and ready');
       return true;
     } catch (error) {
       console.error('❌ Database health check failed:', error);
@@ -215,10 +197,7 @@ export class IndexedDBService {
       try {
         const transaction = this.db!.transaction([storeName], 'readwrite');
         const store = transaction.objectStore(storeName);
-        const request = store.put(data);
-
-        request.onsuccess = () => {
-          console.log(`✅ Successfully saved to ${storeName}:`, data.id || data.key || 'record');
+        const request = store.put(data);        request.onsuccess = () => {
           resolve(true);
         };
 
@@ -476,8 +455,6 @@ export class IndexedDBService {
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */  async saveAudioFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
-    console.log(`🎵 Saving audio file for song: ${songId}, size: ${file.size} bytes`);
-
     const isReady = await this.ensureDatabaseReady();
     if (!isReady) {
       console.error('❌ Database not ready for saveAudioFile operation');
@@ -505,13 +482,10 @@ export class IndexedDBService {
         return success;
       }, 3, 2000); // 3 retries, starting with 2 second delay
 
-      if (result) {
-        console.log(`✅ Audio file saved successfully for song: ${songId}`);
-        return true;
-      } else {
+      if (!result) {
         console.error(`❌ Failed to save audio file for song: ${songId} after retries`);
-        return false;
       }
+      return !!result;
     } catch (error) {
       console.error(`❌ Exception saving audio file for song ${songId}:`, error);
       return false;
@@ -525,8 +499,6 @@ export class IndexedDBService {
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */  async saveThumbnailFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
-    console.log(`🖼️ Saving thumbnail file for song: ${songId}, size: ${file.size} bytes`);
-
     const isReady = await this.ensureDatabaseReady();
     if (!isReady) {
       console.error('❌ Database not ready for saveThumbnailFile operation');
@@ -554,13 +526,10 @@ export class IndexedDBService {
         return success;
       }, 3, 2000); // 3 retries, starting with 2 second delay
 
-      if (result) {
-        console.log(`✅ Thumbnail file saved successfully for song: ${songId}`);
-        return true;
-      } else {
+      if (!result) {
         console.error(`❌ Failed to save thumbnail file for song: ${songId} after retries`);
-        return false;
       }
+      return !!result;
     } catch (error) {
       console.error(`❌ Exception saving thumbnail file for song ${songId}:`, error);
       return false;
@@ -682,13 +651,10 @@ export class IndexedDBService {
       return false;
     }
   }
-
   /**
    * Lưu download tasks vào IndexedDB
    */
   async saveDownloadsToIndexedDB(downloads: any[]): Promise<boolean> {
-    console.log('💾 Saving download tasks to IndexedDB:', downloads.length);
-
     const isReady = await this.ensureDatabaseReady();
     if (!isReady) {
       console.error('❌ Database not ready for saveDownloadsToIndexedDB operation');
@@ -703,9 +669,7 @@ export class IndexedDBService {
       };
 
       const result = await this.put('downloads', downloadsData);
-      if (result) {
-        console.log('✅ Download tasks saved to IndexedDB successfully');
-      } else {
+      if (!result) {
         console.error('❌ Failed to save download tasks to IndexedDB');
       }
       return result;
@@ -714,13 +678,10 @@ export class IndexedDBService {
       return false;
     }
   }
-
   /**
    * Tải download tasks từ IndexedDB
    */
   async loadDownloadsFromIndexedDB(): Promise<any[]> {
-    console.log('📥 Loading download tasks from IndexedDB...');
-
     const isReady = await this.ensureDatabaseReady();
     if (!isReady) {
       console.error('❌ Database not ready for loadDownloadsFromIndexedDB operation');
@@ -730,10 +691,8 @@ export class IndexedDBService {
     try {
       const downloadsData = await this.get('downloads', 'download_tasks');
       if (downloadsData && downloadsData.downloads) {
-        console.log('✅ Download tasks loaded from IndexedDB:', downloadsData.downloads.length);
         return downloadsData.downloads;
       } else {
-        console.log('ℹ️ No download tasks found in IndexedDB');
         return [];
       }
     } catch (error) {
@@ -796,7 +755,6 @@ export class IndexedDBService {
       };
     });
   }
-
   /**
    * Clear browser cache and reset for testing (development only)
    */
@@ -811,10 +769,7 @@ export class IndexedDBService {
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-        console.log('✅ Browser caches cleared');
       }
-
-      console.log('🔄 Please manually clear IndexedDB in browser dev tools for complete reset');
     } catch (error) {
       console.error('❌ Error clearing browser cache:', error);
     }
