@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, catchError, Observable, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, catchError, Observable, firstValueFrom, timeout } from 'rxjs';
 import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } from '../interfaces/song.interface';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { DatabaseService } from './database.service';
@@ -300,19 +300,25 @@ export class DownloadService {
     const { songData } = download;
     let totalProgress = 0;
 
-    try {
-      // Step 1: Download audio file (70% of total progress)
+    try {      // Step 1: Download audio file (70% of total progress)
       this.updateDownloadProgress(id, 10, 'downloading');
 
+      console.log('🎵 Downloading audio from:', songData.audio_url);
       const audioBlob = await firstValueFrom(
         this.http.get(songData.audio_url, {
           responseType: 'blob',
           headers: {
             'Accept': 'audio/*,*/*;q=0.9',
-            'User-Agent': 'IonicApp/1.0'
+            'User-Agent': 'IonicApp/1.0',
+            'Cache-Control': 'no-cache'
           }
-        })
+        }).pipe(
+          timeout(120000) // 2 minutes timeout for mobile
+        )
       );
+
+      if (signal.aborted) return;
+      console.log('✅ Audio downloaded successfully, size:', audioBlob.size, 'bytes');
 
       totalProgress = 50;
       this.updateDownloadProgress(id, totalProgress);
@@ -320,15 +326,16 @@ export class DownloadService {
       // Step 2: Download thumbnail (20% of total progress) - optional
       let thumbnailBlob: Blob | null = null;
       try {
-        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);
-
-        thumbnailBlob = await firstValueFrom(
+        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);        thumbnailBlob = await firstValueFrom(
           this.http.get(songData.thumbnail_url, {
             responseType: 'blob',
             headers: {
-              'Accept': 'image/*,*/*;q=0.9'
+              'Accept': 'image/*,*/*;q=0.9',
+              'Cache-Control': 'no-cache'
             }
-          })
+          }).pipe(
+            timeout(30000) // 30 seconds timeout for thumbnail
+          )
         );
 
         console.log('✅ Thumbnail downloaded successfully');
@@ -340,34 +347,67 @@ export class DownloadService {
       totalProgress = 70;
       this.updateDownloadProgress(id, totalProgress);
 
-      if (signal.aborted) return;
+      if (signal.aborted) return;      // Step 3: Save audio to IndexedDB (15% of total progress)
+      console.log('💾 Saving audio to IndexedDB...');
+      console.log('📊 Audio blob info:', {
+        size: audioBlob.size,
+        type: audioBlob.type,
+        songId: songData.id
+      });
 
-      // Step 3: Save audio to IndexedDB (15% of total progress)
-      const audioSaved = await this.indexedDBService.saveAudioFile(
-        songData.id,
-        audioBlob,
-        audioBlob.type || 'audio/mpeg'
-      );
+      try {
+        // Double check IndexedDB is ready
+        const isReady = await this.indexedDBService.initDB();
+        if (!isReady) {
+          throw new Error('IndexedDB initialization failed');
+        }
 
-      if (!audioSaved) {
-        throw new Error('Failed to save audio file to IndexedDB');
+        const audioSaved = await this.indexedDBService.saveAudioFile(
+          songData.id,
+          audioBlob,
+          audioBlob.type || 'audio/mpeg'
+        );
+
+        if (!audioSaved) {
+          throw new Error('Failed to save audio file to IndexedDB');
+        }
+        console.log('✅ Audio saved to IndexedDB successfully');      } catch (saveError) {
+        console.error('❌ Error saving audio to IndexedDB:', saveError);
+
+        // Try one more time after a delay if save fails
+        console.log('🔄 Retrying save after delay...');
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+        const retrySuccess = await this.indexedDBService.saveAudioFile(
+          songData.id,
+          audioBlob,
+          audioBlob.type || 'audio/mpeg'        );
+
+        if (!retrySuccess) {
+          throw new Error(`Failed to save audio file after retry: ${saveError}`);
+        }
+
+        console.log('✅ Audio file saved successfully on retry');
       }
 
       totalProgress = 85;
-      this.updateDownloadProgress(id, totalProgress);
-
-      // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      this.updateDownloadProgress(id, totalProgress);// Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
       if (thumbnailBlob) {
-        const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
-          songData.id,
-          thumbnailBlob,
-          thumbnailBlob.type || 'image/jpeg'
-        );
+        console.log('💾 Saving thumbnail to IndexedDB...');
+        try {
+          const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
+            songData.id,
+            thumbnailBlob,
+            thumbnailBlob.type || 'image/jpeg'
+          );
 
-        if (thumbnailSaved) {
-          console.log('✅ Thumbnail saved to IndexedDB');
-        } else {
-          console.warn('⚠️ Failed to save thumbnail, but continuing...');
+          if (thumbnailSaved) {
+            console.log('✅ Thumbnail saved to IndexedDB');
+          } else {
+            console.warn('⚠️ Failed to save thumbnail, but continuing...');
+          }
+        } catch (thumbSaveError) {
+          console.warn('⚠️ Error saving thumbnail to IndexedDB (non-critical):', thumbSaveError);
         }
       } else {
         console.log('ℹ️ No thumbnail to save (download failed or CORS blocked)');
@@ -586,24 +626,4 @@ export class DownloadService {
 
     return patterns.some((pattern) => pattern.test(url));
   }
-
-  /**
-   * Reset IndexedDB database for development/debugging
-   */
-  async resetDatabase(): Promise<boolean> {
-    try {
-      console.log('🔄 Resetting IndexedDB database...');
-      const success = await this.indexedDBService.resetDatabase();
-      if (success) {
-        console.log('✅ Database reset successfully');
-        // Reload downloads after reset
-        await this.loadDownloadsFromIndexedDB();
-      }
-      return success;
-    } catch (error) {
-      console.error('❌ Error resetting database:', error);
-      return false;
-    }
-  }
-
 }

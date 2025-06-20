@@ -41,16 +41,17 @@ export class DatabaseService {
     this.isInitializing = true;
 
     try {
-      console.log('🔄 DatabaseService: Starting IndexedDB initialization...');
-
-      // Initialize IndexedDB for all platforms
+      console.log('🔄 DatabaseService: Starting IndexedDB initialization...');      // Initialize IndexedDB for all platforms
       let success = await this.indexedDB.initDB();
 
-      // If initialization fails, try resetting the database
+      // If initialization fails, try again with a small delay
       if (!success) {
-        console.log('⚠️ Initial database initialization failed, attempting reset...');
-        success = await this.indexedDB.resetDatabase();
-      }      if (success) {
+        console.log('⚠️ Initial database initialization failed, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        success = await this.indexedDB.initDB();
+      }
+
+      if (success) {
         this.isDbReady = true;
         console.log('✅ DatabaseService: IndexedDB initialization completed');
 
