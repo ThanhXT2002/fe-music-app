@@ -16,24 +16,38 @@ export class LoginPage implements OnInit {
   private router = inject(Router);
 
   isLoading = false;
-
   ngOnInit() {
     // Check if user is already logged in
     if (this.authService.currentUser()) {
       this.router.navigate(['/tabs']);
+      return;
     }
-  }
 
+    // Handle redirect result if user is coming back from Google auth
+    this.authService.handleRedirectResult().subscribe({
+      next: (user) => {
+        if (user) {
+          console.log('Login successful via redirect:', user);
+          this.router.navigate(['/tabs']);
+        }
+      },
+      error: (error) => {
+        console.error('Redirect result error:', error);
+        this.isLoading = false;
+      }
+    });
+  }
   async loginWithGoogle() {
     try {
       this.isLoading = true;
+      // With redirect, user will be redirected away from the app
+      // and come back after authentication
       await this.authService.loginWithGoogle();
-      await this.router.navigate(['/tabs']);
+      // Note: Code after this line won't execute as user will be redirected
     } catch (error) {
       console.error('Login error:', error);
-      // You could show a toast or alert here
-    } finally {
       this.isLoading = false;
+      // You could show a toast or alert here
     }
   }
 

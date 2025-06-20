@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import {
   Auth,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   User,
@@ -15,30 +16,45 @@ import { map } from 'rxjs/operators';
 export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
-
   constructor(private auth: Auth) {
     // Listen to auth state changes
     this.auth.onAuthStateChanged((user) => {
       this.userSubject.next(user);
     });
-  }
 
-  signInWithGoogle(): Observable<User> {
+    // Handle redirect result when app loads
+    this.handleRedirectResult().subscribe({
+      next: (user) => {
+        if (user) {
+          console.log('Login successful via redirect:', user);
+        }
+      },
+      error: (error) => {
+        console.error('Error handling redirect result:', error);
+      }
+    });
+  }
+  signInWithGoogle(): Observable<void> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
 
-    return from(signInWithPopup(this.auth, provider)).pipe(
-      map((result) => result.user)
+    return from(signInWithRedirect(this.auth, provider));
+  }
+
+  // Method to handle redirect result
+  handleRedirectResult(): Observable<User | null> {
+    return from(getRedirectResult(this.auth)).pipe(
+      map((result) => result?.user || null)
     );
   }
+
   // Alias for compatibility with login page
-  async loginWithGoogle(): Promise<User> {
+  async loginWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
-    const result = await signInWithPopup(this.auth, provider);
-    return result.user;
+    await signInWithRedirect(this.auth, provider);
   }
 
   async getIdToken(): Promise<string | null> {

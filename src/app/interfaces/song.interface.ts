@@ -4,7 +4,7 @@ export interface Song {
   artist: string;
   album?: string;
   duration: number; // in seconds
-  duration_formatted?: string; // in seconds
+  duration_formatted?: string;
   thumbnail?: string;
   audioUrl: string;  filePath?: string | null; // local file path
   addedDate: Date;
@@ -148,3 +148,6 @@ export interface ThumbnailFile {
   size: number;
   createdAt: Date;
 }
+
+
+
