@@ -4,8 +4,6 @@ import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } fro
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { Capacitor } from '@capacitor/core';
 import { RefreshService } from './refresh.service';
 import { environment } from 'src/environments/environment';
 
@@ -36,14 +34,13 @@ export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
 
-  private activeDownloads = new Map<string, any>();
-  constructor(
+  private activeDownloads = new Map<string, any>();  constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService
   ) {
-    this.loadDownloadsFromStorage();
+    this.loadDownloadsFromIndexedDB();
   }
 
   get currentDownloads(): DownloadTask[] {
@@ -76,13 +73,11 @@ export class DownloadService {
       thumbnail: songData.thumbnail_url,
       addedAt: new Date(),
       songData: songData
-    };
-
-    // Thêm vào danh sách downloads
+    };    // Thêm vào danh sách downloads
     const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
+    this.saveDownloadsToIndexedDB();
 
     // Bắt đầu quá trình download
     this.startDownload(downloadTask.id);
@@ -98,17 +93,14 @@ export class DownloadService {
       progress: 0,
       status: 'pending',
       addedAt: new Date()
-    };
-
-    const currentDownloads = this.currentDownloads;
+    };    const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
+    this.saveDownloadsToIndexedDB();
 
     this.startDownload(downloadTask.id);
     return downloadTask.id;
   }
-
   // Update download progress
   updateDownloadProgress(id: string, progress: number, status?: DownloadTask['status']) {
     const currentDownloads = this.currentDownloads;
@@ -122,7 +114,7 @@ export class DownloadService {
       };
 
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
+      this.saveDownloadsToIndexedDB();
     }
   }
 
@@ -178,19 +170,16 @@ export class DownloadService {
     const activeDownload = this.activeDownloads.get(id);
     if (activeDownload && activeDownload.abort) {
       activeDownload.abort();
-    }
-
-    const currentDownloads = this.currentDownloads.filter(d => d.id !== id);
+    }    const currentDownloads = this.currentDownloads.filter(d => d.id !== id);
     this.downloadsSubject.next(currentDownloads);
     this.activeDownloads.delete(id);
-    this.saveDownloadsToStorage();
+    this.saveDownloadsToIndexedDB();
   }
-
   // Clear completed downloads
   clearCompleted() {
     const currentDownloads = this.currentDownloads.filter(d => d.status !== 'completed');
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
+    this.saveDownloadsToIndexedDB();
   }
 
   // Clear all downloads
@@ -203,7 +192,7 @@ export class DownloadService {
 
     this.activeDownloads.clear();
     this.downloadsSubject.next([]);
-    this.saveDownloadsToStorage();
+    this.saveDownloadsToIndexedDB();
   }
 
   // Get download by ID
@@ -243,10 +232,8 @@ export class DownloadService {
       currentDownloads[downloadIndex] = {
         ...currentDownloads[downloadIndex],
         ...updates
-      };
-
-      this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
+      };      this.downloadsSubject.next(currentDownloads);
+      this.saveDownloadsToIndexedDB();
     }
   }
 
@@ -263,8 +250,7 @@ export class DownloadService {
 
     // Sử dụng real download thay vì simulate
     this.realDownload(id, download.url, abortController.signal);
-  }
-  /**
+  }  /**
    * Download thực tế file audio và thumbnail
    * @param id - ID của download task
    * @param audioUrl - URL của file audio (không sử dụng nữa, lấy từ songData)
@@ -275,13 +261,8 @@ export class DownloadService {
       const download = this.getDownload(id);
       if (!download || !download.songData) return;
 
-      if (Capacitor.getPlatform() === 'web') {
-        // Web platform: Download files và lưu vào IndexedDB
-        await this.handleWebDownload(id, signal);
-      } else {
-        // Native platform: Download file thực tế vào filesystem
-        await this.handleNativeDownload(id, download.songData.audio_url, signal);
-      }
+      // All platforms now use IndexedDB for storage
+      await this.handleWebDownload(id, signal);
 
     } catch (error) {
       if (!signal.aborted) {
@@ -290,7 +271,7 @@ export class DownloadService {
       }
     }
   }  /**
-   * Xử lý download cho web platform - download cả audio và thumbnail
+   * Xử lý download cho tất cả platforms - download cả audio và thumbnail
    * @param id - ID của download task
    * @param signal - AbortSignal
    */
@@ -375,9 +356,7 @@ export class DownloadService {
       }
 
       totalProgress = 100;
-      this.updateDownloadProgress(id, totalProgress);
-
-      // Complete download (filePath sẽ là undefined cho web)
+      this.updateDownloadProgress(id, totalProgress);      // Complete download (no filePath needed since we use IndexedDB for all platforms)
       await this.completeDownload(id, undefined);
 
     } catch (error) {
@@ -401,111 +380,6 @@ export class DownloadService {
       throw error;
     }
   }  /**
-   * Xử lý download cho native platform
-   * @param id - ID của download task
-   * @param audioUrl - URL của file audio
-   * @param signal - AbortSignal
-   */
-  private async handleNativeDownload(id: string, audioUrl: string, signal: AbortSignal) {
-    const download = this.getDownload(id);
-    if (!download) return;
-
-    try {
-      // Download file từ URL using HttpClient
-      const audioBlob = await firstValueFrom(
-        this.http.get(audioUrl, {
-          responseType: 'blob',
-          headers: {
-            'Accept': 'audio/*,*/*;q=0.9',
-            'User-Agent': 'IonicApp/1.0'
-          }
-        })
-      );
-
-      if (signal.aborted) return;
-
-      // Lưu file vào device
-      const filePath = await this.saveFileToDevice(download, audioBlob);
-
-      // Download và save thumbnail
-      await this.downloadThumbnailForNative(download);
-
-      // Complete download
-      await this.completeDownload(id, filePath);
-
-    } catch (error) {
-      if (signal.aborted) {
-        console.log('ℹ️ Download was aborted by user');
-        return;
-      }
-
-      if (error instanceof HttpErrorResponse) {
-        console.error(`❌ HTTP error during native download: ${error.status}`, error);
-        throw new Error(`HTTP error ${error.status}: ${error.message}`);
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Lưu file vào device (chỉ cho native)
-   * @param download - Download task
-   * @param blob - File blob
-   * @returns Promise<string> - File path
-   */
-  private async saveFileToDevice(download: DownloadTask, blob: Blob): Promise<string> {
-    const safeFileName = this.createSafeFileName(download.title, download.artist);
-    const fileName = `${safeFileName}.m4a`;
-
-    // Chuyển blob thành base64
-    const base64Data = await this.blobToBase64(blob);
-
-    // Lưu file vào Documents/music/
-    const result = await Filesystem.writeFile({
-      path: `music/${fileName}`,
-      data: base64Data,
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8
-    });
-    return result.uri;
-  }
-  /**
-   * Download và lưu thumbnail cho native platform
-   * @param download - Download task
-   */
-  private async downloadThumbnailForNative(download: DownloadTask) {
-    if (!download.thumbnail || !download.songData) return;
-
-    try {
-      // Use HttpClient instead of fetch
-      const thumbnailBlob = await firstValueFrom(
-        this.http.get(download.thumbnail, {
-          responseType: 'blob',
-          headers: {
-            'Accept': 'image/*,*/*;q=0.9',
-            'User-Agent': 'IonicApp/1.0'
-          }
-        })
-      );
-
-      // Lưu vào IndexedDB - saveThumbnailFile accepts Blob
-      const saved = await this.databaseService.saveThumbnailFile(
-        download.songData.id,
-        thumbnailBlob,
-        thumbnailBlob.type || 'image/jpeg'
-      );
-
-      if (!saved) {
-       console.warn('⚠️ Failed to save thumbnail for native:', download.title);
-      }
-
-    } catch (error) {
-      console.warn('❌ Failed to download thumbnail for native:', error);
-    }
-  }
-
-  /**
    * Lưu bài hát vào database
    * @param songData - Data từ API
    * @param filePath - Đường dẫn file (optional)
@@ -621,25 +495,23 @@ export class DownloadService {
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
   }
-
-  private saveDownloadsToStorage() {
+  private async saveDownloadsToIndexedDB() {
     try {
       const downloadsToSave = this.currentDownloads.map(d => ({
         ...d,
         // Don't save large data or sensitive info
       }));
 
-      localStorage.setItem('xtmusic_downloads', JSON.stringify(downloadsToSave));
+      await this.indexedDBService.put('downloads', { id: 'downloads', tasks: downloadsToSave });
     } catch (error) {
-      console.error('Failed to save downloads to storage:', error);
+      console.error('Failed to save downloads to IndexedDB:', error);
     }
   }
 
-  private loadDownloadsFromStorage() {
-    try {
-      const savedDownloads = localStorage.getItem('xtmusic_downloads');
-      if (savedDownloads) {
-        const downloads: DownloadTask[] = JSON.parse(savedDownloads).map((d: any) => ({
+  private async loadDownloadsFromIndexedDB() {
+    try {      const savedData = await this.indexedDBService.get('downloads', 'downloads');
+      if (savedData && savedData.tasks && Array.isArray(savedData.tasks)) {
+        const downloads: DownloadTask[] = savedData.tasks.map((d: any) => ({
           ...d,
           addedAt: new Date(d.addedAt)
         }));
@@ -653,7 +525,7 @@ export class DownloadService {
         this.downloadsSubject.next(adjustedDownloads);
       }
     } catch (error) {
-      console.error('Failed to load downloads from storage:', error);
+      console.error('Failed to load downloads from IndexedDB:', error);
     }
   }
 

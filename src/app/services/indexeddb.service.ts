@@ -90,13 +90,16 @@ export class IndexedDBService {
       const audioStore = db.createObjectStore('audioFiles', { keyPath: 'songId' });
       audioStore.createIndex('mimeType', 'mimeType', { unique: false });
       audioStore.createIndex('createdAt', 'createdAt', { unique: false });
-    }
-
-    // Thumbnail files store for offline thumbnail blobs
+    }    // Thumbnail files store for offline thumbnail blobs
     if (!db.objectStoreNames.contains('thumbnailFiles')) {
       const thumbStore = db.createObjectStore('thumbnailFiles', { keyPath: 'songId' });
       thumbStore.createIndex('mimeType', 'mimeType', { unique: false });
       thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
+    }
+
+    // Downloads store for download task persistence
+    if (!db.objectStoreNames.contains('downloads')) {
+      db.createObjectStore('downloads', { keyPath: 'id' });
     }
   }
 
