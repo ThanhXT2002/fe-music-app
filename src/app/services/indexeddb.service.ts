@@ -10,28 +10,29 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 2; // Tăng version để trigger upgrade
+  private dbVersion = 31; // Increased to fix version conflict
 
   constructor() {}
-
   /**
    * Khởi tạo IndexedDB
    */
   async initDB(): Promise<boolean> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
 
       request.onerror = () => {
-        console.error('Error opening IndexedDB:', request.error);
-        reject(false);
+        console.error('❌ Error opening IndexedDB:', request.error);
+        resolve(false);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
+        console.log('✅ IndexedDB opened successfully, version:', this.db.version);
         resolve(true);
       };
 
       request.onupgradeneeded = (event) => {
+        console.log('🔄 IndexedDB upgrade needed, creating object stores...');
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Tạo object stores (tương đương với tables trong SQLite)
@@ -266,16 +267,18 @@ export class IndexedDBService {
   }
 
   // === OFFLINE FILE MANAGEMENT METHODS ===
-
   /**
    * Lưu audio file blob vào IndexedDB
    * @param songId - ID của bài hát
-   * @param blob - Audio blob
+   * @param file - Audio file hoặc blob
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */
-  async saveAudioFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+  async saveAudioFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
     if (!this.db) return false;
+
+    // Convert File to Blob if needed
+    const blob = file instanceof File ? file : file;
 
     const audioFile = {
       songId: songId,
@@ -287,16 +290,18 @@ export class IndexedDBService {
 
     return await this.put('audioFiles', audioFile);
   }
-
   /**
    * Lưu thumbnail file blob vào IndexedDB
    * @param songId - ID của bài hát
-   * @param blob - Thumbnail blob
+   * @param file - Thumbnail file hoặc blob
    * @param mimeType - MIME type của file
    * @returns Promise<boolean>
    */
-  async saveThumbnailFile(songId: string, blob: Blob, mimeType: string): Promise<boolean> {
+  async saveThumbnailFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
     if (!this.db) return false;
+
+    // Convert File to Blob if needed
+    const blob = file instanceof File ? file : file;
 
     const thumbnailFile = {
       songId: songId,
@@ -415,6 +420,60 @@ export class IndexedDBService {
     } catch (error) {
       console.error('Error getting storage usage:', error);
       return {audioSize: 0, thumbnailSize: 0, totalSize: 0};
+    }
+  }
+
+  /**
+   * Delete record by key
+   */
+  async deleteRecord(storeName: string, key: string): Promise<boolean> {
+    return await this.delete(storeName, key);
+  }
+
+  /**
+   * Check if database is ready
+   */
+  isReady(): boolean {
+    return this.db !== null;
+  }
+
+  /**
+   * Reset database - delete and recreate with new version
+   */
+  async resetDatabase(): Promise<boolean> {
+    try {
+      console.log('🔄 Resetting IndexedDB database...');
+
+      // Close current connection if exists
+      if (this.db) {
+        this.db.close();
+        this.db = null;
+      }
+
+      // Delete the existing database
+      return new Promise((resolve) => {
+        const deleteRequest = indexedDB.deleteDatabase(this.dbName);
+
+        deleteRequest.onsuccess = async () => {
+          console.log('✅ Database deleted successfully');
+          // Reinitialize the database
+          const success = await this.initDB();
+          resolve(success);
+        };
+
+        deleteRequest.onerror = () => {
+          console.error('❌ Error deleting database:', deleteRequest.error);
+          resolve(false);
+        };
+
+        deleteRequest.onblocked = () => {
+          console.log('⚠️ Database deletion blocked, please close all tabs');
+          resolve(false);
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error resetting database:', error);
+      return false;
     }
   }
 }

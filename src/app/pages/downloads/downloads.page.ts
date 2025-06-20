@@ -276,10 +276,10 @@ export class DownloadsPage implements OnInit {
       this.searchHistory(query);
     }
   }
-
   async loadSearchHistory() {
-    const history = await this.databaseService.getSearchHistory(20);
-    this.searchHistoryItem.set(history);
+    const history = await this.databaseService.getSearchHistory();
+    // Take only the last 20 items
+    this.searchHistoryItem.set(history.slice(-20));
   }
 
   /**

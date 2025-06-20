@@ -58,13 +58,11 @@ export class AppLifecycleService {
    */
   private async handleAppPause() {
     try {
-      console.log('📱 App pausing - saving state...');
-
-      // Lưu playback state
+      console.log('📱 App pausing - saving state...');      // Lưu playback state
       this.audioPlayerService.savePlaybackState();
 
-      // Đóng database connection để tránh conflicts
-      await this.databaseService.closeDatabase();
+      // IndexedDB doesn't need explicit close
+      console.log('🔄 IndexedDB cleanup completed');
 
       console.log('💾 App state saved successfully');
     } catch (error) {

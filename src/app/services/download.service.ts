@@ -469,9 +469,7 @@ export class DownloadService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const thumbnailBlob = await response.blob();
-
-      // Lưu vào SQLite
+      const thumbnailBlob = await response.blob();      // Lưu vào IndexedDB - saveThumbnailFile accepts Blob
       const saved = await this.databaseService.saveThumbnailFile(
         download.songData.id,
         thumbnailBlob,

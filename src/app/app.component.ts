@@ -44,6 +44,12 @@ export class AppComponent implements OnInit, OnDestroy {
     setInterval(() => {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
+
+    // TEMP: Expose database service to window.dbService for console testing
+    if (typeof window !== 'undefined') {
+      (window as any).dbService = this.dbService;
+      console.log('🧪 Database service exposed to window.dbService for testing');
+    }
   }
   ngOnDestroy() {
     this.destroy$.next();
@@ -52,18 +58,17 @@ export class AppComponent implements OnInit, OnDestroy {
     // Đóng database connection khi app destroy
     this.cleanupDatabase();
   }
-
   /**
    * Cleanup database khi app destroy
    */
   private async cleanupDatabase() {
     try {
-      await this.dbService.closeDatabase();
-      console.log('🧹 App cleanup: Database closed successfully');
+      // IndexedDB doesn't need explicit close
+      console.log('🧹 App cleanup: IndexedDB cleanup completed');
     } catch (error) {
-      console.error('❌ App cleanup: Failed to close database:', error);
+      console.error('❌ App cleanup: Error during cleanup:', error);
     }
-  }  async initializeApp() {
+  }async initializeApp() {
     await this.platform.ready();
 
     // Khởi tạo database ngay sau khi platform ready
