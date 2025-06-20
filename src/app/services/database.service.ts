@@ -1,5 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Song, Album, Artist, Playlist, SearchHistoryItem, DataSong } from '../interfaces/song.interface';
+import {
+  Song,
+  Album,
+  Artist,
+  Playlist,
+  SearchHistoryItem,
+  DataSong,
+} from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
 
@@ -8,7 +15,7 @@ import { RefreshService } from './refresh.service';
  * Sử dụng IndexedDB cho tất cả platforms (web và native)
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DatabaseService {
   // IndexedDB service cho tất cả platforms
@@ -24,7 +31,7 @@ export class DatabaseService {
   ) {
     this.indexedDB = indexedDBService;
     // Khởi tạo database khi service được tạo
-    this.initializeDatabase().catch(error => {
+    this.initializeDatabase().catch((error) => {
       console.error('❌ Failed to initialize database in constructor:', error);
     });
   }
@@ -41,19 +48,17 @@ export class DatabaseService {
     this.isInitializing = true;
 
     try {
-      console.log('🔄 DatabaseService: Starting IndexedDB initialization...');      // Initialize IndexedDB for all platforms
+      console.log('🔄 DatabaseService: Starting IndexedDB initialization...'); // Initialize IndexedDB for all platforms
       let success = await this.indexedDB.initDB();
 
       // If initialization fails, try again with a small delay
       if (!success) {
         console.log('⚠️ Initial database initialization failed, retrying...');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
         success = await this.indexedDB.initDB();
-      }      if (success) {
+      }
+      if (success) {
         this.isDbReady = true;
-
-        // Fix any existing indexeddb:// URLs
-        await this.fixIndexedDBUrls();
 
         // Simple data check
         const songs = await this.indexedDB.getAll('songs');
@@ -61,9 +66,10 @@ export class DatabaseService {
           console.log('ℹ️ Empty database - no songs found');
         }
       } else {
-        throw new Error('Failed to initialize IndexedDB even after reset attempt');
+        throw new Error(
+          'Failed to initialize IndexedDB even after reset attempt'
+        );
       }
-
     } catch (error) {
       console.error('❌ DatabaseService: Initialization failed:', error);
       this.isDbReady = false;
@@ -156,7 +162,11 @@ export class DatabaseService {
   /**
    * Lưu audio file
    */
-  async saveAudioFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
+  async saveAudioFile(
+    songId: string,
+    file: File | Blob,
+    mimeType: string
+  ): Promise<boolean> {
     if (!this.isDbReady) return false;
     return await this.indexedDB.saveAudioFile(songId, file, mimeType);
   }
@@ -171,7 +181,11 @@ export class DatabaseService {
   /**
    * Lưu thumbnail file
    */
-  async saveThumbnailFile(songId: string, file: File | Blob, mimeType: string): Promise<boolean> {
+  async saveThumbnailFile(
+    songId: string,
+    file: File | Blob,
+    mimeType: string
+  ): Promise<boolean> {
     if (!this.isDbReady) return false;
     return await this.indexedDB.saveThumbnailFile(songId, file, mimeType);
   }
@@ -213,7 +227,7 @@ export class DatabaseService {
    */
   async getDownloadedSongs(): Promise<Song[]> {
     const allSongs = await this.getAllSongs();
-    return allSongs.filter(song => song.filePath); // Use filePath to check if downloaded
+    return allSongs.filter((song) => song.filePath); // Use filePath to check if downloaded
   }
 
   // Playlist operations
@@ -243,29 +257,29 @@ export class DatabaseService {
     return await this.indexedDB.put('search_history', item);
   }
 
-/**
- * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
- */
-async getSearchHistory(): Promise<SearchHistoryItem[]> {
-  if (!this.isDbReady) return [];
+  /**
+   * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
+   */
+  async getSearchHistory(): Promise<SearchHistoryItem[]> {
+    if (!this.isDbReady) return [];
 
-  try {
-    // Lấy tất cả items từ IndexedDB
-    const allHistory = await this.indexedDB.getAll('search_history');
+    try {
+      // Lấy tất cả items từ IndexedDB
+      const allHistory = await this.indexedDB.getAll('search_history');
 
-    // Sắp xếp theo searchedAt DESC (gần nhất trước)
-    const sortedHistory = allHistory.sort((a, b) => {
-      const dateA = new Date(a.searchedAt).getTime();
-      const dateB = new Date(b.searchedAt).getTime();
-      return dateB - dateA; // DESC: dateB - dateA
-    });
+      // Sắp xếp theo searchedAt DESC (gần nhất trước)
+      const sortedHistory = allHistory.sort((a, b) => {
+        const dateA = new Date(a.searchedAt).getTime();
+        const dateB = new Date(b.searchedAt).getTime();
+        return dateB - dateA; // DESC: dateB - dateA
+      });
 
-    return sortedHistory;
-  } catch (error) {
-    console.error('Error getting search history:', error);
-    return [];
+      return sortedHistory;
+    } catch (error) {
+      console.error('Error getting search history:', error);
+      return [];
+    }
   }
-}
 
   async clearSearchHistory(): Promise<boolean> {
     if (!this.isDbReady) return false;
@@ -296,17 +310,18 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
   /**
    * Get database statistics
    */
-  async getDatabaseStats(): Promise<{total: number, downloaded: number}> {
+  async getDatabaseStats(): Promise<{ total: number; downloaded: number }> {
     const songs = await this.getAllSongs();
     return {
       total: songs.length,
-      downloaded: songs.filter(s => s.filePath).length // Use filePath to check if downloaded
+      downloaded: songs.filter((s) => s.filePath).length, // Use filePath to check if downloaded
     };
   }
 
   // DEBUG METHODS - Remove in production
   async debugAddTestSong(): Promise<boolean> {
-    console.log('🧪 Adding debug test song...');    const testSong: Song = {
+    console.log('🧪 Adding debug test song...');
+    const testSong: Song = {
       id: 'debug-test-' + Date.now(),
       title: 'Debug Test Song',
       artist: 'Debug Artist',
@@ -315,7 +330,7 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
       audioUrl: 'https://example.com/debug-test.mp3', // Use a dummy URL
       addedDate: new Date(),
       isFavorite: false,
-      isDownloaded: true // Mark as downloaded since it's stored in IndexedDB
+      isDownloaded: true, // Mark as downloaded since it's stored in IndexedDB
     };
 
     const success = await this.addSong(testSong);
@@ -336,7 +351,7 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
     const songs = await this.getAllSongs();
     console.log(`📊 Total songs: ${songs.length}`);
 
-    const downloadedSongs = songs.filter(s => s.filePath);
+    const downloadedSongs = songs.filter((s) => s.filePath);
     console.log(`💾 Downloaded songs: ${downloadedSongs.length}`);
 
     if (songs.length > 0) {
@@ -352,7 +367,9 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
     console.log('🗑️ Clearing test data...');
 
     const songs = await this.getAllSongs();
-    const testSongs = songs.filter(s => s.id.includes('debug-test') || s.id.includes('test-'));
+    const testSongs = songs.filter(
+      (s) => s.id.includes('debug-test') || s.id.includes('test-')
+    );
 
     for (const song of testSongs) {
       await this.deleteSong(song.id);
@@ -373,16 +390,21 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
 
   async getFavoriteSongs(): Promise<Song[]> {
     const songs = await this.getAllSongs();
-    return songs.filter(song => song.isFavorite);
+    return songs.filter((song) => song.isFavorite);
   }
 
   async getRecentlyPlayedSongs(limit: number = 50): Promise<Song[]> {
     // For now, return all songs sorted by addedDate (newest first)
     const songs = await this.getAllSongs();
     return songs
-      .sort((a, b) => new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime()
+      )
       .slice(0, limit);
-  }  async addToSearchHistory(song: Song): Promise<boolean>;
+  }
+
+  async addToSearchHistory(song: Song): Promise<boolean>;
   async addToSearchHistory(song: DataSong): Promise<boolean>;
   async addToSearchHistory(song: Song | DataSong): Promise<boolean> {
     // Check if it's DataSong or Song
@@ -392,13 +414,17 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
       songId: song.id,
       title: song.title,
       artist: song.artist,
-      thumbnail_url: isDataSong ? (song as DataSong).thumbnail_url : (song as Song).thumbnail || '',
-      audio_url: isDataSong ? (song as DataSong).audio_url : (song as Song).audioUrl || '',
+      thumbnail_url: isDataSong
+        ? (song as DataSong).thumbnail_url
+        : (song as Song).thumbnail || '',
+      audio_url: isDataSong
+        ? (song as DataSong).audio_url
+        : (song as Song).audioUrl || '',
       duration: song.duration || 0,
       duration_formatted: song.duration_formatted || '',
       keywords: isDataSong ? (song as DataSong).keywords || [] : [],
       searchedAt: new Date(),
-      isDownloaded: isDataSong ? false : !!(song as Song).filePath
+      isDownloaded: isDataSong ? false : !!(song as Song).filePath,
     };
     return await this.addSearchHistory(searchItem);
   }
@@ -407,9 +433,10 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
     const history = await this.getSearchHistory();
     return {
       totalSearches: history.length,
-      uniqueSongs: new Set(history.map(h => h.songId)).size
+      uniqueSongs: new Set(history.map((h) => h.songId)).size,
     };
   }
+
   async markAsDownloaded(songId: string): Promise<boolean> {
     const song = await this.getSongById(songId);
     if (!song) return false;
@@ -425,35 +452,5 @@ async getSearchHistory(): Promise<SearchHistoryItem[]> {
   async closeDatabase(): Promise<void> {
     // IndexedDB doesn't need explicit close
     console.log('🔄 IndexedDB cleanup completed');
-  }
-
-  /**
-   * Fix songs with indexeddb:// URLs to use proper URLs
-   */
-  async fixIndexedDBUrls(): Promise<void> {
-    try {
-      console.log('🔧 Fixing indexeddb:// URLs...');
-
-      const songs = await this.getAllSongs();
-      let fixedCount = 0;
-
-      for (const song of songs) {
-        if (song.audioUrl?.startsWith('indexeddb://')) {
-          // If it's an indexeddb URL, try to restore the original URL
-          // For now, we'll set a placeholder URL and mark as downloaded
-          song.audioUrl = `https://api-music.tranxuanthanhtxt.com/stream/${song.id}`;
-          song.isDownloaded = true;
-
-          await this.updateSong(song);
-          fixedCount++;
-        }
-      }
-
-      if (fixedCount > 0) {
-        console.log(`✅ Fixed ${fixedCount} songs with indexeddb:// URLs`);
-      }
-    } catch (error) {
-      console.error('❌ Error fixing indexeddb URLs:', error);
-    }
   }
 }
