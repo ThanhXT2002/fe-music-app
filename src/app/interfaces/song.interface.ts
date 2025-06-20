@@ -148,6 +148,3 @@ export interface ThumbnailFile {
   size: number;
   createdAt: Date;
 }
-
-
-

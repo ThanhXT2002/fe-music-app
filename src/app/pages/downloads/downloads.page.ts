@@ -17,6 +17,7 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import {  interval, takeWhile } from 'rxjs';
 import { OfflineMediaService } from '../../services/offline-media.service';
+import { DataProtectionService } from '../../services/data-protection.service';
 
 @Component({
   selector: 'app-downloads',
@@ -34,7 +35,8 @@ export class DownloadsPage implements OnInit {  constructor(
     private toastController: ToastController,
     private platform: Platform,
     private offlineMediaService: OfflineMediaService,
-    private indexedDBService: IndexedDBService
+    private indexedDBService: IndexedDBService,
+    private dataProtectionService: DataProtectionService
   ) {}
 
   searchQuery = signal('');
@@ -48,13 +50,10 @@ export class DownloadsPage implements OnInit {  constructor(
   downloadedSongIds = signal<Set<string>>(new Set()); // Track downloaded song IDs
 
   // Song processing status tracking (for API V3 workflow)
-  songStatusMap = signal<Map<string, { status: SongStatus, isPolling: boolean, downloadProgress: number }>>(new Map());
-  async ngOnInit() {
+  songStatusMap = signal<Map<string, { status: SongStatus, isPolling: boolean, downloadProgress: number }>>(new Map());  async ngOnInit() {
     try {
       // Ensure database is initialized first
-      console.log('🔄 Initializing database...');
       await this.databaseService.initializeDatabase();
-      console.log('✅ Database initialized successfully');
 
       await this.loadSearchHistory();
       await this.loadDownloadedSongs(); // Load downloaded songs
@@ -324,13 +323,10 @@ export class DownloadsPage implements OnInit {  constructor(
     } else {
       this.searchHistory(query);
     }
-  }
-  async loadSearchHistory() {
+  }  async loadSearchHistory() {
     try {
-      console.log('🔄 Loading search history...');
       const history = await this.databaseService.getSearchHistory();
       this.searchHistoryItem.set(history);
-      console.log(`✅ Loaded ${history.length} search history items`);
     } catch (error) {
       console.error('❌ Error loading search history:', error);
       this.searchHistoryItem.set([]);
@@ -340,7 +336,6 @@ export class DownloadsPage implements OnInit {  constructor(
    */
   private async loadDownloadedSongs() {
     try {
-      console.log('🔄 Loading downloaded songs...');
       // Get all completed songs from IndexedDB
       const songs = await this.databaseService.getAllSongs();
       console.log(`📱 Found ${songs.length} downloaded songs`);
@@ -362,7 +357,6 @@ export class DownloadsPage implements OnInit {  constructor(
       // Update downloaded song IDs for UI state
       const downloadedIds = new Set(songs.map((song: Song) => song.id));
       this.downloadedSongIds.set(downloadedIds);
-      console.log(`✅ Loaded ${songs.length} downloaded songs, IDs: [${Array.from(downloadedIds).join(', ')}]`);
 
     } catch (error) {
       console.error('❌ Error loading downloaded songs:', error);

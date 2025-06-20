@@ -15,6 +15,7 @@ import { NotificationService } from './services/notification.service';
 import { AppLifecycleService } from './services/app-lifecycle.service';
 import { PlaybackRestoreService } from './services/playback-restore.service';
 import { PermissionService } from './services/permission.service';
+import { DataProtectionService } from './services/data-protection.service';
 
 @Component({
   selector: 'app-root',
@@ -34,7 +35,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private appLifecycleService: AppLifecycleService,
     private playbackRestoreService: PlaybackRestoreService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private dataProtectionService: DataProtectionService
   ) {
   }
   ngOnInit() {
@@ -51,15 +53,17 @@ export class AppComponent implements OnInit, OnDestroy {
   }  ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-  async initializeApp() {
+  }  async initializeApp() {
     await this.platform.ready();
 
-    // First priority: Request persistent storage as early as possible
-    await this.setupPersistentStorage();
+    // Set up cross-service dependencies
+    this.storageManager.setDataProtectionService(this.dataProtectionService);
 
-    // Initialize database right after platform ready
+    // CRITICAL: Initialize database FIRST, before any other services that might use it
     await this.initializeDatabaseWithRetry();
+
+    // Only setup storage AFTER database is initialized (no conflict with data)
+    await this.setupPersistentStorage();
 
     // Request permissions for native platforms
     if (Capacitor.isNativePlatform()) {
@@ -91,44 +95,57 @@ export class AppComponent implements OnInit, OnDestroy {
       console.error('❌ Error requesting permissions:', error);
     }
   }
-
   /**
    * Initialize database with retry mechanism
+   * This is the SINGLE POINT of database initialization
    */
   private async initializeDatabaseWithRetry(maxRetries: number = 3): Promise<void> {
     for (let i = 0; i < maxRetries; i++) {
       try {
-        console.log(`🔄 Database initialization attempt ${i + 1}/${maxRetries}`);
+        console.log(`🔄 [AppComponent] Database initialization attempt ${i + 1}/${maxRetries}`);
         await this.dbService.initializeDatabase();
-        console.log('✅ Database initialized successfully');
+        console.log('✅ [AppComponent] Database initialized successfully');
         return;
       } catch (error) {
-        console.error(`❌ Database initialization attempt ${i + 1} failed:`, error);
+        console.error(`❌ [AppComponent] Database initialization attempt ${i + 1} failed:`, error);
 
         if (i < maxRetries - 1) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, (i + 1) * 1000));
+          // Wait before retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, i), 5000);
+          console.log(`⏳ [AppComponent] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         } else {
-          console.error('❌ All database initialization attempts failed');
+          console.error('❌ [AppComponent] All database initialization attempts failed');
           // App can still run without database, but with limited functionality
+          throw error; // Re-throw to let caller handle
         }
       }
     }
   }
 
-
   /**
    * Setup persistent storage as early as possible
+   * v2 improvement: Less aggressive for v1 users
    */
   private async setupPersistentStorage(): Promise<void> {
     try {
       console.log('🔧 Setting up persistent storage...');
 
-      // Request persistent storage aggressively
-      const granted = await this.storageManager.requestPersistentStorageAggressively();
-
-      if (!granted) {
-        console.warn('⚠️ Persistent storage not granted - will show user warning');
+      // Check if this is a v1->v2 upgrade
+      const appVersion = localStorage.getItem('xtmusic_app_version') || 'v1';
+      const isV2Upgrade = appVersion === 'v1';      if (isV2Upgrade) {
+        console.log('📱 v1->v2 Migration detected - using gentle storage setup');
+        // Just try once, don't be aggressive
+        const granted = await this.storageManager.setupPersistentStorage();
+        if (!granted) {
+          console.warn('⚠️ Persistent storage not granted during v2 migration - will use fallback');
+        }
+      } else {
+        // Request persistent storage aggressively for v2 users
+        const granted = await this.storageManager.requestPersistentStorageAggressively();
+        if (!granted) {
+          console.warn('⚠️ Persistent storage not granted - will show user warning');
+        }
       }
 
     } catch (error) {

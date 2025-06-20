@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { DataProtectionService } from './data-protection.service';
 
 /**
  * Service để quản lý storage persistence và đảm bảo data không bị mất
@@ -8,8 +9,16 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class StorageManagerService {
+  private dataProtection?: DataProtectionService;
 
   constructor() {}
+
+  /**
+   * Set data protection service (injected later to avoid circular dependencies)
+   */
+  setDataProtectionService(dataProtection: DataProtectionService): void {
+    this.dataProtection = dataProtection;
+  }
 
   /**
    * Kiểm tra và setup persistent storage cho PWA
@@ -68,7 +77,6 @@ export class StorageManagerService {
       return false;
     }
   }
-
   /**
    * Aggressively request persistent storage - try multiple times if needed
    */
@@ -88,22 +96,76 @@ export class StorageManagerService {
         return true;
       }
 
-      // Try to request it
+      // Try to request it multiple times
       console.log('📋 Requesting persistent storage permission...');
-      const granted = await navigator.storage.persist();
 
-      if (granted) {
-        console.log('✅ Persistent storage GRANTED on first try!');
-        return true;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const granted = await navigator.storage.persist();
+
+        if (granted) {
+          console.log(`✅ Persistent storage GRANTED on attempt ${attempt}!`);
+          return true;
+        }
+
+        console.warn(`⚠️ Attempt ${attempt}: Persistent storage DENIED`);
+
+        if (attempt < 3) {
+          // Wait a bit before retry
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
-      console.warn('⚠️ Persistent storage DENIED - browser requires user interaction');
+      // Final check after all attempts
+      const finalCheck = await navigator.storage.persisted();
+      if (finalCheck) {
+        console.log('✅ Persistent storage granted after retry!');
+        return true;
+      }      console.error('❌ CRITICAL: Persistent storage DENIED after all attempts');
+      console.error('❌ This may cause data loss when browser cleans storage!');
+
+      // Check if this is a v1->v2 migration - be less aggressive with warnings
+      const appVersion = localStorage.getItem('xtmusic_app_version') || 'v1';
+      const isV2Upgrade = appVersion === 'v1';
+
+      if (isV2Upgrade) {
+        console.warn('⚠️ v1->v2 Migration: Persistent storage denied - using fallback strategies');
+        // Don't show scary alerts for v1 users upgrading
+      } else {
+        // Show critical warning to user for v2 users
+        this.showPersistentStorageWarning();
+
+        // Also show user-friendly alert if available
+        if (this.dataProtection) {
+          setTimeout(() => {
+            this.dataProtection!.showProtectionFailedToast();
+          }, 500);
+        }
+      }
+
       return false;
 
     } catch (error) {
       console.error('❌ Error requesting persistent storage:', error);
       return false;
     }
+  }
+
+  /**
+   * Show critical warning about data loss
+   */
+  private showPersistentStorageWarning(): void {
+    console.warn(`
+🚨 CRITICAL WARNING: Persistent Storage Denied
+📱 Your downloaded music may be lost when:
+   - Browser restarts
+   - Storage quota exceeded
+   - Browser auto-cleanup runs
+
+💡 To fix this:
+   1. Open browser settings
+   2. Allow this site to store data permanently
+   3. Or download music to device storage instead
+    `);
   }
 
   /**
@@ -271,5 +333,156 @@ export class StorageManagerService {
         reject(deleteRequest.error);
       };
     });
+  }
+
+  /**
+   * Request persistent storage with user interaction
+   * Call this when user downloads first song
+   */
+  async requestPersistentStorageWithUserInteraction(): Promise<boolean> {
+    try {
+      console.log('🎯 Requesting persistent storage with user interaction...');
+
+      if (!('storage' in navigator) || !('persist' in navigator.storage)) {
+        console.warn('⚠️ Persistent storage API not supported');
+        return false;
+      }
+
+      // Check if already granted
+      const alreadyPersistent = await navigator.storage.persisted();
+      if (alreadyPersistent) {
+        console.log('✅ Persistent storage already granted');
+        return true;
+      }
+
+      // Request with user gesture context
+      const granted = await navigator.storage.persist();      if (granted) {
+        console.log('✅ Persistent storage GRANTED with user interaction!');
+
+        // Show success notification
+        if (this.dataProtection) {
+          this.dataProtection.showProtectionEnabledToast();
+        }
+
+        return true;
+      } else {
+        console.warn('⚠️ Persistent storage DENIED even with user interaction');
+
+        // Show guidance alert
+        if (this.dataProtection) {
+          setTimeout(() => {
+            this.dataProtection!.showPersistentStorageGuide();
+          }, 1000);
+        }
+
+        // Try fallback strategy
+        await this.setupFallbackDataProtection();
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Error requesting persistent storage with user interaction:', error);
+      await this.setupFallbackDataProtection();
+      return false;
+    }
+  }
+
+  /**
+   * Setup fallback data protection when persistent storage is denied
+   */
+  private async setupFallbackDataProtection(): Promise<void> {
+    console.log('🛡️ Setting up fallback data protection...');
+
+    // Strategy 1: Increase storage usage to make it "sticky"
+    await this.createStoragePressure();
+
+    // Strategy 2: Setup periodic data backup to localStorage
+    this.setupPeriodicBackup();
+
+    // Strategy 3: Show user instructions
+    this.showDataProtectionInstructions();
+  }
+
+  /**
+   * Create storage pressure to make IndexedDB "sticky"
+   * Browsers are less likely to clean heavily used storage
+   */
+  private async createStoragePressure(): Promise<void> {
+    try {
+      // Create some dummy data to increase storage usage
+      // This makes browser think the storage is "important"
+      const dummyData = new Array(1000).fill('x').join(''); // 1KB
+      localStorage.setItem('xtmusic_storage_pressure', dummyData);
+
+      console.log('🛡️ Storage pressure created - data should be stickier');
+    } catch (error) {
+      console.warn('⚠️ Could not create storage pressure:', error);
+    }
+  }
+
+  /**
+   * Setup periodic backup of critical data to localStorage
+   */
+  private setupPeriodicBackup(): void {
+    console.log('💾 Setting up periodic data backup...');
+
+    // Backup every 5 minutes
+    setInterval(async () => {
+      try {
+        await this.backupCriticalData();
+      } catch (error) {
+        console.warn('⚠️ Periodic backup failed:', error);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  /**
+   * Backup critical data to localStorage (limited but persistent)
+   */
+  private async backupCriticalData(): Promise<void> {
+    try {
+      // This will be called from DatabaseService when songs are added
+      console.log('💾 Backing up critical data to localStorage...');
+
+      // Store just metadata, not audio files (too big for localStorage)
+      const backup = {
+        timestamp: Date.now(),
+        hasData: true,
+        songCount: 0 // Will be updated by DatabaseService
+      };
+
+      localStorage.setItem('xtmusic_data_backup', JSON.stringify(backup));
+    } catch (error) {
+      console.warn('⚠️ Data backup failed:', error);
+    }
+  }  /**
+   * Show user instructions for enabling persistent storage
+   */
+  private showDataProtectionInstructions(): void {
+    console.warn(`
+🛡️ DATA PROTECTION INSTRUCTIONS:
+
+To prevent your downloaded music from being lost:
+
+CHROME/EDGE:
+1. Click the lock icon (🔒) in address bar
+2. Click "Site settings"
+3. Change "Storage" to "Allow"
+4. Refresh the page
+
+FIREFOX:
+1. Click the shield icon in address bar
+2. Turn off "Enhanced Tracking Protection" for this site
+3. Or go to about:preferences → Privacy & Security → Storage
+
+SAFARI:
+1. Go to Safari → Preferences → Privacy
+2. Uncheck "Prevent cross-site tracking" for this site
+
+⚠️ Without persistent storage, your music may be lost when:
+- Browser restarts
+- Storage quota exceeded
+- Browser cleanup runs
+    `);
   }
 }

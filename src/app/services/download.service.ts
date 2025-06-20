@@ -78,14 +78,14 @@ export class DownloadService {
   private activeDownloads = new Map<string, any>();
   private statusPollingInterval = 2000; // 2 seconds
   private maxPollingAttempts = 150; // 5 minutes total
-
   constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService
   ) {
-    this.loadDownloadsFromStorage();
+    // No need to load from localStorage since we use IndexedDB for persistent data
+    // DownloadTasks are temporary and only needed during active downloads
   }
 
   get currentDownloads(): DownloadTask[] {
@@ -226,14 +226,12 @@ export class DownloadService {
 
       if (existingIndex >= 0) {
         // Update existing task
-        currentDownloads[existingIndex] = downloadTask;
-      } else {
+        currentDownloads[existingIndex] = downloadTask;      } else {
         // Add new task
         currentDownloads.unshift(downloadTask);
       }
 
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
 
       // Step 4: Start status polling
       this.startStatusPolling(songInfo.id);
@@ -337,11 +335,8 @@ export class DownloadService {
         phase: 'completed',
         message: `Lỗi: ${task.error}`
       };
-    }
-
-    currentDownloads[taskIndex] = task;
+    }    currentDownloads[taskIndex] = task;
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
   }
 
   /**
@@ -356,14 +351,12 @@ export class DownloadService {
     if (taskIndex === -1) return;
 
     currentDownloads[taskIndex].status = 'error';
-    currentDownloads[taskIndex].error = error;
-    currentDownloads[taskIndex].progressDetails = {
+    currentDownloads[taskIndex].error = error;    currentDownloads[taskIndex].progressDetails = {
       ...currentDownloads[taskIndex].progressDetails!,
       message: `Lỗi: ${error}`
     };
 
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
   }
 
   /**
@@ -432,16 +425,13 @@ export class DownloadService {
       await this.databaseService.addSong(song);
 
       this.updateDownloadProgress(songId, 100, 'completed');
-      this.updateTaskProgress(songId, 'completed', 'Đã lưu thành công');
-
-      // Mark as downloaded to device
+      this.updateTaskProgress(songId, 'completed', 'Đã lưu thành công');      // Mark as downloaded to device
       const currentDownloads = this.currentDownloads;
       const taskIndex = currentDownloads.findIndex(d => d.id === songId);
       if (taskIndex >= 0) {
         currentDownloads[taskIndex].isDownloadingToDevice = true;
       }
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
 
       this.refreshService.triggerRefresh();
       return true;
@@ -486,14 +476,12 @@ export class DownloadService {
     const downloadIndex = currentDownloads.findIndex(d => d.id === id);
 
     if (downloadIndex !== -1) {
-      currentDownloads[downloadIndex] = {
-        ...currentDownloads[downloadIndex],
+      currentDownloads[downloadIndex] = {        ...currentDownloads[downloadIndex],
         progress,
         ...(status && { status })
       };
 
       this.downloadsSubject.next(currentDownloads);
-      this.saveDownloadsToStorage();
     }
   }
 
@@ -518,12 +506,9 @@ export class DownloadService {
         activeDownload.subscription.unsubscribe();
       }
       this.activeDownloads.delete(id);
-    }
-
-    // Remove from downloads list
+    }    // Remove from downloads list
     const currentDownloads = this.currentDownloads.filter(d => d.id !== id);
     this.downloadsSubject.next(currentDownloads);
-    this.saveDownloadsToStorage();
   }
 
   /**
@@ -536,11 +521,8 @@ export class DownloadService {
         activeDownload.subscription.unsubscribe();
       }
     });
-    this.activeDownloads.clear();
-
-    // Clear downloads list
+    this.activeDownloads.clear();    // Clear downloads list
     this.downloadsSubject.next([]);
-    this.saveDownloadsToStorage();
   }
 
   /**
@@ -555,52 +537,6 @@ export class DownloadService {
     this.removeDownload(id);
     this.addFromYouTubeUrl(task.originalUrl);
   }
-
-  /**
-   * Save downloads to localStorage
-   */
-  private saveDownloadsToStorage(): void {
-    try {
-      const downloads = this.currentDownloads.map(d => ({
-        ...d,
-        // Don't save heavy objects
-        progressDetails: undefined
-      }));
-      localStorage.setItem('txt_music_downloads_v3', JSON.stringify(downloads));
-    } catch (error) {
-      console.error('❌ Error saving downloads to storage:', error);
-    }
-  }
-
-  /**
-   * Load downloads from localStorage
-   */
-  private loadDownloadsFromStorage(): void {
-    try {
-      const stored = localStorage.getItem('txt_music_downloads_v3');
-      if (stored) {
-        const downloads: DownloadTask[] = JSON.parse(stored);
-        // Restore basic progress details for UI
-        downloads.forEach(d => {
-          if (!d.progressDetails) {
-            d.progressDetails = {
-              phase: d.status === 'completed' ? 'completed' : 'processing',
-              downloadedBytes: 0,
-              totalBytes: 0,
-              speed: 0,
-              timeRemaining: 0,
-              message: d.status === 'completed' ? 'Sẵn sàng tải về' : 'Đang xử lý...',
-              startTime: d.addedAt
-            };
-          }
-        });
-        this.downloadsSubject.next(downloads);
-      }
-    } catch (error) {
-      console.error('❌ Error loading downloads from storage:', error);
-    }
-  }
-
   /**
    * Generate unique ID
    */
