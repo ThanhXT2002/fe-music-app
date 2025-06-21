@@ -69,6 +69,11 @@ export class LayoutComponent implements OnDestroy {
       ? 'bottom-[75px]'
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
+  hTookbar: string =
+    this.platform.is('ios') && this.platform.is('pwa')
+      ? 'h-[75px]'
+      : '';
+
   @ViewChild('navSearch') private navSearch!: IonNav;
   @ViewChild('navPlayer') private navPlayer!: IonNav;
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
