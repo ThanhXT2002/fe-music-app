@@ -103,7 +103,8 @@ export class DatabaseService {
     if (!this.isDbReady) return [];
 
     try {
-      return await this.indexedDB.getAll('songs');
+      const allSong = await this.indexedDB.getAll('songs');
+      return allSong.sort((a, b) => +new Date(b.addedDate) - +new Date(a.addedDate));
     } catch (error) {
       console.error('Error getting all songs:', error);
       return [];
@@ -255,8 +256,7 @@ export class DatabaseService {
   async addSearchHistory(item: SearchHistoryItem): Promise<boolean> {
     if (!this.isDbReady) return false;
     return await this.indexedDB.put('search_history', item);
-  }
-  /**
+  }  /**
    * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
    */
   async getSearchHistory(): Promise<SearchHistoryItem[]> {
@@ -265,15 +265,7 @@ export class DatabaseService {
     try {
       // Lấy tất cả items từ IndexedDB
       const allHistory = await this.indexedDB.getAll('search_history');
-
-      // Sắp xếp theo searchedAt DESC (gần nhất trước)
-      const sortedHistory = allHistory.sort((a, b) => {
-        const dateA = new Date(a.searchedAt).getTime();
-        const dateB = new Date(b.searchedAt).getTime();
-        return dateB - dateA; // DESC: dateB - dateA
-      });
-
-      return sortedHistory;
+      return allHistory.sort((a, b) => +new Date(b.searchedAt) - +new Date(a.searchedAt));
     } catch (error) {
       console.error('Error getting search history:', error);
       return [];
