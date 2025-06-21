@@ -75,6 +75,11 @@ export class DatabaseService {
         if (songs.length === 0) {
           console.log('ℹ️ Empty database - no songs found');
         }
+
+        // Initialize system playlists (will be handled by PlaylistManagerService)
+        setTimeout(() => {
+          this.initializeSystemPlaylists();
+        }, 1000);
       } else {
         throw new Error(
           'Failed to initialize IndexedDB even after reset attempt'
@@ -86,6 +91,14 @@ export class DatabaseService {
     } finally {
       this.isInitializing = false;
     }
+  }
+
+  /**
+   * Initialize system playlists (will be implemented by PlaylistManagerService)
+   */
+  private async initializeSystemPlaylists(): Promise<void> {
+    // This will be called by PlaylistManagerService
+    console.log('🎵 System playlists initialization deferred to PlaylistManagerService');
   }
 
   /**
@@ -302,6 +315,17 @@ export class DatabaseService {
       this.playlistsCache = null; // Clear cache
     }
     return success;
+  }
+
+  async getPlaylistById(id: string): Promise<Playlist | null> {
+    if (!this.isDbReady) return null;
+
+    try {
+      return await this.indexedDB.get('playlists', id);
+    } catch (error) {
+      console.error('Error getting playlist by id:', error);
+      return null;
+    }
   }
 
   // Search history operations
