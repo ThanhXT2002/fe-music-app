@@ -63,6 +63,7 @@ export class LayoutComponent implements OnDestroy {
   currentSong: Song | null = null;
   isPlaying = false;
   progressPercentage = 0;
+  
   bottomPosition: string =
     this.platform.is('ios') && this.platform.is('pwa')
       ? 'bottom-[90px]'
