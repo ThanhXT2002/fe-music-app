@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Album, Song } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
+import { AlbumService } from '../../services/album.service'; // ✨ Add AlbumService
 import { SongItemComponent } from '../../components/shared/song-item.component';
 
 @Component({
@@ -54,9 +55,7 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
                 <span *ngIf="album.genre">{{ album.genre }}</span>
                 <span>{{ songs.length }} songs</span>
                 <span>{{ getTotalDurationText() }}</span>
-              </div>
-
-              <!-- Action Buttons -->
+              </div>              <!-- Action Buttons -->
               <div class="flex gap-3 justify-center md:justify-start">
                 <button
                   (click)="playAlbum()"
@@ -75,6 +74,17 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
                   </svg>
                   Shuffle
                 </button>
+
+                <!-- ✨ User Album Actions -->
+                <button
+                  *ngIf="album.isUserCreated"
+                  (click)="showAddSongs()"
+                  class="btn btn-secondary min-w-24">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  Add Songs
+                </button>
               </div>
             </div>
           </div>
@@ -90,15 +100,16 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
               </svg>
               <p class="text-gray-500 dark:text-gray-400">No songs found in this album</p>
-            </div>
-
-            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">              <app-song-item
+            </div>            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+              <app-song-item
                 [song]="song"
                 [showAlbum]="false"
                 [playlist]="songs"
                 [index]="i"
+                [showRemoveButton]="!!(album && album.isUserCreated)"
                 (play)="onSongPlay($event)"
-                (openPlayer)="onOpenPlayer()">
+                (openPlayer)="onOpenPlayer()"
+                (removeSong)="removeSongFromAlbum($event)">
               </app-song-item>
             </div>
           </div>
@@ -127,12 +138,12 @@ export class AlbumDetailPage implements OnInit {
   album: Album | null = null;
   songs: Song[] = [];
   loading = true;
-
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private databaseService: DatabaseService,
-    private audioPlayerService: AudioPlayerService
+    private audioPlayerService: AudioPlayerService,
+    private albumService: AlbumService // ✨ Inject AlbumService
   ) {}
 
   async ngOnInit() {
@@ -141,26 +152,17 @@ export class AlbumDetailPage implements OnInit {
       await this.loadAlbum(albumId);
     }
   }
-
   async loadAlbum(albumId: string) {
     try {
       this.loading = true;
-      // Get all songs and filter by album
-      const allSongs = await this.databaseService.getAllSongs();
-      this.songs = allSongs.filter(song => song.album === albumId);
 
-      if (this.songs.length > 0) {
-        // Create album object from songs
-        const firstSong = this.songs[0];
-        this.album = {
-          id: albumId,
-          name: firstSong.album || 'Unknown Album',
-          artist: firstSong.artist,
-          thumbnail: firstSong.thumbnail,
-          songs: this.songs,
-          genre: firstSong.genre,
-          totalDuration: this.songs.reduce((total, song) => total + song.duration, 0)
-        };
+      // ✨ Use AlbumService to get album (handles both auto-generated and user-created)
+      this.album = await this.albumService.getAlbumById(albumId);
+
+      if (this.album) {
+        this.songs = this.album.songs;
+      } else {
+        console.log('Album not found');
       }
     } catch (error) {
       console.error('Error loading album:', error);
@@ -189,9 +191,44 @@ export class AlbumDetailPage implements OnInit {
     await this.audioPlayerService.setPlaylist(event.playlist, event.index);
   }
 
+  // ✨ Open player (placeholder for now)
   onOpenPlayer() {
-    // Method này được gọi khi click vào song đang active
-    console.log('Opening player page...');
+    // TODO: Implement player opening logic if needed
+    console.log('Open player');
+  }
+
+  // ✨ Show add songs interface for user-created albums
+  async showAddSongs() {
+    if (!this.album?.isUserCreated) {
+      return;
+    }
+
+    // TODO: Implement song selection interface
+    // For now, show a placeholder
+    console.log('Show add songs interface for album:', this.album.name);
+
+    // This could be implemented as a modal with song search/selection
+    // or navigation to a dedicated page
+  }
+
+  // ✨ Remove song from user album
+  async removeSongFromAlbum(song: Song) {
+    if (!this.album?.isUserCreated) {
+      return;
+    }
+
+    try {
+      const success = await this.albumService.removeSongFromAlbum(this.album.id, song.id);
+      if (success) {
+        // Reload album to reflect changes
+        await this.loadAlbum(this.album.id);
+        console.log('Song removed from album successfully');
+      } else {
+        console.error('Failed to remove song from album');
+      }
+    } catch (error) {
+      console.error('Error removing song from album:', error);
+    }
   }
 
   formatDuration(seconds: number): string {

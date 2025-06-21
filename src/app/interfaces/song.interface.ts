@@ -16,13 +16,19 @@ export interface Song {
 
 export interface Album {
   id: string;
-  name: string;
-  artist: string;
+  name: string; // Will be artist name for auto-generated albums
+  artist: string; // Same as name for consistency
   thumbnail?: string;
   songs: Song[];
   year?: number;
   genre?: string;
   totalDuration: number;
+  // ✨ Simplified album features
+  description?: string;
+  isUserCreated?: boolean; // false = auto-generated from artist, true = user-created
+  isEditable?: boolean;    // whether user can modify this album
+  createdDate?: Date;
+  updatedDate?: Date;
 }
 
 export interface Artist {

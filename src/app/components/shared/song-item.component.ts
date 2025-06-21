@@ -75,9 +75,20 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
             }"
           >
             {{ song.duration_formatted }}
-          </p>
-        </div>
-        <div class="flex-shrink-0">
+          </p>        </div>
+        <!-- Action Buttons -->
+        <div class="flex-shrink-0 flex items-center space-x-2">
+          <!-- ✨ Remove Button (for user albums) -->
+          <button
+            *ngIf="showRemoveButton"
+            (click)="onRemoveSong($event)"
+            class="w-8 h-8 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-red-500 hover:text-red-600"
+            title="Remove from album"
+          >
+            <i class="fas fa-times text-sm"></i>
+          </button>
+
+          <!-- Menu Button -->
           <button
             (click)="onShowMenu($event)"
             class="w-10 h-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 dark:text-gray-500"
@@ -128,6 +139,7 @@ export class SongItemComponent implements OnInit {
   @Input() showArtist: boolean = true;
   @Input() playlist: Song[] = [];
   @Input() index: number = 0;
+  @Input() showRemoveButton: boolean = false; // ✨ Enable remove button
   @Output() play = new EventEmitter<{
     song: Song;
     playlist: Song[];
@@ -136,6 +148,7 @@ export class SongItemComponent implements OnInit {
   @Output() showMenu = new EventEmitter<Song>();
   @Output() toggleFavorite = new EventEmitter<Song>();
   @Output() openPlayer = new EventEmitter<void>();
+  @Output() removeSong = new EventEmitter<Song>(); // ✨ Remove song event
   currentSong: Song | null = null;
   isPlaying = false;
   constructor(
@@ -191,6 +204,11 @@ export class SongItemComponent implements OnInit {
   onToggleFavorite(event: Event) {
     event.stopPropagation();
     this.toggleFavorite.emit(this.song);
+  }
+
+  onRemoveSong(event: Event) {
+    event.stopPropagation();
+    this.removeSong.emit(this.song);
   }
 
   formatDuration(seconds: number): string {
