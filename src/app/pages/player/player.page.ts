@@ -15,6 +15,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
 import { ModalController, IonicModule,Gesture, GestureController } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
+import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 
 @Component({
   selector: 'app-player',
@@ -26,10 +27,10 @@ import { ThemeService } from 'src/app/services/theme.service';
 export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
-  private router = inject(Router);
-  private modalCtrl = inject(ModalController);
+  private router = inject(Router);  private modalCtrl = inject(ModalController);
   private themeService = inject(ThemeService);
   private gestureCtrl = inject(GestureController);
+  private playlistModalService = inject(GlobalPlaylistModalService);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -143,6 +144,11 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private setPlayerThemeColor() {
     this.themeService.setPageHeaderThemeColor('#312e81');
   }
+
+  openPlaylist() {
+    this.playlistModalService.open();
+  }
+
   closeModal() {
     // Check if we're in a modal context or navigated directly
     this.modalCtrl.getTop().then(modal => {

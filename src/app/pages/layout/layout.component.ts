@@ -1,10 +1,6 @@
-import { Component, effect, OnDestroy, inject, ViewChild } from '@angular/core';
+import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  RouterLink,
-  RouterLinkActive,
-  Router
-} from '@angular/router';
+import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Song } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Subject } from 'rxjs';
@@ -20,11 +16,14 @@ import {
   IonNav,
   IonRefresher,
   IonRefresherContent,
+  IonLabel,
 } from '@ionic/angular/standalone';
 import { SearchComponent } from 'src/app/components/search(trash)/search.component';
 import { Platform } from '@ionic/angular';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
+import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
+import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 
 @Component({
   selector: 'app-layout',
@@ -42,18 +41,19 @@ import { PlayerPage } from '../player/player.page';
     IonModal,
     IonNav,
     IonRefresherContent,
+    CurrentPlaylistComponent,
   ],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
 })
-export class LayoutComponent implements OnDestroy {
+export class LayoutComponent implements OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
   private audioPlayerService = inject(AudioPlayerService);
   private router = inject(Router);
-  private searchService = inject(SearchService);
-  private platform = inject(Platform);
- private refreshService = inject(RefreshService);
+  private searchService = inject(SearchService);  private platform = inject(Platform);
+  private refreshService = inject(RefreshService);
+  private playlistModalService = inject(GlobalPlaylistModalService);
 
   showSearch = false;
   isVisible = false;
@@ -70,14 +70,12 @@ export class LayoutComponent implements OnDestroy {
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
   hTookbar: string =
-    this.platform.is('ios') && this.platform.is('pwa')
-      ? 'h-[75px]'
-      : '';
-
+    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';
   @ViewChild('navSearch') private navSearch!: IonNav;
   @ViewChild('navPlayer') private navPlayer!: IonNav;
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
+  @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
 
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);
@@ -93,6 +91,9 @@ export class LayoutComponent implements OnDestroy {
 
   openPlayerModal() {
     this.playerModal.present();
+  }
+  openPlaylistModal() {
+    this.playlistModal.present();
   }
 
   async handleRefresh(event: CustomEvent) {
@@ -125,6 +126,11 @@ export class LayoutComponent implements OnDestroy {
     }
   });
 
+  ngAfterViewInit() {
+    // Set modal reference để service có thể control
+    this.playlistModalService.setModal(this.playlistModal);
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
@@ -145,7 +151,6 @@ export class LayoutComponent implements OnDestroy {
   openFullPlayer() {
     this.router.navigate(['/player']);
   }
-
 
   toggleSearch() {
     if (!this.showSearch) {

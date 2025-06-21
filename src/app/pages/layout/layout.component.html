@@ -101,6 +101,7 @@
 
       <div class="h-full">
         <button
+        (click)="openPlaylistModal()"
           class="flex flex-col !justify-end items-center text-gray-400 mt-2"
         >
           <i class="fa-solid fa-list-ul fa-lg"></i>
@@ -183,5 +184,18 @@
     <ion-content>
       <ion-nav #navPlayer></ion-nav>
     </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Playlist Modal -->
+<ion-modal
+  #playlistModal
+  mode="ios"
+  [initialBreakpoint]="0.5"
+  [breakpoints]="[0, 0.5, 1]"
+  handleBehavior="cycle"
+>
+  <ng-template>
+    <app-current-playlist></app-current-playlist>
   </ng-template>
 </ion-modal>

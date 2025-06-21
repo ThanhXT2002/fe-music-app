@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PWAService } from './services/pwa.service';
-import { IonApp, IonRouterOutlet } from "@ionic/angular/standalone";
+import { IonApp, IonRouterOutlet, IonModal } from "@ionic/angular/standalone";
 import { Platform } from '@ionic/angular';
 import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -10,11 +10,12 @@ import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
 import { DebugService } from './services/debug.service';
 import { ThemeService } from './services/theme.service';
+import { CurrentPlaylistComponent } from "./components/current-playlist/current-playlist.component";
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonRouterOutlet, IonApp, CommonModule],
+  imports: [IonModal, IonRouterOutlet, IonApp, CommonModule, CurrentPlaylistComponent],
   standalone: true
 })
 export class AppComponent implements OnInit {
