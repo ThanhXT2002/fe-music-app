@@ -6,9 +6,14 @@ import { Capacitor } from '@capacitor/core';
 })
 export class DebugService {
 
+  // Remove this line - domain is already included in allowedDomains array
+  lockDomains = [
+    'app-music.tranxuanthanhtxt.com',
+  ];
+
   initEruda(): void {
-    // Double check - chỉ load khi là native và development
-    if (!Capacitor.isNativePlatform()) {
+    // Double check - chỉ load khi là native và development và domain được phép
+    if (!Capacitor.isNativePlatform() && !this.isLockDomain()) {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/eruda';
       script.onload = () => {
@@ -16,5 +21,10 @@ export class DebugService {
       };
       document.head.appendChild(script);
     }
+  }
+
+  private isLockDomain(): boolean {
+    const currentDomain = window.location.origin;
+    return this.lockDomains.includes(currentDomain);
   }
 }

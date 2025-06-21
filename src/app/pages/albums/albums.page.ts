@@ -19,10 +19,10 @@ import { RefreshService } from 'src/app/services/refresh.service';
   template: `
     <div class="albums-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
       <!-- Header -->
-      <!-- <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
         <h1 class="text-xl font-bold text-gray-900 dark:text-white">Albums</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ albums.length }} albums</p>
-      </div> -->
+        <!-- <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ albums.length }} albums</p> -->
+      </div>
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-4" #scrollContainer>
         <!-- Albums Grid -->
