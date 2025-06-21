@@ -25,6 +25,16 @@ export class DatabaseService {
   // Flag để track initialization process
   private isInitializing = false;
 
+  // Cache cho playlists
+  private playlistsCache: Playlist[] | null = null;
+  private playlistsCacheTime = 0;
+
+  // Cache cho songs
+  private songsCache: Song[] | null = null;
+  private songsCacheTime = 0;
+
+  private readonly CACHE_DURATION = 30000; // 30 seconds
+
   constructor(
     indexedDBService: IndexedDBService,
     private refreshService: RefreshService
@@ -80,13 +90,13 @@ export class DatabaseService {
 
   /**
    * Thêm bài hát mới vào database
-   */
-  async addSong(song: Song): Promise<boolean> {
+   */  async addSong(song: Song): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
       const success = await this.indexedDB.put('songs', song);
       if (success) {
+        this.songsCache = null; // Clear songs cache
         this.refreshService.triggerRefresh();
       }
       return success;
@@ -102,9 +112,19 @@ export class DatabaseService {
   async getAllSongs(): Promise<Song[]> {
     if (!this.isDbReady) return [];
 
-    try {
+    // Check cache first
+    const now = Date.now();
+    if (this.songsCache && (now - this.songsCacheTime) < this.CACHE_DURATION) {
+      return this.songsCache;
+    }    try {
       const allSong = await this.indexedDB.getAll('songs');
-      return allSong.sort((a, b) => +new Date(b.addedDate) - +new Date(a.addedDate));
+
+      // Sort and cache the results
+      const sortedSongs = allSong.sort((a, b) => +new Date(b.addedDate) - +new Date(a.addedDate));
+      this.songsCache = sortedSongs;
+      this.songsCacheTime = now;
+
+      return sortedSongs;
     } catch (error) {
       console.error('Error getting all songs:', error);
       return [];
@@ -127,13 +147,13 @@ export class DatabaseService {
 
   /**
    * Cập nhật bài hát
-   */
-  async updateSong(song: Song): Promise<boolean> {
+   */  async updateSong(song: Song): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
       const success = await this.indexedDB.put('songs', song);
       if (success) {
+        this.songsCache = null; // Clear songs cache
         this.refreshService.triggerRefresh();
       }
       return success;
@@ -145,13 +165,13 @@ export class DatabaseService {
 
   /**
    * Xóa bài hát
-   */
-  async deleteSong(id: string): Promise<boolean> {
+   */  async deleteSong(id: string): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
       const success = await this.indexedDB.deleteRecord('songs', id);
       if (success) {
+        this.songsCache = null; // Clear songs cache
         this.refreshService.triggerRefresh();
       }
       return success;
@@ -230,33 +250,66 @@ export class DatabaseService {
     const allSongs = await this.getAllSongs();
     return allSongs.filter((song) => song.filePath); // Use filePath to check if downloaded
   }
-
   // Playlist operations
   async addPlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
-    return await this.indexedDB.put('playlists', playlist);
+
+    const success = await this.indexedDB.put('playlists', playlist);
+    if (success) {
+      this.playlistsCache = null; // Clear cache
+    }
+    return success;
   }
 
   async getAllPlaylists(): Promise<Playlist[]> {
     if (!this.isDbReady) return [];
-    return await this.indexedDB.getAll('playlists');
+
+    // Check cache first
+    const now = Date.now();
+    if (this.playlistsCache && (now - this.playlistsCacheTime) < this.CACHE_DURATION) {
+      return this.playlistsCache;
+    }
+
+    try {
+      const playlists = await this.indexedDB.getAll('playlists');
+
+      // Cache the results
+      this.playlistsCache = playlists;
+      this.playlistsCacheTime = now;
+
+      return playlists;
+    } catch (error) {
+      console.error('Error getting all playlists:', error);
+      return [];
+    }
   }
 
   async updatePlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
-    return await this.indexedDB.put('playlists', playlist);
+
+    const success = await this.indexedDB.put('playlists', playlist);
+    if (success) {
+      this.playlistsCache = null; // Clear cache
+    }
+    return success;
   }
 
   async deletePlaylist(id: string): Promise<boolean> {
     if (!this.isDbReady) return false;
-    return await this.indexedDB.deleteRecord('playlists', id);
+
+    const success = await this.indexedDB.deleteRecord('playlists', id);
+    if (success) {
+      this.playlistsCache = null; // Clear cache
+    }
+    return success;
   }
 
   // Search history operations
   async addSearchHistory(item: SearchHistoryItem): Promise<boolean> {
     if (!this.isDbReady) return false;
     return await this.indexedDB.put('search_history', item);
-  }  /**
+  }
+  /**
    * Lấy lịch sử tìm kiếm được sắp xếp theo thời gian gần nhất
    */
   async getSearchHistory(): Promise<SearchHistoryItem[]> {
@@ -276,7 +329,6 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
     return await this.indexedDB.clear('search_history');
   }
-
   // Utility methods
   async clearAllData(): Promise<boolean> {
     if (!this.isDbReady) return false;
@@ -287,6 +339,11 @@ export class DatabaseService {
       await this.indexedDB.clear('playlists');
       await this.indexedDB.clear('thumbnailFiles');
       await this.indexedDB.clear('audioFiles');
+
+      // Clear all caches khi clear all data
+      this.songsCache = null;
+      this.playlistsCache = null;
+
       return true;
     } catch (error) {
       console.error('Error clearing all data:', error);
