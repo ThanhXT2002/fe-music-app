@@ -7,7 +7,6 @@ import { Subject, takeUntil } from 'rxjs';
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
-  styleUrls: ['./current-playlist.component.scss'],
   standalone: true,  imports: [
     CommonModule
   ]

@@ -1,12 +1,23 @@
 <div class="current-playlist-container h-full flex flex-col bg-gray-50 dark:bg-gray-900">
   <!-- Header -->
-  <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-4 px-4">
-    <div class="flex items-center justify-between">
+  <div class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900  border-b border-gray-200 dark:border-gray-700 h-[20%] bg-cover bg-center relative"
+
+  >
+    <div class="absolute inset-0 opacity-80">
+    @if (currentSong?.thumbnail) {
+    <img
+      [src]="currentSong!.thumbnail"
+      [alt]="currentSong!.title"
+      class="w-full h-full object-cover blur-sm scale-110"
+    />
+    }
+  </div>
+    <div class="relative z-10 flex items-center justify-between py-4 px-4">
       <div>
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <h2 class="text-lg font-semibold text-white">
           Danh sách phát hiện tại
         </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400" *ngIf="currentPlaylist.length > 0">
+        <p class="text-sm text-gray-200" *ngIf="currentPlaylist.length > 0">
           {{currentPlaylist.length}} bài hát • {{getCurrentSongIndex() + 1}}/{{currentPlaylist.length}}
         </p>
       </div>
@@ -14,18 +25,18 @@
         <!-- Shuffle Button -->
         <button
           (click)="toggleShuffle()"
-          [class]="isShuffling ? 'text-purple-500' : 'text-gray-400'"
-          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          [class]="isShuffling ? 'text-purple-400' : 'text-gray-200'"
+          class="h-10 w-10 rounded-full "
         >
-          <i class="fas fa-random text-lg"></i>
+          <i class="fas fa-random text-lg m-auto"></i>
         </button>
         <!-- Clear All Button -->
-        <button
+        <!-- <button
           (click)="clearPlaylist()"
           class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400"
         >
           <i class="fas fa-trash text-lg"></i>
-        </button>
+        </button> -->
       </div>
     </div>
   </div>
@@ -33,7 +44,7 @@
   <!-- Content -->
   <div class="flex-1 overflow-y-auto">
     <!-- Current Playing Song Highlight -->
-    <div *ngIf="currentSong" class="bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-700 p-4">
+    <!-- <div *ngIf="currentSong" class="bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-700 p-4">
       <div class="flex items-center space-x-3">
         <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
           <i class="fas fa-play text-white text-sm"></i>
@@ -44,7 +55,7 @@
           <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{{currentSong.artist}}</p>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- Playlist -->
     <div class="px-4 py-2">
