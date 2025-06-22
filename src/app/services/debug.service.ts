@@ -13,7 +13,7 @@ export class DebugService {
 
   initEruda(): void {
     // Double check - chỉ load khi là native và development và domain được phép
-    if (!Capacitor.isNativePlatform() && !this.isLockDomain()) {
+    if (!Capacitor.isNativePlatform() || !this.isLockDomain()) {
       const script = document.createElement('script');
       script.src = 'https://cdn.jsdelivr.net/npm/eruda';
       script.onload = () => {
