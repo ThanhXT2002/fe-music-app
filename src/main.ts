@@ -29,6 +29,8 @@ import { SafeAreaService } from './app/services/safe-area.service';
 import { DebugService } from './app/services/debug.service';
 import { APP_INITIALIZER } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { provideLottieOptions } from 'ngx-lottie';
+import player from 'lottie-web';
 
 
 function initializeDebug(debugService: DebugService) {
@@ -58,6 +60,9 @@ bootstrapApplication(AppComponent, {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
+    provideLottieOptions({
+      player: () => player,
+    })
   ],
 }).catch((error) => {
   console.error('Error initializing app:', error);

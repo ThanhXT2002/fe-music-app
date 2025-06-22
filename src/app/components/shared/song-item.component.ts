@@ -17,6 +17,7 @@ import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { apps } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
 
 @Component({
   selector: 'app-song-item',
@@ -75,7 +76,8 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
             }"
           >
             {{ song.duration_formatted }}
-          </p>        </div>
+          </p>
+        </div>
         <!-- Action Buttons -->
         <div class="flex-shrink-0 flex items-center space-x-2">
           <!-- ✨ Remove Button (for user albums) -->
@@ -98,7 +100,14 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
               *ngIf="isThisSongPlaying"
               class="text-blue-500 playing-indicator"
             >
-              <i class="fas fa-volume-up text-lg"></i>
+              <!-- <i class="fas fa-volume-up text-lg"></i> -->
+              <app-lottie-equalizer
+                *ngIf="isThisSongPlaying"
+                [width]="20"
+                [height]="20"
+                cssClass="playing"
+              >
+              </app-lottie-equalizer>
             </div>
             <!-- Show menu icon if not playing -->
             <ion-icon *ngIf="!isThisSongPlaying" name="apps"></ion-icon>
@@ -129,7 +138,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
       }
     `,
   ],
-  imports: [CommonModule, IonIcon],
+  imports: [CommonModule, IonIcon, LottieEqualizerComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

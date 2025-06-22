@@ -15,7 +15,7 @@ import { CurrentPlaylistComponent } from "./components/current-playlist/current-
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonModal, IonRouterOutlet, IonApp, CommonModule, CurrentPlaylistComponent],
+  imports: [IonRouterOutlet, IonApp, CommonModule],
   standalone: true
 })
 export class AppComponent implements OnInit {
