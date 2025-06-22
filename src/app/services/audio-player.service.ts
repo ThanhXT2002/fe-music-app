@@ -782,4 +782,9 @@ export class AudioPlayerService {
   clearSavedState(): void {
     localStorage.removeItem('savedPlaybackState');
   }
+
+  // 🆕 Get audio element for equalizer
+  getAudioElement(): HTMLAudioElement {
+    return this.audio;
+  }
 }

@@ -16,11 +16,12 @@ import { DatabaseService } from '../../services/database.service';
 import { ModalController, IonicModule,Gesture, GestureController } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
+import { AudioEqualizerComponent } from "../../components/shared/audio-equalizer/audio-equalizer.component";
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, AudioEqualizerComponent],
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss'],
 })

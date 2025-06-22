@@ -38,7 +38,7 @@
 
   <!-- Main Content -->
   <div
-    class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 pb-6 justify-between"
+    class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between"
   >
     <!-- Album Art -->
     <div class="flex-1 flex items-center justify-center my-4">
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Song Info -->
-    <div class="text-center mb-6">
+    <div class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end">
       <h1 class="font-medium mb-2 text-white">
         {{ currentSong()?.title || 'No song selected' }}
       </h1>
@@ -78,12 +78,18 @@
     <!-- Progress Bar -->
     <div class="mb-8">
       <div
-        class="flex items-center justify-between text-sm text-white/70 mb-5 px-5"
+        class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
-        <button><i class="fa-solid fa-share-nodes text-lg"></i></button>
+        <button><i class="fa-solid fa-share-nodes text-xl"></i></button>
+        <app-audio-equalizer
+        width="200px"
+        height="40px"
+        [barCount]="35"
+        [sensitivity]="3.0">
+      </app-audio-equalizer>
         <button (click)="toggleFavorite()">
           <i
-            class="fa-solid fa-heart text-lg"
+            class="fa-solid fa-heart text-xl"
             [ngClass]="currentSong()?.isFavorite ? 'text-red-500' : 'text-white/70'"
           ></i>
         </button>
