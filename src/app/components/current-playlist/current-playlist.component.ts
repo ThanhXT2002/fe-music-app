@@ -23,10 +23,34 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   isPlaying = this.audioPlayerService.isPlayingSignal;
   isShuffling = this.audioPlayerService.isShuffling;
   currentIndex = this.audioPlayerService.currentIndex;
+  currentTime = this.audioPlayerService.currentTime;
+  duration = this.audioPlayerService.duration;
 
   // Computed signals based on playbackState
   playbackState = this.audioPlayerService.playbackState;
   currentPlaylist = computed(() => this.playbackState().currentPlaylist);
+
+  // Progress percentage for progress bar
+  progressPercentage = computed(() => {
+    const current = this.currentTime();
+    const total = this.duration();
+    return total > 0 ? (current / total) * 100 : 0;
+  });
+  // Formatted time strin
+
+  // Countdown time - thời gian còn lại
+  remainingTime = computed(() => {
+    const current = this.currentTime();
+    const total = this.duration();
+    const remaining = total > 0 ? total - current : 0;
+    return Math.max(0, remaining); // Đảm bảo không âm
+  });
+
+  // Formatted countdown time
+  durationTime = computed(() => {
+    const remaining = this.remainingTime();
+    return `${this.formatTime(remaining)}`;
+  });
 
   constructor() {
     // Effect will automatically trigger change detection when signals change
@@ -137,5 +161,18 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Utility methods
+  formatTime(seconds: number): string {
+    if (!seconds || isNaN(seconds)) return '0:00';
 
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+  }
 }

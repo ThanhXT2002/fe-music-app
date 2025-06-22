@@ -129,7 +129,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   ngAfterViewInit() {
     // Set modal reference để service có thể control
     this.playlistModalService.setModal(this.playlistModal);
-    this.openPlaylistModal()
   }
 
   ngOnDestroy() {
