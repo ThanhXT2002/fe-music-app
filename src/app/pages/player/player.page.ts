@@ -21,7 +21,7 @@ import { AudioEqualizerComponent } from "../../components/shared/audio-equalizer
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, IonicModule, AudioEqualizerComponent],
+  imports: [CommonModule, IonicModule],
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss'],
 })
