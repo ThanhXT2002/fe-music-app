@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Song } from 'src/app/interfaces/song.interface';
 import { Subject, takeUntil } from 'rxjs';
+import { DatabaseService } from 'src/app/services/database.service';
 
 @Component({
   selector: 'app-current-playlist',
@@ -14,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private audioPlayerService = inject(AudioPlayerService);
+  private databaseService = inject(DatabaseService);
 
   // Current state from audio service
   currentSong: Song | null = null;
@@ -114,4 +116,32 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       console.error('Error clearing playlist:', error);
     }
   }
+
+  previousTrack() {
+    this.audioPlayerService.playPrevious();
+  }
+
+    togglePlayPause() {
+    this.audioPlayerService.togglePlayPause();
+  }
+
+    nextTrack() {
+    this.audioPlayerService.playNext();
+  }
+
+  async toggleFavorite() {
+    const song = this.currentSong;
+    if (song) {
+      try {
+        await this.databaseService.toggleFavorite(song.id);
+        // Update the song object
+        song.isFavorite = !song.isFavorite;
+        this.audioPlayerService.updateCurrentSong(song);
+      } catch (error) {
+        console.error('Error toggling favorite:', error);
+      }
+    }
+  }
+
+
 }

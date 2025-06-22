@@ -1,73 +1,113 @@
-<div class="current-playlist-container h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+<div
+  class="current-playlist-container h-full flex flex-col bg-gray-50 dark:bg-gray-900"
+>
   <!-- Header -->
-  <div class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900  border-b border-gray-200 dark:border-gray-700 h-[20%] bg-cover bg-center relative"
-
+  <div
+    class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border-b  h-[25%]  relative"
   >
-    <div class="absolute inset-0 opacity-80">
-    @if (currentSong?.thumbnail) {
-    <img
-      [src]="currentSong!.thumbnail"
-      [alt]="currentSong!.title"
-      class="w-full h-full object-cover blur-sm scale-110"
-    />
-    }
-  </div>
-    <div class="relative z-10 flex items-center justify-between py-4 px-4">
-      <div>
-        <h2 class="text-lg font-semibold text-white">
-          Danh sách phát hiện tại
-        </h2>
-        <p class="text-sm text-gray-200" *ngIf="currentPlaylist.length > 0">
-          {{currentPlaylist.length}} bài hát • {{getCurrentSongIndex() + 1}}/{{currentPlaylist.length}}
+    <div class="absolute inset-0 opacity-50">
+      @if (currentSong?.thumbnail) {
+      <img
+        [src]="currentSong!.thumbnail"
+        [alt]="currentSong!.title"
+        class="w-full h-full object-cover blur-md scale-110"
+      />
+      }
+    </div>
+    <div class="relative z-10 py-4 px-4 flex flex-col justify-between h-full">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-white">
+            Danh sách phát hiện tại
+          </h2>
+          <p class="text-sm text-gray-200" *ngIf="currentPlaylist.length > 0">
+            {{ currentPlaylist.length }} bài hát •
+            {{ getCurrentSongIndex() + 1 }}/{{ currentPlaylist.length }}
+          </p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <!-- Shuffle Button -->
+          <button
+            (click)="toggleShuffle()"
+            [class]="isShuffling ? 'text-purple-400' : 'text-gray-200'"
+            class="h-10 w-10 rounded-full"
+          >
+            <i class="fas fa-random text-xl m-auto"></i>
+          </button>
+
+          <button (click)="toggleFavorite()">
+            <i
+              class="fa-solid fa-heart text-xl"
+              [ngClass]="
+                currentSong?.isFavorite ? 'text-red-500' : 'text-white/70'
+              "
+            ></i>
+          </button>
+        </div>
+      </div>
+      <div *ngIf="currentSong">
+        <h4 class="font-medium text-white text-lg max-h-[56px] overflow-hidden text-ellipsis ">
+          {{ currentSong.title }}
+        </h4>
+        <p class="text-sm text-gray-200 truncate">
+          {{ currentSong.artist }}
         </p>
       </div>
-      <div class="flex items-center space-x-2">
-        <!-- Shuffle Button -->
+      <div class="flex items-end justify-start gap-10">
+        <!-- Previous -->
         <button
-          (click)="toggleShuffle()"
-          [class]="isShuffling ? 'text-purple-400' : 'text-gray-200'"
-          class="h-10 w-10 rounded-full "
+          (click)="previousTrack()"
+          class="!w-10 !h-10 rounded-full transition-colors"
         >
-          <i class="fas fa-random text-lg m-auto"></i>
+          <i class="fas fa-step-backward text-2xl text-white"></i>
         </button>
-        <!-- Clear All Button -->
-        <!-- <button
-          (click)="clearPlaylist()"
-          class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-400"
+
+        <!-- Play/Pause -->
+        <button
+          (click)="togglePlayPause()"
+          class="!w-10 !h-10 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105"
         >
-          <i class="fas fa-trash text-lg"></i>
-        </button> -->
+          @if (!isPlaying) {
+          <i class="fas fa-play text-3xl"></i>
+          } @else {
+          <i class="fas fa-pause text-3xl"></i>
+          }
+        </button>
+
+        <!-- Next -->
+        <button
+          (click)="nextTrack()"
+          class="!w-10 !h-10 rounded-full transition-colors"
+        >
+          <i class="fas fa-step-forward text-2xl text-white"></i>
+        </button>
       </div>
     </div>
   </div>
 
   <!-- Content -->
   <div class="flex-1 overflow-y-auto">
-    <!-- Current Playing Song Highlight -->
-    <!-- <div *ngIf="currentSong" class="bg-purple-50 dark:bg-purple-900/20 border-b border-purple-200 dark:border-purple-700 p-4">
-      <div class="flex items-center space-x-3">
-        <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
-          <i class="fas fa-play text-white text-sm"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Đang phát</p>
-          <h4 class="font-medium text-gray-900 dark:text-white truncate">{{currentSong.title}}</h4>
-          <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{{currentSong.artist}}</p>
-        </div>
-      </div>
-    </div> -->
-
     <!-- Playlist -->
     <div class="px-4 py-2">
       <div *ngIf="currentPlaylist.length === 0" class="text-center py-16">
-        <i class="fas fa-list-ul text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
-        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Danh sách phát trống</h3>
-        <p class="text-gray-500 dark:text-gray-400">Chọn bài hát để bắt đầu phát nhạc</p>
+        <i
+          class="fas fa-list-ul text-4xl text-gray-300 dark:text-gray-600 mb-4"
+        ></i>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          Danh sách phát trống
+        </h3>
+        <p class="text-gray-500 dark:text-gray-400">
+          Chọn bài hát để bắt đầu phát nhạc
+        </p>
       </div>
 
       <div *ngIf="currentPlaylist.length > 0" class="space-y-1">
         <div
-          *ngFor="let song of currentPlaylist; let i = index; trackBy: trackBySongId"
+          *ngFor="
+            let song of currentPlaylist;
+            let i = index;
+            trackBy: trackBySongId
+          "
           class="relative"
         >
           <!-- Song Item with Custom Styling for Current -->
@@ -79,10 +119,11 @@
             <div class="flex items-center space-x-3 p-3">
               <!-- Index/Playing Indicator -->
               <div class="w-8 flex items-center justify-center">
-                <div *ngIf="isCurrentSong(song)" class="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center">
-                  <i [class]="isPlaying ? 'fas fa-pause' : 'fas fa-play'" class="text-white text-xs"></i>
-                </div>
-                <span *ngIf="!isCurrentSong(song)" class="text-sm text-gray-400">{{i + 1}}</span>
+                <span
+
+                  class="text-sm text-gray-400"
+                  >{{ i + 1 }}</span
+                >
               </div>
 
               <!-- Thumbnail -->
@@ -95,26 +136,36 @@
               <!-- Song Info -->
               <div class="flex-1 min-w-0">
                 <h4
-                  [class]="isCurrentSong(song) ? 'text-purple-600 dark:text-purple-400' : 'text-gray-900 dark:text-white'"
+                  [class]="
+                    isCurrentSong(song)
+                      ? 'text-purple-600 dark:text-purple-400'
+                      : 'text-gray-900 dark:text-white'
+                  "
                   class="font-medium truncate"
                 >
-                  {{song.title}}
+                  {{ song.title }}
                 </h4>
                 <p
-                  [class]="isCurrentSong(song) ? 'text-purple-500 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400'"
+                  [class]="
+                    isCurrentSong(song)
+                      ? 'text-purple-500 dark:text-purple-300'
+                      : 'text-gray-600 dark:text-gray-400'
+                  "
                   class="text-sm truncate"
                 >
-                  {{song.artist}}
+                  {{ song.artist }}
                 </p>
               </div>
 
               <!-- Duration -->
               <div class="text-sm text-gray-500 dark:text-gray-400">
-                {{song.duration_formatted}}
+                {{ song.duration_formatted }}
               </div>
 
               <!-- Actions -->
-              <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div
+                class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
                 <button
                   (click)="removeSong($event, i)"
                   class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors"
