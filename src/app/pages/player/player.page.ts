@@ -13,10 +13,15 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
-import { ModalController, IonicModule,Gesture, GestureController } from '@ionic/angular';
+import {
+  ModalController,
+  IonicModule,
+  Gesture,
+  GestureController,
+} from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { AudioEqualizerComponent } from "../../components/shared/audio-equalizer/audio-equalizer.component";
+import { AudioEqualizerComponent } from '../../components/shared/audio-equalizer/audio-equalizer.component';
 
 @Component({
   selector: 'app-player',
@@ -28,7 +33,8 @@ import { AudioEqualizerComponent } from "../../components/shared/audio-equalizer
 export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
-  private router = inject(Router);  private modalCtrl = inject(ModalController);
+  private router = inject(Router);
+  private modalCtrl = inject(ModalController);
   private themeService = inject(ThemeService);
   private gestureCtrl = inject(GestureController);
   private playlistModalService = inject(GlobalPlaylistModalService);
@@ -90,7 +96,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     if (this.swipeGesture) {
       this.swipeGesture.destroy();
     }
-  }  private createSwipeGesture() {
+  }
+  private createSwipeGesture() {
     if (!this.modalContent?.nativeElement) {
       return;
     }
@@ -101,6 +108,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
         threshold: 15,
         gestureName: 'swipe-down',
         direction: 'y',
+        passive: false, // Explicitly set since we need preventDefault
         onMove: (ev) => this.onSwipeMove(ev),
         onEnd: (ev) => this.onSwipeEnd(ev),
       });
@@ -108,7 +116,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     } catch (error) {
       console.error('Error creating swipe gesture:', error);
     }
-  }  private onSwipeMove(ev: any) {
+  }
+  private onSwipeMove(ev: any) {
     // Chỉ cho phép vuốt xuống từ đầu trang (deltaY > 0 và startY gần top)
     if (ev.deltaY > 0 && ev.startY < 100) {
       const translateY = Math.min(ev.deltaY, 300); // Giới hạn khoảng cách tối đa
@@ -147,29 +156,35 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
   openPlaylist() {
     // Check if we have modal context (when opened as modal from other pages)
-    this.modalCtrl.getTop().then(modal => {
-      if (modal) {
-        // We're in a modal context, use the global modal service
-        this.playlistModalService.open();
-      } else {
-        // We're in direct navigation, create and present modal manually
+    this.modalCtrl
+      .getTop()
+      .then((modal) => {
+        if (modal) {
+          // We're in a modal context, use the global modal service
+          this.playlistModalService.open();
+        } else {
+          // We're in direct navigation, create and present modal manually
+          this.presentPlaylistModal();
+        }
+      })
+      .catch(() => {
+        // Fallback: try direct modal creation
         this.presentPlaylistModal();
-      }
-    }).catch(() => {
-      // Fallback: try direct modal creation
-      this.presentPlaylistModal();
-    });
+      });
   }
 
   private async presentPlaylistModal() {
     try {
-      const { CurrentPlaylistComponent } = await import('../../components/current-playlist/current-playlist.component');      const modal = await this.modalCtrl.create({
+      const { CurrentPlaylistComponent } = await import(
+        '../../components/current-playlist/current-playlist.component'
+      );
+      const modal = await this.modalCtrl.create({
         component: CurrentPlaylistComponent,
         presentingElement: undefined, // Allow full-screen modal
         breakpoints: [0, 0.5, 0.8, 1],
         initialBreakpoint: 0.8,
         handle: true,
-        backdropDismiss: true
+        backdropDismiss: true,
       });
 
       await modal.present();
@@ -180,18 +195,21 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   closeModal() {
     // Check if we're in a modal context or navigated directly
-    this.modalCtrl.getTop().then(modal => {
-      if (modal) {
-        // We're in a modal, dismiss it
-        this.modalCtrl.dismiss();
-      } else {
-        // We're in a direct navigation, go back using router
+    this.modalCtrl
+      .getTop()
+      .then((modal) => {
+        if (modal) {
+          // We're in a modal, dismiss it
+          this.modalCtrl.dismiss();
+        } else {
+          // We're in a direct navigation, go back using router
+          this.router.navigate(['/tabs'], { replaceUrl: true });
+        }
+      })
+      .catch(() => {
+        // Fallback to router navigation if modalCtrl fails
         this.router.navigate(['/tabs'], { replaceUrl: true });
-      }
-    }).catch(() => {
-      // Fallback to router navigation if modalCtrl fails
-      this.router.navigate(['/tabs'], { replaceUrl: true });
-    });
+      });
   }
   togglePlayPause() {
     this.audioPlayerService.togglePlayPause();
@@ -237,11 +255,13 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private triggerGlobalChangeDetection() {
     // Dispatch a custom event that CurrentPlaylistComponent can listen to
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('player-action-triggered', {
-        detail: { timestamp: Date.now() }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('player-action-triggered', {
+          detail: { timestamp: Date.now() },
+        })
+      );
     }
-  }// Enhanced Progress bar interaction
+  } // Enhanced Progress bar interaction
   onProgressClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -254,34 +274,32 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     this.isDragging.set(true);
 
     // Perform seek with proper error handling
-    this.audioPlayerService
-      .seek(newTime)
-      .catch((error) => {
-        console.error('❌ Click seek failed:', error);
-        this.isDragging.set(false); // Reset to current position on error
-        const currentProgress =
-          this.duration() > 0
-            ? (this.currentTime() / this.duration()) * 100
-            : 0;
-        this.tempProgress.set(currentProgress);
-      });
+    this.audioPlayerService.seek(newTime).catch((error) => {
+      console.error('❌ Click seek failed:', error);
+      this.isDragging.set(false); // Reset to current position on error
+      const currentProgress =
+        this.duration() > 0 ? (this.currentTime() / this.duration()) * 100 : 0;
+      this.tempProgress.set(currentProgress);
+    });
   }
 
   onProgressStart(event: MouseEvent | TouchEvent) {
     event.preventDefault();
     this.isDragging.set(true);
     this.isHoveringProgress.set(true);
-    this.updateProgress(event);
-
-    // Add global event listeners for better tracking
+    this.updateProgress(event); // Add global event listeners for better tracking
     document.addEventListener('mousemove', this.onGlobalMouseMove, {
       passive: false,
     });
-    document.addEventListener('mouseup', this.onGlobalMouseUp);
+    document.addEventListener('mouseup', this.onGlobalMouseUp, {
+      passive: true,
+    });
     document.addEventListener('touchmove', this.onGlobalTouchMove, {
       passive: false,
     });
-    document.addEventListener('touchend', this.onGlobalTouchEnd);
+    document.addEventListener('touchend', this.onGlobalTouchEnd, {
+      passive: true,
+    });
   }
 
   onProgressMove(event: MouseEvent | TouchEvent) {
@@ -471,18 +489,20 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   // Utility methods
   formatTime(seconds: number): string {
-  if (!seconds || isNaN(seconds)) return '0:00';
+    if (!seconds || isNaN(seconds)) return '0:00';
 
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
 
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  } else {
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs
+        .toString()
+        .padStart(2, '0')}`;
+    } else {
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
   }
-}
 
   getRepeatColor(): string {
     return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-gray-400';

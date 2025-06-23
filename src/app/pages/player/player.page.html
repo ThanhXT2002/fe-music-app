@@ -96,11 +96,10 @@
       </div>
       <!-- Enhanced Progress Bar -->
       <div class="relative px-2 enhanced-progress-bar">
-        <!-- Main Progress Container -->
-        <div
+        <!-- Main Progress Container -->        <div
           #progressContainer
           data-progress-container
-          class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible"
+          class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none"
           (click)="onProgressClick($event)"
           (mousedown)="onProgressStart($event)"
           (touchstart)="onProgressStart($event)"

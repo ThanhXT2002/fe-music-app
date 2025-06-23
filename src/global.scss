@@ -306,6 +306,7 @@ ion-content {
   padding-bottom: var(--padding-bottom);
   padding-left: var(--padding-left);
   padding-right: var(--padding-right);
+  touch-action: pan-y;
 }
 
 .spin-with-fill {
@@ -315,6 +316,31 @@ ion-content {
 
 .spin-paused {
   animation-play-state: paused;
+}
+
+/* Reduce scroll blocking violations */
+.touch-action-manipulation {
+  touch-action: manipulation;
+}
+
+.touch-action-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-action-none {
+  touch-action: none;
+}
+
+/* Apply to common scroll areas */
+
+/* Progress bars should allow precise touch */
+.progress-container {
+  touch-action: none;
+}
+
+/* Player controls */
+.player-controls {
+  touch-action: manipulation;
 }
 
 
