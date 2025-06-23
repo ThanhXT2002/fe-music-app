@@ -56,10 +56,6 @@
               (click)="loginWithGoogle()"
               [disabled]="isLoading">
 
-        <img src="assets/images/google-icon.png"
-             alt="Google"
-             class="w-6 h-6"
-             onerror="this.style.display='none'">
 
         <!-- Google logo fallback -->
         <svg class="w-5 h-5" *ngIf="!isLoading" viewBox="0 0 24 24">

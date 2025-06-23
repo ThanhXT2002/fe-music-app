@@ -26,119 +26,6 @@
               </label>
             </div>
           </div>
-
-        </div>
-
-        <!-- Playback Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Playback</h2>
-          </div>
-
-          <div class="p-4 space-y-4">
-            <!-- Auto Play -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-medium text-gray-900 dark:text-white">Auto Play</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Automatically play next song</p>
-              </div>
-              <label class="toggle-switch">
-                <input
-                  type="checkbox"
-                  [checked]="preferences().autoPlay"
-                  (change)="onAutoPlayChange($event)">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <!-- Shuffle Mode -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-medium text-gray-900 dark:text-white">Shuffle Mode</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Play songs in random order</p>
-              </div>
-              <label class="toggle-switch">
-                <input
-                  type="checkbox"
-                  [checked]="preferences().shuffleMode"
-                  (change)="onShuffleModeChange($event)">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-
-            <!-- Repeat Mode -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-medium text-gray-900 dark:text-white">Repeat Mode</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Control repeat behavior</p>
-              </div>
-              <select
-                class="select"
-                [value]="preferences().repeatMode"
-                (change)="onRepeatModeChange($event)">
-                <option value="none">No Repeat</option>
-                <option value="one">Repeat One</option>
-                <option value="all">Repeat All</option>
-              </select>
-            </div>
-
-            <!-- Download Quality -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-medium text-gray-900 dark:text-white">Download Quality</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Audio quality for downloads</p>
-              </div>
-              <select
-                class="select"
-                [value]="preferences().downloadQuality"
-                (change)="onDownloadQualityChange($event)">
-                <option value="high">High Quality</option>
-                <option value="medium">Medium Quality</option>
-                <option value="low">Low Quality</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Storage Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Storage</h2>
-          </div>
-
-          <div class="p-4 space-y-4">
-            <!-- Cache Size -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <h3 class="font-medium text-gray-900 dark:text-white">Cache Size</h3>
-                <span class="text-sm text-gray-500">{{ preferences().cacheSize }} MB</span>
-              </div>
-              <input
-                type="range"
-                class="range-slider w-full"
-                min="100"
-                max="2000"
-                step="100"
-                [value]="preferences().cacheSize"
-                (input)="onCacheSizeChange($event)">
-              <div class="flex justify-between text-xs text-gray-400">
-                <span>100 MB</span>
-                <span>2 GB</span>
-              </div>
-            </div>
-
-            <!-- Storage Info -->
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600 dark:text-gray-400">Total Storage</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ storageInfo().totalSize }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-600 dark:text-gray-400">Cache Size</span>
-                <span class="font-medium text-gray-900 dark:text-white">{{ storageInfo().cacheSize }}</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- Account Settings -->
@@ -166,9 +53,6 @@
 
             <!-- Action Buttons -->
             <div class="space-y-2">
-              <button (click)="exportData()" class="btn btn-secondary w-full">
-                Export Data
-              </button>
               <button (click)="logout()" class="btn btn-primary w-full">
                 Sign Out
               </button>
