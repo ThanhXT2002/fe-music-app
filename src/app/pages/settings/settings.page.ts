@@ -26,11 +26,10 @@ export class SettingsPage implements OnInit {
   }
   toggleDarkMode() {
     this.themeService.toggleDarkMode();
-  }
-  async logout() {
+  }  async logout() {
     try {
       await this.authService.logout();
-      // await this.router.navigate(['/login']);
+      await this.router.navigate(['/login']);
     } catch (error) {
       console.error('Logout error:', error);
     }

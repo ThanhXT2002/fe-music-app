@@ -23,17 +23,15 @@ export class LoginPage implements OnInit {
       this.router.navigate(['/tabs']);
     }
   }
-    async loginWithGoogle() {
+  async loginWithGoogle() {
     try {
       this.isLoading = true;
 
-      // Đăng nhập và đợi cho đến khi dữ liệu người dùng đầy đủ
+      // Đăng nhập với Google qua Firebase
       const user = await this.authService.loginWithGoogle();
 
-      // Thêm một chút delay để đảm bảo Firebase hoàn tất xử lý
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Sau khi đã có dữ liệu đầy đủ, điều hướng đến trang chính
+      // Điều hướng ngay lập tức đến trang chính
+      // Thông tin người dùng đã được lưu vào localStorage và cập nhật vào userSubject
       await this.router.navigate(['/tabs'], {
         replaceUrl: true // Thay thế route hiện tại để ngăn quay lại trang login
       });
