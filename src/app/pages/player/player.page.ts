@@ -145,9 +145,37 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private setPlayerThemeColor() {
     this.themeService.setPageHeaderThemeColor('#312e81');
   }
-
   openPlaylist() {
-    this.playlistModalService.open();
+    // Check if we have modal context (when opened as modal from other pages)
+    this.modalCtrl.getTop().then(modal => {
+      if (modal) {
+        // We're in a modal context, use the global modal service
+        this.playlistModalService.open();
+      } else {
+        // We're in direct navigation, create and present modal manually
+        this.presentPlaylistModal();
+      }
+    }).catch(() => {
+      // Fallback: try direct modal creation
+      this.presentPlaylistModal();
+    });
+  }
+
+  private async presentPlaylistModal() {
+    try {
+      const { CurrentPlaylistComponent } = await import('../../components/current-playlist/current-playlist.component');      const modal = await this.modalCtrl.create({
+        component: CurrentPlaylistComponent,
+        presentingElement: undefined, // Allow full-screen modal
+        breakpoints: [0, 0.5, 0.8, 1],
+        initialBreakpoint: 0.8,
+        handle: true,
+        backdropDismiss: true
+      });
+
+      await modal.present();
+    } catch (error) {
+      console.error('Error opening playlist modal:', error);
+    }
   }
 
   closeModal() {
@@ -165,26 +193,55 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       this.router.navigate(['/tabs'], { replaceUrl: true });
     });
   }
-
   togglePlayPause() {
     this.audioPlayerService.togglePlayPause();
+    // Force a manual trigger for change detection
+    setTimeout(() => {
+      this.triggerGlobalChangeDetection();
+    }, 0);
   }
 
   previousTrack() {
     this.audioPlayerService.playPrevious();
+    // Force a manual trigger for change detection
+    setTimeout(() => {
+      this.triggerGlobalChangeDetection();
+    }, 0);
   }
 
   nextTrack() {
     this.audioPlayerService.playNext();
+    // Force a manual trigger for change detection
+    setTimeout(() => {
+      this.triggerGlobalChangeDetection();
+    }, 0);
   }
 
   toggleShuffle() {
     this.audioPlayerService.toggleShuffle();
+    // Force a manual trigger for change detection
+    setTimeout(() => {
+      this.triggerGlobalChangeDetection();
+    }, 0);
   }
 
   toggleRepeat() {
     this.audioPlayerService.toggleRepeat();
-  } // Enhanced Progress bar interaction
+    // Force a manual trigger for change detection
+    setTimeout(() => {
+      this.triggerGlobalChangeDetection();
+    }, 0);
+  }
+
+  // Helper method to trigger change detection globally
+  private triggerGlobalChangeDetection() {
+    // Dispatch a custom event that CurrentPlaylistComponent can listen to
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('player-action-triggered', {
+        detail: { timestamp: Date.now() }
+      }));
+    }
+  }// Enhanced Progress bar interaction
   onProgressClick(event: MouseEvent) {
     event.preventDefault();
     event.stopPropagation();

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, effect, inject, signal, computed, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, effect, inject, signal, computed, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Song } from 'src/app/interfaces/song.interface';
@@ -8,9 +8,9 @@ import { DatabaseService } from 'src/app/services/database.service';
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
-  standalone: true,  imports: [
-    CommonModule
-  ]
+  standalone: true,
+  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -32,11 +32,12 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Progress percentage for progress bar
   progressPercentage = computed(() => {
-    const current = this.currentTime();
-    const total = this.duration();
+    const current = this.currentTime();    const total = this.duration();
     return total > 0 ? (current / total) * 100 : 0;
   });
-  // Formatted time strin
+
+  // Formatted time strings
+  progressTime = computed(() => this.formatTime(this.currentTime()));
 
   // Countdown time - thời gian còn lại
   remainingTime = computed(() => {
@@ -49,26 +50,43 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   // Formatted countdown time
   durationTime = computed(() => {
     const remaining = this.remainingTime();
-    return `${this.formatTime(remaining)}`;
-  });
-
-  constructor() {
-    // Effect will automatically trigger change detection when signals change
+    return `-${this.formatTime(remaining)}`;
+  });  constructor() {
+    // Force change detection when any signal changes - THIS IS THE KEY FIX
     effect(() => {
-      // This effect runs whenever any of the audio service signals change
-      const playbackState = this.audioPlayerService.playbackState();
-
-      // Force change detection to ensure UI updates
-      this.cdr.markForCheck();
-    });
+      // Track all signals that should trigger UI updates
+      const song = this.currentSong();
+      const playing = this.isPlaying();
+      const shuffling = this.isShuffling();
+      const index = this.currentIndex();
+      const time = this.currentTime();
+      const dur = this.duration();
+      const state = this.playbackState();      // Force change detection to ensure UI updates
+      // Use requestAnimationFrame to ensure it runs in next tick
+      requestAnimationFrame(() => {
+        this.cdr.detectChanges();
+      });
+    });    // Listen for custom events from PlayerPage to force change detection
+    if (typeof window !== 'undefined') {
+      window.addEventListener('player-action-triggered', this.handlePlayerAction);
+    }
   }  ngOnInit() {
     // No need to manually assign since we're using signals directly
     // Signals will automatically update the UI when values change
   }
-
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Clean up custom event listener
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('player-action-triggered', this.handlePlayerAction);
+    }
+  }
+  private handlePlayerAction = () => {
+    requestAnimationFrame(() => {
+      this.cdr.detectChanges();
+    });
   }
 
   // Track function for ngFor
@@ -84,22 +102,28 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   isCurrentSong(song: Song): boolean {
     return this.currentSong()?.id === song.id;
   }
-
   // Get CSS class for song item
   getSongItemClass(song: Song, index: number): string {
-    const baseClass = 'hover:bg-gray-100 dark:hover:bg-gray-700';
-    if (this.isCurrentSong(song)) {
+    const isActive = this.isCurrentSong(song);
+    const baseClass = 'transition-all duration-200';
+
+    if (isActive) {
       return `${baseClass} bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700`;
     }
-    return baseClass;
-  }  // Play specific song
+
+    return `${baseClass} hover:bg-gray-50 dark:hover:bg-gray-800`;
+  }
+
+  // Play specific song
   async playSong(song: Song, index: number) {
     try {
       await this.audioPlayerService.playSong(song, this.currentPlaylist(), index);
+      // Force UI update after playing
+      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error playing song:', error);
     }
-  }  // Remove song from playlist
+  }// Remove song from playlist
   async removeSong(event: Event, index: number) {
     event.stopPropagation();
 
@@ -115,11 +139,12 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error removing song:', error);
     }
-  }
-  // Toggle shuffle mode
+  }  // Toggle shuffle mode
   async toggleShuffle() {
     try {
       this.audioPlayerService.toggleShuffle();
+      // Force UI update after action
+      this.cdr.detectChanges();
     } catch (error) {
       console.error('Error toggling shuffle:', error);
     }
@@ -135,30 +160,60 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       console.error('Error clearing playlist:', error);
     }
   }
-
   previousTrack() {
     this.audioPlayerService.playPrevious();
+    // Force UI update after action
+    this.cdr.detectChanges();
   }
 
     togglePlayPause() {
     this.audioPlayerService.togglePlayPause();
+    // Force UI update after action
+    this.cdr.detectChanges();
   }
 
     nextTrack() {
     this.audioPlayerService.playNext();
-  }
-  async toggleFavorite() {
+    // Force UI update after action
+    this.cdr.detectChanges();
+  }async toggleFavorite() {
     const song = this.currentSong();
-    if (song) {
-      try {
-        await this.databaseService.toggleFavorite(song.id);
-        // Update the song object
-        song.isFavorite = !song.isFavorite;
-        this.audioPlayerService.updateCurrentSong(song);
-      } catch (error) {
-        console.error('Error toggling favorite:', error);
-      }
+    if (!song) return;
+
+    try {
+      const newFavoriteStatus = !song.isFavorite;
+      await this.databaseService.toggleFavorite(song.id);
+
+      // Update the song object
+      song.isFavorite = newFavoriteStatus;
+      this.audioPlayerService.updateCurrentSong(song);
+
+      // Force UI update
+      this.cdr.detectChanges();
+
+      console.log(`Song ${song.title} favorite status: ${newFavoriteStatus}`);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
     }
+  }
+
+  // Debug method to manually check signals
+  debugSignals() {
+    console.log('🔍 Debug signals:', {
+      currentSong: this.currentSong()?.title,
+      isPlaying: this.isPlaying(),
+      isShuffling: this.isShuffling(),
+      currentTime: this.currentTime(),
+      duration: this.duration(),
+      progressPercentage: this.progressPercentage(),
+      playbackState: this.playbackState()
+    });
+  }
+
+  // Force UI refresh method
+  forceRefresh() {
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   // Utility methods

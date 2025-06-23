@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AudioPlayerService {
   private audio: HTMLAudioElement = new Audio();
@@ -23,7 +23,7 @@ export class AudioPlayerService {
     repeatMode: 'none',
     isShuffled: false,
     currentPlaylist: [],
-    currentIndex: -1
+    currentIndex: -1,
   });
 
   public playbackState = this._playbackState.asReadonly();
@@ -49,7 +49,7 @@ export class AudioPlayerService {
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
-  }  // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
+  } // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
       // 1. Kiểm tra cache trước (sử dụng ID bài hát làm key)
@@ -97,13 +97,12 @@ export class AudioPlayerService {
       // Pause current audio and reset
       this.audio.pause();
       this.audio.currentTime = 0;
-
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
         currentSong: song,
         currentPlaylist: playlist.length > 0 ? playlist : [song],
         currentIndex: playlist.length > 0 ? index : 0,
-        isPlaying: false
+        isPlaying: false,
       }));
 
       // Load audio với bypass headers
@@ -137,7 +136,6 @@ export class AudioPlayerService {
 
       // Preload next song (optional optimization)
       this.preloadNextSong();
-
     } catch (error) {
       console.error('❌ Error playing song:', error);
 
@@ -151,7 +149,8 @@ export class AudioPlayerService {
     try {
       const state = this._playbackState();
       if (state.currentPlaylist.length > 1) {
-        const nextIndex = (state.currentIndex + 1) % state.currentPlaylist.length;
+        const nextIndex =
+          (state.currentIndex + 1) % state.currentPlaylist.length;
         const nextSong = state.currentPlaylist[nextIndex];
 
         if (nextSong) {
@@ -169,15 +168,17 @@ export class AudioPlayerService {
     console.error('Playback error for song:', song.title, error);
 
     // Don't handle AbortError as it's expected during reload
-    if (error?.name === 'AbortError' || error?.message?.includes('interrupted by a new load request')) {
+    if (
+      error?.name === 'AbortError' ||
+      error?.message?.includes('interrupted by a new load request')
+    ) {
       console.log('⚠️ Play request was aborted (expected during reload)');
       return;
     }
-
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
       isPlaying: false,
-      isPaused: false
+      isPaused: false,
     }));
 
     // For other errors, show user notification
@@ -205,16 +206,15 @@ export class AudioPlayerService {
 
   private setupAudioEventListeners() {
     this.audio.addEventListener('loadedmetadata', () => {
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
-        duration: this.audio.duration
+        duration: this.audio.duration,
       }));
     });
-
     this.audio.addEventListener('timeupdate', () => {
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
-        currentTime: this.audio.currentTime
+        currentTime: this.audio.currentTime,
       }));
     });
 
@@ -230,24 +230,23 @@ export class AudioPlayerService {
     this.audio.addEventListener('ended', () => {
       this.handleSongEnded();
     });
-
     this.audio.addEventListener('play', () => {
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
         isPlaying: true,
-        isPaused: false
+        isPaused: false,
       }));
       this.startTimeUpdate();
     });
-
     this.audio.addEventListener('pause', () => {
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
         isPlaying: false,
-        isPaused: true
+        isPaused: true,
       }));
       this.stopTimeUpdate();
-    });    this.audio.addEventListener('error', (e) => {
+    });
+    this.audio.addEventListener('error', (e) => {
       console.error('Audio error:', e);
 
       // Handle different types of audio errors
@@ -255,15 +254,13 @@ export class AudioPlayerService {
       if (error) {
         console.error('Audio error details:', {
           code: error.code,
-          message: error.message
-        });
-
-        // Don't update state for abort errors (these are expected during reload)
+          message: error.message,
+        }); // Don't update state for abort errors (these are expected during reload)
         if (error.code !== MediaError.MEDIA_ERR_ABORTED) {
-          this._playbackState.update(state => ({
+          this.updatePlaybackState((state) => ({
             ...state,
             isPlaying: false,
-            isPaused: false
+            isPaused: false,
           }));
         }
       }
@@ -291,22 +288,35 @@ export class AudioPlayerService {
     } catch (error) {
       console.warn('Buffer progress update failed:', error);
     }
-  }
-  private setupSignalUpdates() {
-    setInterval(() => {
-      const state = this._playbackState();
-      this.currentSong.set(state.currentSong);
-      this.currentTime.set(state.currentTime);
-      this.duration.set(state.duration);
-      this.isPlayingSignal.set(state.isPlaying);
-      this.isShuffling.set(state.isShuffled);
-      this.repeatModeSignal.set(state.repeatMode);
-      this.queue.set(state.currentPlaylist);
-      this.currentIndex.set(state.currentIndex);
+  }  private setupSignalUpdates() {
+    // Initial sync to ensure signals are up to date
+    this.syncSignalsWithPlaybackState();
 
-      // Update buffer progress more frequently
+    // Keep a lighter interval for ongoing sync, just in case
+    setInterval(() => {
+      this.syncSignalsWithPlaybackState();
       this.updateBufferProgress();
-    }, 100);
+    }, 200); // Still frequent enough for smooth UI updates
+  }
+  private syncSignalsWithPlaybackState() {
+    // This method will be called immediately when playbackState changes
+    const state = this._playbackState();
+    this.currentSong.set(state.currentSong);
+    this.currentTime.set(state.currentTime);
+    this.duration.set(state.duration);
+    this.isPlayingSignal.set(state.isPlaying);
+    this.isShuffling.set(state.isShuffled);
+    this.repeatModeSignal.set(state.repeatMode);
+    this.queue.set(state.currentPlaylist);
+    this.currentIndex.set(state.currentIndex);
+  }
+
+  // Helper method to update playbackState and sync signals immediately
+  private updatePlaybackState(
+    updateFn: (state: PlaybackState) => PlaybackState
+  ) {
+    this._playbackState.update(updateFn);
+    this.syncSignalsWithPlaybackState();
   }
 
   async pause() {
@@ -322,7 +332,11 @@ export class AudioPlayerService {
           console.warn('⚠️ No audio source, reloading current song...');
           const currentSong = this._playbackState().currentSong;
           if (currentSong) {
-            await this.playSong(currentSong, this._playbackState().currentPlaylist, this._playbackState().currentIndex);
+            await this.playSong(
+              currentSong,
+              this._playbackState().currentPlaylist,
+              this._playbackState().currentIndex
+            );
             return;
           }
         }
@@ -336,7 +350,11 @@ export class AudioPlayerService {
       const currentSong = this._playbackState().currentSong;
       if (currentSong) {
         console.log('🔄 Attempting to reload current song...');
-        await this.playSong(currentSong, this._playbackState().currentPlaylist, this._playbackState().currentIndex);
+        await this.playSong(
+          currentSong,
+          this._playbackState().currentPlaylist,
+          this._playbackState().currentIndex
+        );
       }
     }
   }
@@ -351,16 +369,11 @@ export class AudioPlayerService {
   seekTo(time: number) {
     if (this.audio.duration) {
       const clampedTime = Math.max(0, Math.min(time, this.audio.duration));
-      this.audio.currentTime = clampedTime;
-
-      // Force update state immediately
-      this._playbackState.update(state => ({
+      this.audio.currentTime = clampedTime; // Force update state immediately
+      this.updatePlaybackState((state) => ({
         ...state,
-        currentTime: clampedTime
+        currentTime: clampedTime,
       }));
-
-      // Update signal immediately
-      this.currentTime.set(clampedTime);
     }
   }
 
@@ -377,7 +390,7 @@ export class AudioPlayerService {
       this.seekTo(time);
 
       // Wait a bit for seek to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Resume if was playing
       if (wasPlaying) {
@@ -387,7 +400,6 @@ export class AudioPlayerService {
           console.warn('Failed to resume after seek:', playError);
         }
       }
-
     } catch (error) {
       console.error('❌ Seek failed:', error);
       throw error;
@@ -397,10 +409,10 @@ export class AudioPlayerService {
   setVolume(volume: number) {
     const clampedVolume = Math.max(0, Math.min(1, volume));
     this.audio.volume = clampedVolume;
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
       volume: clampedVolume,
-      isMuted: clampedVolume === 0
+      isMuted: clampedVolume === 0,
     }));
     this.saveSettings();
   }
@@ -411,9 +423,9 @@ export class AudioPlayerService {
       this.setVolume(currentState.volume || 0.5);
     } else {
       this.audio.volume = 0;
-      this._playbackState.update(state => ({
+      this.updatePlaybackState((state) => ({
         ...state,
-        isMuted: true
+        isMuted: true,
       }));
     }
     this.saveSettings();
@@ -462,7 +474,6 @@ export class AudioPlayerService {
       await this.playSong(prevSong, state.currentPlaylist, prevIndex);
     }
   }
-
   toggleRepeat() {
     const currentMode = this._playbackState().repeatMode;
     let newMode: 'none' | 'one' | 'all';
@@ -479,17 +490,16 @@ export class AudioPlayerService {
         break;
     }
 
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
-      repeatMode: newMode
+      repeatMode: newMode,
     }));
     this.saveSettings();
   }
-
   toggleShuffle() {
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
-      isShuffled: !state.isShuffled
+      isShuffled: !state.isShuffled,
     }));
     this.saveSettings();
   }
@@ -505,11 +515,10 @@ export class AudioPlayerService {
       case 'all':
         await this.playNext();
         break;
-      case 'none':
-        if (state.currentIndex < state.currentPlaylist.length - 1) {
+      case 'none':        if (state.currentIndex < state.currentPlaylist.length - 1) {
           await this.playNext();
         } else {
-          this._playbackState.update(state => ({
+          this.updatePlaybackState(state => ({
             ...state,
             isPlaying: false,
             isPaused: false
@@ -526,9 +535,9 @@ export class AudioPlayerService {
 
     this.updateInterval = window.setInterval(() => {
       if (!this.audio.paused) {
-        this._playbackState.update(state => ({
+        this._playbackState.update((state) => ({
           ...state,
-          currentTime: this.audio.currentTime
+          currentTime: this.audio.currentTime,
         }));
 
         // Save state mỗi 30 giây khi đang phát nhạc
@@ -548,25 +557,27 @@ export class AudioPlayerService {
 
   private saveSettings() {
     const state = this._playbackState();
-    localStorage.setItem('audioPlayerSettings', JSON.stringify({
-      volume: state.volume,
-      isMuted: state.isMuted,
-      repeatMode: state.repeatMode,
-      isShuffled: state.isShuffled
-    }));
+    localStorage.setItem(
+      'audioPlayerSettings',
+      JSON.stringify({
+        volume: state.volume,
+        isMuted: state.isMuted,
+        repeatMode: state.repeatMode,
+        isShuffled: state.isShuffled,
+      })
+    );
   }
 
   private loadSavedSettings() {
     try {
       const saved = localStorage.getItem('audioPlayerSettings');
       if (saved) {
-        const settings = JSON.parse(saved);
-        this._playbackState.update(state => ({
+        const settings = JSON.parse(saved);        this.updatePlaybackState(state => ({
           ...state,
           volume: settings.volume || 1,
           isMuted: settings.isMuted || false,
           repeatMode: settings.repeatMode || 'none',
-          isShuffled: settings.isShuffled || false
+          isShuffled: settings.isShuffled || false,
         }));
 
         this.audio.volume = settings.volume || 1;
@@ -575,12 +586,11 @@ export class AudioPlayerService {
       console.error('Error loading saved settings:', error);
     }
   }
-
   async setPlaylist(playlist: Song[], startIndex: number = 0) {
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
       currentPlaylist: playlist,
-      currentIndex: startIndex
+      currentIndex: startIndex,
     }));
 
     if (playlist.length > 0 && playlist[startIndex]) {
@@ -607,13 +617,11 @@ export class AudioPlayerService {
   getVolume(): number {
     return this._playbackState().volume;
   }
-
   updateCurrentSong(song: Song) {
-    this._playbackState.update(state => ({
+    this.updatePlaybackState((state) => ({
       ...state,
-      currentSong: song
+      currentSong: song,
     }));
-    this.currentSong.set(song);
   }
 
   async playFromQueue(index: number) {
@@ -622,7 +630,6 @@ export class AudioPlayerService {
       await this.playSong(playlist[index], playlist, index);
     }
   }
-
   removeFromQueue(index: number) {
     const state = this._playbackState();
     const newPlaylist = [...state.currentPlaylist];
@@ -637,10 +644,10 @@ export class AudioPlayerService {
         newIndex = Math.min(newIndex, newPlaylist.length - 1);
       }
 
-      this._playbackState.update(prevState => ({
+      this.updatePlaybackState((prevState) => ({
         ...prevState,
         currentPlaylist: newPlaylist,
-        currentIndex: newIndex
+        currentIndex: newIndex,
       }));
     }
   }
@@ -663,29 +670,31 @@ export class AudioPlayerService {
     try {
       const state = this._playbackState();
       const savedState: SavedPlaybackState = {
-        currentSong: state.currentSong ? {
-          id: state.currentSong.id,
-          title: state.currentSong.title,
-          artist: state.currentSong.artist,
-          url: state.currentSong.audioUrl,
-          thumbnail: state.currentSong.thumbnail,
-          duration: state.currentSong.duration
-        } : null,
+        currentSong: state.currentSong
+          ? {
+              id: state.currentSong.id,
+              title: state.currentSong.title,
+              artist: state.currentSong.artist,
+              url: state.currentSong.audioUrl,
+              thumbnail: state.currentSong.thumbnail,
+              duration: state.currentSong.duration,
+            }
+          : null,
         currentTime: state.currentTime,
         isPlaying: false, // Luôn save là false để không tự động play khi restore
         volume: state.volume,
         isShuffling: state.isShuffled,
         repeatMode: state.repeatMode,
-        queue: state.currentPlaylist.map(song => ({
+        queue: state.currentPlaylist.map((song) => ({
           id: song.id,
           title: song.title,
           artist: song.artist,
           url: song.audioUrl,
           thumbnail: song.thumbnail,
-          duration: song.duration
+          duration: song.duration,
         })),
         currentIndex: state.currentIndex,
-        savedAt: Date.now()
+        savedAt: Date.now(),
       };
 
       localStorage.setItem('savedPlaybackState', JSON.stringify(savedState));
@@ -709,8 +718,9 @@ export class AudioPlayerService {
         return;
       }
 
-      if (savedState.currentSong && savedState.queue.length > 0) {        // Convert back to Song objects
-        const playlist: Song[] = savedState.queue.map(item => ({
+      if (savedState.currentSong && savedState.queue.length > 0) {
+        // Convert back to Song objects
+        const playlist: Song[] = savedState.queue.map((item) => ({
           id: item.id,
           title: item.title,
           artist: item.artist,
@@ -721,12 +731,11 @@ export class AudioPlayerService {
           genre: '',
           isFavorite: false,
           addedDate: new Date(),
-          isDownloaded: false
-        }));
-
-        // Update state
-        this._playbackState.update(state => ({
-          ...state,          currentSong: {
+          isDownloaded: false,
+        }));        // Update state
+        this.updatePlaybackState(state => ({
+          ...state,
+          currentSong: {
             id: savedState.currentSong!.id,
             title: savedState.currentSong!.title,
             artist: savedState.currentSong!.artist,
@@ -737,7 +746,7 @@ export class AudioPlayerService {
             genre: '',
             isFavorite: false,
             addedDate: new Date(),
-            isDownloaded: false
+            isDownloaded: false,
           },
           currentPlaylist: playlist,
           currentIndex: savedState.currentIndex,
@@ -745,8 +754,8 @@ export class AudioPlayerService {
           isShuffling: savedState.isShuffling,
           repeatMode: savedState.repeatMode,
           currentTime: savedState.currentTime,
-          isPlaying: false // Không tự động play
-        }));        // Load audio source nhưng không play
+          isPlaying: false, // Không tự động play
+        })); // Load audio source nhưng không play
         try {
           // Tạo Song object tạm thời để sử dụng loadAudioWithBypass
           const tempSong: Song = {
@@ -757,7 +766,7 @@ export class AudioPlayerService {
             thumbnail: savedState.currentSong.thumbnail,
             duration: savedState.currentSong.duration,
             addedDate: new Date(),
-            isFavorite: false
+            isFavorite: false,
           };
 
           const audioUrl = await this.loadAudioWithBypass(tempSong);
