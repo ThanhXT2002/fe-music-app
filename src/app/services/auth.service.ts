@@ -6,33 +6,22 @@ import {
   signOut,
   User,
 } from '@angular/fire/auth';
-import { Observable, from, BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { filter } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
-  public user$ = this.userSubject.asObservable();
 
   constructor(private auth: Auth) {
     // Listen to auth state changes
     this.auth.onAuthStateChanged((user) => {
       this.userSubject.next(user);
-    });
-  }
+    });  }
 
-  signInWithGoogle(): Observable<User> {
-    const provider = new GoogleAuthProvider();
-    provider.addScope('profile');
-    provider.addScope('email');
-
-    return from(signInWithPopup(this.auth, provider)).pipe(
-      map((result) => result.user)
-    );
-  }
-  // Alias for compatibility with login page
+  // Main login method for Firebase Google authentication
   async loginWithGoogle(): Promise<User> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
@@ -40,7 +29,6 @@ export class AuthService {
     const result = await signInWithPopup(this.auth, provider);
     return result.user;
   }
-
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;
     if (user) {
@@ -52,89 +40,15 @@ export class AuthService {
         return null;
       }
     }
-    return null;
-  }
+    return null;  }
 
-  // Lấy token với force refresh
-  async getIdTokenForceRefresh(): Promise<string | null> {
-    const user = this.auth.currentUser;
-    if (user) {
-      try {
-        return await user.getIdToken(true); // force refresh
-      } catch (error) {
-        console.error('Error getting fresh ID token:', error);
-        return null;
-      }
-    }
-    return null;
-  }
-
-  // Guest login - just set a flag or create anonymous session
-  async loginAsGuest(): Promise<void> {
-    // For now, we'll just create a mock guest user
-    // In a real app, you might use Firebase anonymous auth
-    const guestUser = {
-      uid: 'guest-' + Date.now(),
-      displayName: 'Guest User',
-      email: null,
-      photoURL: null,
-    } as any;
-    this.userSubject.next(guestUser);
-  }
-
-  signOut(): Observable<void> {
-    return from(signOut(this.auth));
-  }
-
-  // Alias for compatibility
+  // Main logout method
   async logout(): Promise<void> {
     await signOut(this.auth);
   }
 
-  getCurrentUser(): User | null {
-    return this.userSubject.value;
-  }
-
   // Signal-like property for template binding
   get currentUser() {
-    return () => this.getCurrentUser();
+    return () => this.userSubject.value;
   }
-
-  isAuthenticated(): boolean {
-    return this.userSubject.value !== null;
-  }
-
-  getUserDisplayName(): string {
-    const user = this.getCurrentUser();
-    return user?.displayName || user?.email || 'User';
-  }
-
-  getUserPhotoURL(): string | null {
-    const user = this.getCurrentUser();
-    return user?.photoURL || null;
-  }
-
-  getUserEmail(): string | null {
-    const user = this.getCurrentUser();
-    return user?.email || null;
-  }
-
-  // Method để gửi request có kèm token
-async makeAuthenticatedRequest(url: string, options: any = {}): Promise<any> {
-  const token = await this.getIdToken();
-
-  if (!token) {
-    throw new Error('No authentication token available');
-  }
-
-  const headers = {
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
-  };
-
-  return fetch(url, {
-    ...options,
-    headers
-  });
-}
 }

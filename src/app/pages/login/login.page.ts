@@ -23,27 +23,23 @@ export class LoginPage implements OnInit {
       this.router.navigate(['/tabs']);
     }
   }
-
-  async loginWithGoogle() {
+    async loginWithGoogle() {
     try {
       this.isLoading = true;
-      await this.authService.loginWithGoogle();
-      await this.router.navigate(['/tabs']);
+
+      // Đăng nhập và đợi cho đến khi dữ liệu người dùng đầy đủ
+      const user = await this.authService.loginWithGoogle();
+
+      // Thêm một chút delay để đảm bảo Firebase hoàn tất xử lý
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Sau khi đã có dữ liệu đầy đủ, điều hướng đến trang chính
+      await this.router.navigate(['/tabs'], {
+        replaceUrl: true // Thay thế route hiện tại để ngăn quay lại trang login
+      });
     } catch (error) {
       console.error('Login error:', error);
       // You could show a toast or alert here
-    } finally {
-      this.isLoading = false;
-    }
-  }
-
-  async continueAsGuest() {
-    try {
-      this.isLoading = true;
-      await this.authService.loginAsGuest();
-      await this.router.navigate(['/tabs']);
-    } catch (error) {
-      console.error('Guest login error:', error);
     } finally {
       this.isLoading = false;
     }

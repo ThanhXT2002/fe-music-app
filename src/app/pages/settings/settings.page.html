@@ -48,13 +48,17 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                   {{ user()?.email || 'No email' }}
                 </p>
-              </div>
-            </div>
+              </div>            </div>
 
             <!-- Action Buttons -->
-            <div class="space-y-2">
+            <div class="space-y-2" *ngIf="user()">
               <button (click)="logout()" class="btn btn-primary w-full">
-                Sign Out
+                Log Out
+              </button>
+            </div>
+            <div class="space-y-2" *ngIf="!user()">
+              <button (click)="navigateToLogin()" class="btn btn-primary w-full">
+                Log In
               </button>
             </div>
           </div>
