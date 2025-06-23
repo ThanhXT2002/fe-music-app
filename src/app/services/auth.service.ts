@@ -7,15 +7,20 @@ import {
   User,
 } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
+import { ToastController } from '@ionic/angular/standalone';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
+  public user$ = this.userSubject.asObservable();
   private readonly USER_STORAGE_KEY = 'txt_music_user';
 
-  constructor(private auth: Auth) {
+  constructor(
+    private auth: Auth,
+    private toastController: ToastController
+  ) {
     // Khôi phục user từ localStorage nếu có
     this.loadUserFromLocalStorage();
 
@@ -49,7 +54,6 @@ export class AuthService {
       console.error('Error saving user to localStorage', error);
     }
   }
-
   /**
    * Khôi phục thông tin user từ localStorage
    */
@@ -58,19 +62,21 @@ export class AuthService {
       const savedUser = localStorage.getItem(this.USER_STORAGE_KEY);
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
-        // Chúng ta không cập nhật userSubject từ localStorage
-        // vì auth.onAuthStateChanged sẽ làm điều đó
-        // Tuy nhiên, chúng ta sẽ sử dụng thông tin này để hiển thị UI nhanh hơn
+        // Cập nhật userSubject ngay lập tức để UI hiển thị thông tin user
+        // (bao gồm avatar) ngay khi app khởi động
+        this.userSubject.next(parsedUser as User);
       }
     } catch (error) {
       console.error('Error loading user from localStorage', error);
     }
-  }
-  // Main login method for Firebase Google authentication
+  }// Main login method for Firebase Google authentication
   async loginWithGoogle(): Promise<User> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
+
+    // Luôn hiển thị màn hình chọn tài khoản
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     const result = await signInWithPopup(this.auth, provider);
 
@@ -79,6 +85,9 @@ export class AuthService {
 
     // Cập nhật BehaviorSubject ngay lập tức
     this.userSubject.next(result.user);
+
+    // Hiển thị thông báo đăng nhập thành công
+    await this.showSuccessToast();
 
     return result.user;
   }
@@ -129,5 +138,25 @@ export class AuthService {
       // Nếu không có gì, trả về null
       return null;
     };
+  }
+
+  /**
+   * Hiển thị thông báo đăng nhập thành công
+   */
+  private async showSuccessToast(): Promise<void> {
+    const toast = await this.toastController.create({
+      message: 'Đăng nhập thành công',
+      duration: 3000,
+      position: 'top',
+      color: 'success',
+      buttons: [
+        {
+          text: 'OK',
+          role: 'cancel'
+        }
+      ]
+    });
+
+    await toast.present();
   }
 }
