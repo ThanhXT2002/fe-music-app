@@ -34,13 +34,13 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Account</h2>
           </div>
 
-          <div class="p-4 space-y-4">
-            <!-- User Info -->
+          <div class="p-4 space-y-4">            <!-- User Info -->
             <div class="flex items-center space-x-3">
               <img
-                [src]="user()?.photoURL || 'assets/images/default-avatar.svg'"
-                [alt]="user()?.displayName"
-                class="w-12 h-12 rounded-full object-cover">
+                [src]="getUserAvatar()"
+                [alt]="user()?.displayName || 'User'"
+                (error)="onImageError($event)"
+                class="w-12 h-12 rounded-full object-cover bg-gray-200 dark:bg-gray-700">
               <div>
                 <p class="font-medium text-gray-900 dark:text-white">
                   {{ user()?.displayName || 'Guest User' }}
