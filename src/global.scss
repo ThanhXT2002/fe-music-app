@@ -343,4 +343,30 @@ ion-content {
   touch-action: manipulation;
 }
 
+/* Accessibility fixes for ion-backdrop */
+ion-backdrop {
+  /* Prevent focus on backdrop */
+  pointer-events: auto !important;
+  outline: none !important;
+  user-select: none !important;
+
+  /* Modern browsers: use inert attribute when available */
+  &[inert] {
+    pointer-events: none !important;
+  }
+
+  /* Legacy support: aria-hidden */
+  &[aria-hidden="true"] {
+    /* Focus should not be possible on hidden elements */
+    outline: none !important;
+    user-select: none !important;
+
+    /* Prevent any interaction */
+    pointer-events: none !important;
+
+    /* Hide from screen readers completely */
+    visibility: hidden !important;
+  }
+}
+
 
