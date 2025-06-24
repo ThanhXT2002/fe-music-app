@@ -182,8 +182,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       const modal = await this.modalCtrl.create({
         component: CurrentPlaylistComponent,
         presentingElement: undefined, // Allow full-screen modal
-        breakpoints: [0, 0.5, 0.8, 1],
-        initialBreakpoint: 0.8,
+        breakpoints: [0, 0.6, 1],
+        initialBreakpoint: 0.6,
         handle: true,
         backdropDismiss: true,
       });
