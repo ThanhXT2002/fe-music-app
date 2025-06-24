@@ -4,7 +4,6 @@ import {
   Output,
   EventEmitter,
   ChangeDetectionStrategy,
-  OnDestroy,
   OnInit,
   ChangeDetectorRef,
   effect,
@@ -41,6 +40,7 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
         <img
           [src]="song.thumbnail || 'assets/images/default-album.png'"
           [alt]="song.title"
+          
           class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2  shadow-2xl shadow-rose-500"
           [ngClass]="{
             'spin-with-fill border-lime-500': isThisSongPlaying,

@@ -4,15 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
-import { InstallPromptComponent } from "../../components/install-prompt/install-prompt.component";
+import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { User } from '@angular/fire/auth';
-
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [CommonModule, FormsModule, InstallPromptComponent],
-  templateUrl: './settings.page.html'
+  templateUrl: './settings.page.html',
 })
 export class SettingsPage implements OnInit {
   private authService = inject(AuthService);
@@ -27,14 +26,15 @@ export class SettingsPage implements OnInit {
 
   ngOnInit() {
     // Subscribe to user changes
-    this.authService.user$.subscribe(user => {
+    this.authService.user$.subscribe((user) => {
       console.log('User updated in settings:', user);
       this.user.set(user);
     });
   }
   toggleDarkMode() {
     this.themeService.toggleDarkMode();
-  }  async logout() {
+  }
+  async logout() {
     try {
       await this.authService.logout();
     } catch (error) {
@@ -57,7 +57,6 @@ export class SettingsPage implements OnInit {
 
   // Xử lý lỗi khi load ảnh avatar
   onImageError(event: any): void {
-    console.log('Avatar image failed to load, using fallback');
     event.target.src = 'assets/images/default-avatar.svg';
   }
 }

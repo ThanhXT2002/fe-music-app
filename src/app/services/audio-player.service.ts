@@ -787,12 +787,12 @@ export class AudioPlayerService {
     }
   }
 
-  // 🆕 Clear saved state
+  // Clear saved state
   clearSavedState(): void {
     localStorage.removeItem('savedPlaybackState');
   }
 
-  // 🆕 Get audio element for equalizer
+  // Get audio element for equalizer
   getAudioElement(): HTMLAudioElement {
     return this.audio;
   }

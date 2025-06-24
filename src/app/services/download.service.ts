@@ -1,7 +1,23 @@
 import { Injectable, signal } from '@angular/core';
-import { BehaviorSubject, catchError, Observable, firstValueFrom, timeout } from 'rxjs';
-import { Song, DataSong, YouTubeDownloadResponse, AudioFile, ThumbnailFile } from '../interfaces/song.interface';
-import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import {
+  BehaviorSubject,
+  catchError,
+  Observable,
+  firstValueFrom,
+  timeout,
+} from 'rxjs';
+import {
+  Song,
+  DataSong,
+  YouTubeDownloadResponse,
+  AudioFile,
+  ThumbnailFile,
+} from '../interfaces/song.interface';
+import {
+  HttpClient,
+  HttpParams,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
@@ -23,10 +39,8 @@ export interface DownloadTask {
   songData?: DataSong;
 }
 
-
-
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DownloadService {
   private apiUrl = environment.apiUrl;
@@ -34,7 +48,8 @@ export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
 
-  private activeDownloads = new Map<string, any>();  constructor(
+  private activeDownloads = new Map<string, any>();
+  constructor(
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
@@ -54,7 +69,9 @@ export class DownloadService {
         await this.loadDownloadsFromIndexedDB();
         // Downloads loaded successfully
       } else {
-        console.warn('⚠️ IndexedDB initialization failed, downloads will not persist');
+        console.warn(
+          '⚠️ IndexedDB initialization failed, downloads will not persist'
+        );
       }
     } catch (error) {
       console.error('❌ Error initializing downloads:', error);
@@ -72,8 +89,8 @@ export class DownloadService {
    */
   async downloadSong(songData: DataSong): Promise<string> {
     // Kiểm tra xem bài hát đã được download chưa
-    const existingTask = this.currentDownloads.find(d =>
-      d.songData?.id === songData.id && d.status === 'completed'
+    const existingTask = this.currentDownloads.find(
+      (d) => d.songData?.id === songData.id && d.status === 'completed'
     );
 
     if (existingTask) {
@@ -90,8 +107,8 @@ export class DownloadService {
       status: 'pending',
       thumbnail: songData.thumbnail_url,
       addedAt: new Date(),
-      songData: songData
-    };    // Thêm vào danh sách downloads
+      songData: songData,
+    }; // Thêm vào danh sách downloads
     const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
@@ -104,14 +121,17 @@ export class DownloadService {
   }
 
   // Add a new download task (giữ nguyên method cũ để tương thích)
-  addDownload(task: Omit<DownloadTask, 'id' | 'progress' | 'status' | 'addedAt'>): string {
+  addDownload(
+    task: Omit<DownloadTask, 'id' | 'progress' | 'status' | 'addedAt'>
+  ): string {
     const downloadTask: DownloadTask = {
       ...task,
       id: this.generateId(),
       progress: 0,
       status: 'pending',
-      addedAt: new Date()
-    };    const currentDownloads = this.currentDownloads;
+      addedAt: new Date(),
+    };
+    const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);
     this.saveDownloadsToIndexedDB();
@@ -120,15 +140,19 @@ export class DownloadService {
     return downloadTask.id;
   }
   // Update download progress
-  updateDownloadProgress(id: string, progress: number, status?: DownloadTask['status']) {
+  updateDownloadProgress(
+    id: string,
+    progress: number,
+    status?: DownloadTask['status']
+  ) {
     const currentDownloads = this.currentDownloads;
-    const downloadIndex = currentDownloads.findIndex(d => d.id === id);
+    const downloadIndex = currentDownloads.findIndex((d) => d.id === id);
 
     if (downloadIndex !== -1) {
       currentDownloads[downloadIndex] = {
         ...currentDownloads[downloadIndex],
         progress,
-        ...(status && { status })
+        ...(status && { status }),
       };
 
       this.downloadsSubject.next(currentDownloads);
@@ -144,7 +168,7 @@ export class DownloadService {
     this.updateDownload(id, {
       status: 'completed',
       progress: 100,
-      filePath
+      filePath,
     });
 
     // Lưu bài hát vào database nếu có songData
@@ -160,7 +184,7 @@ export class DownloadService {
   failDownload(id: string, error: string) {
     this.updateDownload(id, {
       status: 'error',
-      error
+      error,
     });
 
     this.activeDownloads.delete(id);
@@ -188,14 +212,17 @@ export class DownloadService {
     const activeDownload = this.activeDownloads.get(id);
     if (activeDownload && activeDownload.abort) {
       activeDownload.abort();
-    }    const currentDownloads = this.currentDownloads.filter(d => d.id !== id);
+    }
+    const currentDownloads = this.currentDownloads.filter((d) => d.id !== id);
     this.downloadsSubject.next(currentDownloads);
     this.activeDownloads.delete(id);
     this.saveDownloadsToIndexedDB();
   }
   // Clear completed downloads
   clearCompleted() {
-    const currentDownloads = this.currentDownloads.filter(d => d.status !== 'completed');
+    const currentDownloads = this.currentDownloads.filter(
+      (d) => d.status !== 'completed'
+    );
     this.downloadsSubject.next(currentDownloads);
     this.saveDownloadsToIndexedDB();
   }
@@ -215,10 +242,10 @@ export class DownloadService {
 
   // Get download by ID
   getDownload(id: string): DownloadTask | undefined {
-    return this.currentDownloads.find(d => d.id === id);
-  }  // Get downloads by status
+    return this.currentDownloads.find((d) => d.id === id);
+  } // Get downloads by status
   getDownloadsByStatus(status: DownloadTask['status']): DownloadTask[] {
-    return this.currentDownloads.filter(d => d.status === status);
+    return this.currentDownloads.filter((d) => d.status === status);
   }
 
   /**
@@ -227,8 +254,8 @@ export class DownloadService {
    * @returns boolean
    */
   isSongDownloaded(songId: string): boolean {
-    return this.currentDownloads.some(d =>
-      d.songData?.id === songId && d.status === 'completed'
+    return this.currentDownloads.some(
+      (d) => d.songData?.id === songId && d.status === 'completed'
     );
   }
 
@@ -238,19 +265,20 @@ export class DownloadService {
    * @returns DownloadTask | undefined
    */
   getDownloadBySongId(songId: string): DownloadTask | undefined {
-    return this.currentDownloads.find(d => d.songData?.id === songId);
+    return this.currentDownloads.find((d) => d.songData?.id === songId);
   }
 
   // Private methods
   private updateDownload(id: string, updates: Partial<DownloadTask>) {
     const currentDownloads = this.currentDownloads;
-    const downloadIndex = currentDownloads.findIndex(d => d.id === id);
+    const downloadIndex = currentDownloads.findIndex((d) => d.id === id);
 
     if (downloadIndex !== -1) {
       currentDownloads[downloadIndex] = {
         ...currentDownloads[downloadIndex],
-        ...updates
-      };      this.downloadsSubject.next(currentDownloads);
+        ...updates,
+      };
+      this.downloadsSubject.next(currentDownloads);
       this.saveDownloadsToIndexedDB();
     }
   }
@@ -263,32 +291,37 @@ export class DownloadService {
 
     const abortController = new AbortController();
     this.activeDownloads.set(id, {
-      abort: () => abortController.abort()
+      abort: () => abortController.abort(),
     });
 
     // Sử dụng real download thay vì simulate
     this.realDownload(id, download.url, abortController.signal);
-  }  /**
+  }
+  /**
    * Download thực tế file audio và thumbnail
    * @param id - ID của download task
    * @param audioUrl - URL của file audio (không sử dụng nữa, lấy từ songData)
    * @param signal - AbortSignal để cancel download
    */
-  private async realDownload(id: string, audioUrl: string, signal: AbortSignal) {
+  private async realDownload(
+    id: string,
+    audioUrl: string,
+    signal: AbortSignal
+  ) {
     try {
       const download = this.getDownload(id);
       if (!download || !download.songData) return;
 
       // All platforms now use IndexedDB for storage
       await this.handleWebDownload(id, signal);
-
     } catch (error) {
       if (!signal.aborted) {
         console.error('Download error:', error);
         this.failDownload(id, 'Download failed: ' + error);
       }
     }
-  }  /**
+  }
+  /**
    * Xử lý download cho tất cả platforms - download cả audio và thumbnail
    * @param id - ID của download task
    * @param signal - AbortSignal
@@ -300,21 +333,24 @@ export class DownloadService {
     const { songData } = download;
     let totalProgress = 0;
 
-    try {      // Step 1: Download audio file (70% of total progress)
+    try {
+      // Step 1: Download audio file (70% of total progress)
       this.updateDownloadProgress(id, 10, 'downloading');
 
       console.log('🎵 Downloading audio from:', songData.audio_url);
       const audioBlob = await firstValueFrom(
-        this.http.get(songData.audio_url, {
-          responseType: 'blob',
-          headers: {
-            'Accept': 'audio/*,*/*;q=0.9',
-            'User-Agent': 'IonicApp/1.0',
-            'Cache-Control': 'no-cache'
-          }
-        }).pipe(
-          timeout(120000) // 2 minutes timeout for mobile
-        )
+        this.http
+          .get(songData.audio_url, {
+            responseType: 'blob',
+            headers: {
+              Accept: 'audio/*,*/*;q=0.9',
+              'User-Agent': 'IonicApp/1.0',
+              'Cache-Control': 'no-cache',
+            },
+          })
+          .pipe(
+            timeout(120000) // 2 minutes timeout for mobile
+          )
       );
 
       if (signal.aborted) return;
@@ -326,33 +362,39 @@ export class DownloadService {
       // Step 2: Download thumbnail (20% of total progress) - optional
       let thumbnailBlob: Blob | null = null;
       try {
-        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);        thumbnailBlob = await firstValueFrom(
-          this.http.get(songData.thumbnail_url, {
-            responseType: 'blob',
-            headers: {
-              'Accept': 'image/*,*/*;q=0.9',
-              'Cache-Control': 'no-cache'
-            }
-          }).pipe(
-            timeout(30000) // 30 seconds timeout for thumbnail
-          )
+        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);
+        thumbnailBlob = await firstValueFrom(
+          this.http
+            .get(songData.thumbnail_url, {
+              responseType: 'blob',
+              headers: {
+                Accept: 'image/*,*/*;q=0.9',
+                'Cache-Control': 'no-cache',
+              },
+            })
+            .pipe(
+              timeout(30000) // 30 seconds timeout for thumbnail
+            )
         );
 
         // Thumbnail downloaded successfully
       } catch (thumbError) {
-        console.warn('⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:', thumbError);
+        console.warn(
+          '⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:',
+          thumbError
+        );
         // Continue without thumbnail - this is not critical
       }
 
       totalProgress = 70;
       this.updateDownloadProgress(id, totalProgress);
 
-      if (signal.aborted) return;      // Step 3: Save audio to IndexedDB (15% of total progress)
+      if (signal.aborted) return; // Step 3: Save audio to IndexedDB (15% of total progress)
       console.log('💾 Saving audio to IndexedDB...');
       console.log('📊 Audio blob info:', {
         size: audioBlob.size,
         type: audioBlob.type,
-        songId: songData.id
+        songId: songData.id,
       });
 
       try {
@@ -366,7 +408,8 @@ export class DownloadService {
           songData.id,
           audioBlob,
           audioBlob.type || 'audio/mpeg'
-        );        if (!audioSaved) {
+        );
+        if (!audioSaved) {
           throw new Error('Failed to save audio file to IndexedDB');
         }
         // Audio saved to IndexedDB successfully
@@ -375,7 +418,7 @@ export class DownloadService {
 
         // Try one more time after a delay if save fails
         console.log('🔄 Retrying save after delay...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         const retrySuccess = await this.indexedDBService.saveAudioFile(
           songData.id,
@@ -384,14 +427,16 @@ export class DownloadService {
         );
 
         if (!retrySuccess) {
-          throw new Error(`Failed to save audio file after retry: ${saveError}`);
+          throw new Error(
+            `Failed to save audio file after retry: ${saveError}`
+          );
         }
 
         // Audio file saved successfully on retry
       }
 
       totalProgress = 85;
-      this.updateDownloadProgress(id, totalProgress);// Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      this.updateDownloadProgress(id, totalProgress); // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
       if (thumbnailBlob) {
         console.log('💾 Saving thumbnail to IndexedDB...');
         try {
@@ -407,16 +452,20 @@ export class DownloadService {
             console.warn('⚠️ Failed to save thumbnail, but continuing...');
           }
         } catch (thumbSaveError) {
-          console.warn('⚠️ Error saving thumbnail to IndexedDB (non-critical):', thumbSaveError);
+          console.warn(
+            '⚠️ Error saving thumbnail to IndexedDB (non-critical):',
+            thumbSaveError
+          );
         }
       } else {
-        console.log('ℹ️ No thumbnail to save (download failed or CORS blocked)');
+        console.log(
+          'ℹ️ No thumbnail to save (download failed or CORS blocked)'
+        );
       }
 
       totalProgress = 100;
-      this.updateDownloadProgress(id, totalProgress);      // Complete download (no filePath needed since we use IndexedDB for all platforms)
+      this.updateDownloadProgress(id, totalProgress); // Complete download (no filePath needed since we use IndexedDB for all platforms)
       await this.completeDownload(id, undefined);
-
     } catch (error) {
       if (signal.aborted) {
         console.log('ℹ️ Download was aborted by user');
@@ -427,9 +476,14 @@ export class DownloadService {
       if (error instanceof HttpErrorResponse) {
         if (error.status === 0) {
           console.error('❌ CORS or network error during download:', error);
-          throw new Error('Download blocked by CORS policy or network error. Please check your connection.');
+          throw new Error(
+            'Download blocked by CORS policy or network error. Please check your connection.'
+          );
         } else {
-          console.error(`❌ HTTP error during download: ${error.status}`, error);
+          console.error(
+            `❌ HTTP error during download: ${error.status}`,
+            error
+          );
           throw new Error(`HTTP error ${error.status}: ${error.message}`);
         }
       }
@@ -437,7 +491,8 @@ export class DownloadService {
       console.error('❌ Web download error:', error);
       throw error;
     }
-  }  /**
+  }
+  /**
    * Lưu bài hát vào database
    * @param songData - Data từ API
    * @param filePath - Đường dẫn file (optional)
@@ -458,8 +513,8 @@ export class DownloadService {
         addedDate: new Date(),
         isFavorite: false,
         genre: this.extractGenreFromKeywords(songData.keywords || []),
-        isDownloaded: true // Đánh dấu đã download
-      };      // Lưu vào database
+        isDownloaded: true, // Đánh dấu đã download
+      }; // Lưu vào database
       const success = await this.databaseService.addSong(song);
 
       if (success) {
@@ -468,7 +523,6 @@ export class DownloadService {
       } else {
         console.error('❌ Failed to save song to database');
       }
-
     } catch (error) {
       console.error('Error saving song to database:', error);
     }
@@ -515,27 +569,27 @@ export class DownloadService {
     if (!keywords || keywords.length === 0) return undefined;
 
     const genreMap: Record<string, string> = {
-      'remix': 'Remix',
-      'acoustic': 'Acoustic',
-      'live': 'Live',
-      'cover': 'Cover',
-      'piano': 'Piano',
-      'guitar': 'Guitar',
-      'ballad': 'Ballad',
-      'rap': 'Rap',
+      remix: 'Remix',
+      acoustic: 'Acoustic',
+      live: 'Live',
+      cover: 'Cover',
+      piano: 'Piano',
+      guitar: 'Guitar',
+      ballad: 'Ballad',
+      rap: 'Rap',
       'hip hop': 'Hip Hop',
-      'pop': 'Pop',
-      'rock': 'Rock',
-      'jazz': 'Jazz',
-      'blues': 'Blues',
-      'country': 'Country',
-      'classical': 'Classical',
-      'electronic': 'Electronic',
-      'dance': 'Dance',
-      'house': 'House',
-      'techno': 'Techno',
-      'tiktok': 'TikTok Hit',
-      'trending': 'Trending'
+      pop: 'Pop',
+      rock: 'Rock',
+      jazz: 'Jazz',
+      blues: 'Blues',
+      country: 'Country',
+      classical: 'Classical',
+      electronic: 'Electronic',
+      dance: 'Dance',
+      house: 'House',
+      techno: 'Techno',
+      tiktok: 'TikTok Hit',
+      trending: 'Trending',
     };
 
     for (const keyword of keywords) {
@@ -552,21 +606,27 @@ export class DownloadService {
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
-  }  private async saveDownloadsToIndexedDB() {
+  }
+  private async saveDownloadsToIndexedDB() {
     try {
       // Đảm bảo IndexedDB đã được khởi tạo
       const isInitialized = await this.indexedDBService.initDB();
       if (!isInitialized) {
-        console.warn('⚠️ IndexedDB initialization failed, skipping download saving');
+        console.warn(
+          '⚠️ IndexedDB initialization failed, skipping download saving'
+        );
         return;
       }
 
-      const downloadsToSave = this.currentDownloads.map(d => ({
+      const downloadsToSave = this.currentDownloads.map((d) => ({
         ...d,
         // Don't save large data or sensitive info
       }));
 
-      await this.indexedDBService.put('downloads', { id: 'downloads', tasks: downloadsToSave });
+      await this.indexedDBService.put('downloads', {
+        id: 'downloads',
+        tasks: downloadsToSave,
+      });
     } catch (error) {
       console.error('Failed to save downloads to IndexedDB:', error);
     }
@@ -576,21 +636,28 @@ export class DownloadService {
       // Đảm bảo IndexedDB đã được khởi tạo
       const isInitialized = await this.indexedDBService.initDB();
       if (!isInitialized) {
-        console.warn('⚠️ IndexedDB initialization failed, skipping download loading');
+        console.warn(
+          '⚠️ IndexedDB initialization failed, skipping download loading'
+        );
         return;
       }
 
-      const savedData = await this.indexedDBService.get('downloads', 'downloads');
+      const savedData = await this.indexedDBService.get(
+        'downloads',
+        'downloads'
+      );
       if (savedData && savedData.tasks && Array.isArray(savedData.tasks)) {
         const downloads: DownloadTask[] = savedData.tasks.map((d: any) => ({
           ...d,
-          addedAt: new Date(d.addedAt)
+          addedAt: new Date(d.addedAt),
         }));
 
         // Reset any pending/downloading status to paused on app restart
-        const adjustedDownloads = downloads.map(d => ({
+        const adjustedDownloads = downloads.map((d) => ({
           ...d,
-          status: (['pending', 'downloading'].includes(d.status) ? 'paused' : d.status) as DownloadTask['status']
+          status: (['pending', 'downloading'].includes(d.status)
+            ? 'paused'
+            : d.status) as DownloadTask['status'],
         }));
 
         this.downloadsSubject.next(adjustedDownloads);
@@ -617,7 +684,7 @@ export class DownloadService {
       );
   }
 
-    validateYoutubeUrl(url: string): boolean {
+  validateYoutubeUrl(url: string): boolean {
     const patterns = [
       /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/,
       /^https?:\/\/(www\.)?youtube\.com\/watch\?.*v=[a-zA-Z0-9_-]+/,

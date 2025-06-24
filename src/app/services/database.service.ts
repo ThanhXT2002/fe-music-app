@@ -98,12 +98,14 @@ export class DatabaseService {
    */
   private async initializeSystemPlaylists(): Promise<void> {
     // This will be called by PlaylistManagerService
-    console.log('🎵 System playlists initialization deferred to PlaylistManagerService');
+    console.log(
+      '🎵 System playlists initialization deferred to PlaylistManagerService'
+    );
   }
 
   /**
    * Thêm bài hát mới vào database
-   */  async addSong(song: Song): Promise<boolean> {
+   */ async addSong(song: Song): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
@@ -127,13 +129,16 @@ export class DatabaseService {
 
     // Check cache first
     const now = Date.now();
-    if (this.songsCache && (now - this.songsCacheTime) < this.CACHE_DURATION) {
+    if (this.songsCache && now - this.songsCacheTime < this.CACHE_DURATION) {
       return this.songsCache;
-    }    try {
+    }
+    try {
       const allSong = await this.indexedDB.getAll('songs');
 
       // Sort and cache the results
-      const sortedSongs = allSong.sort((a, b) => +new Date(b.addedDate) - +new Date(a.addedDate));
+      const sortedSongs = allSong.sort(
+        (a, b) => +new Date(b.addedDate) - +new Date(a.addedDate)
+      );
       this.songsCache = sortedSongs;
       this.songsCacheTime = now;
 
@@ -160,7 +165,7 @@ export class DatabaseService {
 
   /**
    * Cập nhật bài hát
-   */  async updateSong(song: Song): Promise<boolean> {
+   */ async updateSong(song: Song): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
@@ -178,7 +183,7 @@ export class DatabaseService {
 
   /**
    * Xóa bài hát
-   */  async deleteSong(id: string): Promise<boolean> {
+   */ async deleteSong(id: string): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
@@ -279,7 +284,10 @@ export class DatabaseService {
 
     // Check cache first
     const now = Date.now();
-    if (this.playlistsCache && (now - this.playlistsCacheTime) < this.CACHE_DURATION) {
+    if (
+      this.playlistsCache &&
+      now - this.playlistsCacheTime < this.CACHE_DURATION
+    ) {
       return this.playlistsCache;
     }
 
@@ -342,7 +350,9 @@ export class DatabaseService {
     try {
       // Lấy tất cả items từ IndexedDB
       const allHistory = await this.indexedDB.getAll('search_history');
-      return allHistory.sort((a, b) => +new Date(b.searchedAt) - +new Date(a.searchedAt));
+      return allHistory.sort(
+        (a, b) => +new Date(b.searchedAt) - +new Date(a.searchedAt)
+      );
     } catch (error) {
       console.error('Error getting search history:', error);
       return [];
