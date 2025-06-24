@@ -1,17 +1,31 @@
-import { Component, OnInit, OnDestroy, effect, inject, signal, computed, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  effect,
+  inject,
+  signal,
+  computed,
+  ChangeDetectorRef,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Song } from 'src/app/interfaces/song.interface';
 import { Subject, takeUntil } from 'rxjs';
 import { DatabaseService } from 'src/app/services/database.service';
-import { CdkDragDrop, moveItemInArray, DragDropModule } from '@angular/cdk/drag-drop';
+import {
+  CdkDragDrop,
+  moveItemInArray,
+  DragDropModule,
+} from '@angular/cdk/drag-drop';
 
 enum DragState {
   IDLE,
-  DETECTING,     // Đang đếm 1.5s
-  DRAG_ACTIVE,   // Đã scale, ready to drag
-  REORDERING,    // Đang drag vertical
-  DELETING       // Đang drag horizontal > 75%
+  DETECTING, // Đang đếm 1.5s
+  DRAG_ACTIVE, // Đã scale, ready to drag
+  REORDERING, // Đang drag vertical
+  DELETING, // Đang drag horizontal > 75%
 }
 
 @Component({
@@ -20,13 +34,15 @@ enum DragState {
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
   imports: [CommonModule, DragDropModule],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
+
+  private readonly LONG_PRESS_DURATION = 500;
 
   // Drag and gesture state
   dragState = signal<DragState>(DragState.IDLE);
@@ -53,7 +69,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Progress percentage for progress bar
   progressPercentage = computed(() => {
-    const current = this.currentTime();    const total = this.duration();
+    const current = this.currentTime();
+    const total = this.duration();
     return total > 0 ? (current / total) * 100 : 0;
   });
 
@@ -72,7 +89,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   durationTime = computed(() => {
     const remaining = this.remainingTime();
     return `-${this.formatTime(remaining)}`;
-  });  constructor() {
+  });
+  constructor() {
     // Force change detection when any signal changes - THIS IS THE KEY FIX
     effect(() => {
       // Track all signals that should trigger UI updates
@@ -82,16 +100,20 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       const index = this.currentIndex();
       const time = this.currentTime();
       const dur = this.duration();
-      const state = this.playbackState();      // Force change detection to ensure UI updates
+      const state = this.playbackState(); // Force change detection to ensure UI updates
       // Use requestAnimationFrame to ensure it runs in next tick
       requestAnimationFrame(() => {
         this.cdr.detectChanges();
       });
-    });    // Listen for custom events from PlayerPage to force change detection
+    }); // Listen for custom events from PlayerPage to force change detection
     if (typeof window !== 'undefined') {
-      window.addEventListener('player-action-triggered', this.handlePlayerAction);
+      window.addEventListener(
+        'player-action-triggered',
+        this.handlePlayerAction
+      );
     }
-  }  ngOnInit() {
+  }
+  ngOnInit() {
     // No need to manually assign since we're using signals directly
     // Signals will automatically update the UI when values change
   }
@@ -101,7 +123,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
     // Clean up custom event listener
     if (typeof window !== 'undefined') {
-      window.removeEventListener('player-action-triggered', this.handlePlayerAction);
+      window.removeEventListener(
+        'player-action-triggered',
+        this.handlePlayerAction
+      );
     }
 
     // Clean up drag state
@@ -111,7 +136,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     requestAnimationFrame(() => {
       this.cdr.detectChanges();
     });
-  }
+  };
 
   // Track function for ngFor
   trackBySongId(index: number, song: Song): string {
@@ -141,13 +166,17 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   // Play specific song
   async playSong(song: Song, index: number) {
     try {
-      await this.audioPlayerService.playSong(song, this.currentPlaylist(), index);
+      await this.audioPlayerService.playSong(
+        song,
+        this.currentPlaylist(),
+        index
+      );
       // Force UI update after playing
       this.cdr.detectChanges();
     } catch (error) {
       console.error('Error playing song:', error);
     }
-  }// Remove song from playlist
+  } // Remove song from playlist
   async removeSong(event: Event, index: number) {
     event.stopPropagation();
 
@@ -163,7 +192,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error removing song:', error);
     }
-  }  // Toggle shuffle mode
+  } // Toggle shuffle mode
   async toggleShuffle() {
     try {
       this.audioPlayerService.toggleShuffle();
@@ -190,17 +219,18 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
-    togglePlayPause() {
+  togglePlayPause() {
     this.audioPlayerService.togglePlayPause();
     // Force UI update after action
     this.cdr.detectChanges();
   }
 
-    nextTrack() {
+  nextTrack() {
     this.audioPlayerService.playNext();
     // Force UI update after action
     this.cdr.detectChanges();
-  }async toggleFavorite() {
+  }
+  async toggleFavorite() {
     const song = this.currentSong();
     if (!song) return;
 
@@ -230,7 +260,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       currentTime: this.currentTime(),
       duration: this.duration(),
       progressPercentage: this.progressPercentage(),
-      playbackState: this.playbackState()
+      playbackState: this.playbackState(),
     });
   }
 
@@ -249,7 +279,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${mins.toString().padStart(2, '0')}:${secs
+        .toString()
+        .padStart(2, '0')}`;
     } else {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
@@ -268,7 +300,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragState.set(DragState.DETECTING);
 
     // Get item width for delete threshold calculation
-    const itemElement = (event.target as HTMLElement).closest('.song-item') as HTMLElement;
+    const itemElement = (event.target as HTMLElement).closest(
+      '.song-item'
+    ) as HTMLElement;
     if (itemElement) {
       this.itemWidth = itemElement.offsetWidth;
     }
@@ -278,7 +312,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       if (this.dragState() === DragState.DETECTING) {
         this.activateDragMode();
       }
-    }, 1500);
+    }, this.LONG_PRESS_DURATION);
 
     this.cdr.detectChanges();
   }
@@ -353,7 +387,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     }
 
     // Visual feedback class for immediate response
-    const itemElement = document.querySelector(`.song-item:nth-child(${this.dragItemIndex() + 1})`);
+    const itemElement = document.querySelector(
+      `.song-item:nth-child(${this.dragItemIndex() + 1})`
+    );
     if (itemElement) {
       itemElement.classList.add('haptic-feedback');
       setTimeout(() => {
@@ -393,12 +429,15 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       let newCurrentIndex = this.audioPlayerService.currentIndex();
 
       if (currentSong) {
-        newCurrentIndex = playlist.findIndex(song => song.id === currentSong.id);
+        newCurrentIndex = playlist.findIndex(
+          (song) => song.id === currentSong.id
+        );
       }
 
       // Update playlist with the correct current index
       this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
-    }    this.resetDragState();
+    }
+    this.resetDragState();
   }
 
   // Get item styling based on drag state
@@ -423,6 +462,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Check if item should show delete indicator
   shouldShowDeleteIndicator(index: number): boolean {
-    return this.dragState() === DragState.DELETING && this.dragItemIndex() === index;
+    return (
+      this.dragState() === DragState.DELETING && this.dragItemIndex() === index
+    );
   }
 }
