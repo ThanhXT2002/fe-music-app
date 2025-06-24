@@ -17,9 +17,7 @@
     <div class="relative z-10 py-4 px-4 flex flex-col justify-between h-full">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-bold text-white">
-            Danh sách phát hiện tại
-          </h2>
+          <h2 class="text-lg font-bold text-white">Danh sách phát hiện tại</h2>
           <p class="text-sm text-gray-200" *ngIf="currentPlaylist().length > 0">
             {{ currentPlaylist().length }} bài hát •
             {{ getCurrentSongIndex() + 1 }}/{{ currentPlaylist().length }}
@@ -114,7 +112,13 @@
         <p class="text-gray-500 dark:text-gray-400">
           Chọn bài hát để bắt đầu phát nhạc
         </p>
-      </div>      <div *ngIf="currentPlaylist().length > 0" class="space-y-1" cdkDropList (cdkDropListDropped)="onDrop($event)">
+      </div>
+      <div
+        *ngIf="currentPlaylist().length > 0"
+        class="space-y-1"
+        cdkDropList
+        (cdkDropListDropped)="onDrop($event)"
+      >
         <div
           *ngFor="
             let song of currentPlaylist();
@@ -132,11 +136,13 @@
             (pointerdown)="onDragHandleStart($event, i)"
             (pointerup)="onDragHandleEnd($event)"
             (contextmenu)="onLongPress($event, i)"
-            style="touch-action: none;"
-          ></div>          <!-- Song Item with Custom Styling for Current -->
+            style="touch-action: none"
+          ></div>
+          <!-- Song Item with Custom Styling for Current -->
           <div
             [class]="getSongItemClass(song, i) + ' ' + getItemDragClass(i)"
-            class="song-item rounded-lg transition-all duration-200 cursor-pointer group relative z-10"          >
+            class="song-item rounded-lg transition-all duration-200 cursor-pointer group relative z-10"
+          >
             <div class="flex items-center space-x-3 p-3">
               <!-- Index/Playing Indicator -->
               <div class="w-8 flex items-center justify-center">

@@ -176,6 +176,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       );
       // Force UI update after playing
       this.cdr.detectChanges();
+      // Đảm bảo luôn mở lại modal gesture nếu có (fix bug modal bị khoá)
+      this.dragActive.emit(false);
     } catch (error) {
       console.error('Error playing song:', error);
     }
