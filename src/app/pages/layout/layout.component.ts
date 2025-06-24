@@ -77,9 +77,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
   @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
 
-  onPlaylistDragActive(active: boolean) {
-    // Không làm gì cả - chỉ để component con có thể emit mà không lỗi
-  }
 
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);
