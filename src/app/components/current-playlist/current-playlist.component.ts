@@ -22,7 +22,6 @@ import {
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 
-
 enum DragState {
   IDLE,
   DETECTING, // Đang đếm 1.5s
@@ -328,12 +327,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragState.set(DragState.DRAG_ACTIVE);
     this.dragActive.emit(true); // Emit event to parent component
 
-    // Add haptic feedback on mobile
-    this.triggerHapticFeedback();
-
     this.cdr.detectChanges();
   }
-
   private resetNewDragState() {
     this.dragState.set(DragState.IDLE);
     this.dragItemIndex.set(-1);
@@ -341,24 +336,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragActive.emit(false); // Emit event to parent component
 
     this.cdr.detectChanges();
-  }
-
-  private triggerHapticFeedback() {
-    // Haptic feedback for mobile devices
-    if ('vibrate' in navigator) {
-      navigator.vibrate(50); // Short vibration
-    }
-
-    // Visual feedback class for immediate response
-    const itemElement = document.querySelector(
-      `.song-item:nth-child(${this.dragItemIndex() + 1})`
-    );
-    if (itemElement) {
-      itemElement.classList.add('haptic-feedback');
-      setTimeout(() => {
-        itemElement.classList.remove('haptic-feedback');
-      }, 100);
-    }
   }
   // Handle CDK drag drop for reordering
   onDrop(event: CdkDragDrop<Song[]>) {

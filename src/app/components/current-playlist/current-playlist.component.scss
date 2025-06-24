@@ -123,14 +123,3 @@
 .scale-animation {
   animation: scaleUp 0.2s ease-out forwards;
 }
-
-// Haptic feedback effect (visual only, actual haptic handled in TS)
-.haptic-feedback {
-  animation: hapticPulse 0.1s ease-out;
-}
-
-@keyframes hapticPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
-}
