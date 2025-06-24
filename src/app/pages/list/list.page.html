@@ -25,7 +25,8 @@
       <div class="px-4">
         <!-- All Songs -->
         <div *ngIf="activeTab === 'all'" class="mt-1">
-          <div class="space-y-2">            <app-song-item
+          <div class="space-y-2">
+            <app-song-item
               *ngFor="let song of allSongs; let i = index; trackBy: trackBySongId"
               [song]="song"
               [playlist]="allSongs"
@@ -41,7 +42,8 @@
 
         <!-- Recently Played -->
         <div *ngIf="activeTab === 'recent'">
-          <div class="space-y-2">            <app-song-item
+          <div class="space-y-2">
+            <app-song-item
               *ngFor="let song of recentSongs; let i = index; trackBy: trackBySongId"
               [song]="song"
               [playlist]="recentSongs"
@@ -52,8 +54,7 @@
               (openPlayer)="onOpenPlayer()"
             >
               (showMenu)="showSongMenu($event)"
-              (toggleFavorite)="toggleFavorite($event)"
-            >
+              (toggleFavorite)="toggleFavorite($event)" >
             </app-song-item>
           </div>
           <div *ngIf="recentSongs.length === 0" class="text-center py-12">
@@ -64,28 +65,57 @@
               Chưa có bài hát nào được nghe gần đây
             </p>
           </div>
-        </div>
-
-        <!-- Artists -->
+        </div>        <!-- Artists -->
         <div *ngIf="activeTab === 'artists'">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4 mt-1">
             <div
               *ngFor="let artist of artists"
-              (click)="viewArtist(artist)"
-              class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              (click)="onPlayArtist(artist)"
+              class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer relative"
+              [ngClass]="{
+                'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-lg': isArtistActive(artist.name),
+                'transform': isArtistActive(artist.name)
+              }"
             >
-              <div
-                class="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-3"
-              >
-                <i class="fa-solid fa-music text-white text-2xl"></i>
+
+              <!-- ✅ Artist Thumbnail with Overlay -->
+              <div class="w-24 h-24 border-purple-500 border rounded-full flex items-center justify-center mx-auto mb-3 relative overflow-hidden">
+                <img
+                  [src]="artist.thumbnail || 'assets/images/default-album.svg'"
+                  class="h-full w-full rounded-full object-cover"
+                  alt=""
+                >
+
+                <!-- ✅ Playing Overlay -->
+                <div
+                  *ngIf="isArtistActive(artist.name)"
+                  class="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full"
+                >
+                  <div class="animate-pulse">
+                    <i class="fas fa-music text-white text-lg"></i>
+                  </div>
+                </div>
               </div>
+
+              <!-- ✅ Artist Info with Active Styling -->
               <h3
-                class="font-medium text-gray-900 dark:text-white text-center truncate"
+                class="font-medium text-center truncate transition-colors"
+                [ngClass]="{
+                  'text-purple-600 dark:text-purple-400 font-semibold': isArtistActive(artist.name),
+                  'text-gray-900 dark:text-white': !isArtistActive(artist.name)
+                }"
               >
                 {{ artist.name }}
               </h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 text-center">
-                {{ artist.songCount }} bài hát
+
+              <p
+                class="text-sm text-center transition-colors"
+                [ngClass]="{
+                  'text-purple-500 dark:text-purple-300': isArtistActive(artist.name),
+                  'text-gray-500 dark:text-gray-400': !isArtistActive(artist.name)
+                }"
+              >
+                {{ artist.songCount }} bài - {{ artist.totalDurationFormatted }}
               </p>
             </div>
           </div>
@@ -99,7 +129,8 @@
 
         <!-- Favorites -->
         <div *ngIf="activeTab === 'favorites'">
-          <div class="space-y-2">            <app-song-item
+          <div class="space-y-2">
+            <app-song-item
               *ngFor="let song of favoriteSongs; let i = index; trackBy: trackBySongId"
               [song]="song"
               [playlist]="favoriteSongs"

@@ -154,6 +154,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private setPlayerThemeColor() {
     this.themeService.setPageHeaderThemeColor('#312e81');
   }
+
   openPlaylist() {
     // Check if we have modal context (when opened as modal from other pages)
     this.modalCtrl

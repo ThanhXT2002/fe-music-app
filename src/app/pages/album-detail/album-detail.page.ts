@@ -40,7 +40,7 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
             <!-- Album Artwork -->
             <div class="flex-shrink-0">
               <img
-                [src]="album.thumbnail || 'assets/images/default-album.png'"
+                [src]="album.thumbnail || 'assets/images/default-album.svg'"
                 [alt]="album.name"
                 class="w-48 h-48 rounded-lg shadow-lg object-cover mx-auto md:mx-0">
             </div>
