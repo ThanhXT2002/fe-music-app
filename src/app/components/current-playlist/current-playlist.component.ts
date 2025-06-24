@@ -401,4 +401,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   isDragModeActive(): boolean {
     return this.dragState() !== DragState.IDLE;
   }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
+  }
 }

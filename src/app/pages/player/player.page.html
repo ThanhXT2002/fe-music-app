@@ -9,6 +9,7 @@
     <img
       [src]="currentSong()!.thumbnail"
       [alt]="currentSong()!.title"
+       (error)="onImageError($event)"
       class="w-full h-full object-cover blur-lg scale-110"
     />
     }
@@ -53,6 +54,7 @@
         <img
           [src]="currentSong()!.thumbnail"
           [alt]="currentSong()!.title"
+           (error)="onImageError($event)"
           class="w-full h-full object-cover"
         />
         } @else {

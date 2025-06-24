@@ -214,8 +214,9 @@
             <div class="flex items-center space-x-3">
               <!-- Thumbnail -->
               <img
-                [src]="song.thumbnail_url || 'assets/images/default-album.svg'"
+                [src]="song.thumbnail_url || 'assets/images/musical-note.webp'"
                 [alt]="song.title"
+                 (error)="onImageError($event)"
                 class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500"
               />
 

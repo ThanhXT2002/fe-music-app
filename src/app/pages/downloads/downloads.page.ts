@@ -584,4 +584,8 @@ Hoặc paste thủ công:
     this.searchHistoryItem.set(filtered);
     console.log(`🔍 Filtered search history: ${filtered.length} results for "${query}"`);
   }
+
+    onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
+  }
 }

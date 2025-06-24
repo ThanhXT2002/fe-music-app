@@ -38,9 +38,9 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
       <div class="flex items-center space-x-3">
         <!-- Thumbnail -->
         <img
-          [src]="song.thumbnail || 'assets/images/default-album.svg'"
+          [src]="song.thumbnail || 'assets/images/musical-note.webp'"
           [alt]="song.title"
-
+          (error)="onImageError($event)"
           class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2  shadow-2xl shadow-rose-500"
           [ngClass]="{
             'spin-with-fill border-lime-500': isThisSongPlaying,
@@ -224,5 +224,9 @@ export class SongItemComponent implements OnInit {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
   }
 }

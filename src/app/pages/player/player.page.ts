@@ -512,4 +512,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   getShuffleColor(): string {
     return this.isShuffling() ? 'text-purple-500' : 'text-gray-400';
   }
+
+    onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
+  }
 }

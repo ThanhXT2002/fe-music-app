@@ -19,7 +19,7 @@ import { FormsModule } from '@angular/forms'; // ✨ Add FormsModule for forms
 
 @Component({
   selector: 'app-albums',
-templateUrl: './albums.page.html',
+  templateUrl: './albums.page.html',
   styles: [
     `
       .album-card:active {
@@ -125,20 +125,21 @@ export class AlbumsPage implements OnInit, OnDestroy {
           type: 'text',
           placeholder: 'Artist name',
           attributes: {
-            required: true
-          }
+            required: true,
+          },
         },
         {
           name: 'description',
           type: 'textarea',
-          placeholder: 'Album description (optional)'
-        }
+          placeholder: 'Album description (optional)',
+        },
       ],
       buttons: [
         {
           text: 'Cancel',
-          role: 'cancel'
-        },        {
+          role: 'cancel',
+        },
+        {
           text: 'Create',
           handler: async (data) => {
             if (data.artistName) {
@@ -146,9 +147,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
               return true;
             }
             return false;
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
 
     await alert.present();
@@ -158,7 +159,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
     try {
       const newAlbum = await this.albumService.createAlbum({
         name: artistName, // Artist name becomes album name
-        description: description
+        description: description,
       });
 
       if (newAlbum) {
@@ -170,7 +171,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
         const successAlert = await this.alertController.create({
           header: 'Success',
           message: `Album "${artistName}" created successfully!`,
-          buttons: ['OK']
+          buttons: ['OK'],
         });
         await successAlert.present();
       } else {
@@ -183,7 +184,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
       const errorAlert = await this.alertController.create({
         header: 'Error',
         message: 'Failed to create album. Please try again.',
-        buttons: ['OK']
+        buttons: ['OK'],
       });
       await errorAlert.present();
     }
@@ -195,7 +196,8 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
     if (!album.isUserCreated) {
       return; // Only for user-created albums
-    }    const alert = await this.alertController.create({
+    }
+    const alert = await this.alertController.create({
       header: album.name,
       subHeader: `By ${album.artist}`,
       buttons: [
@@ -203,30 +205,30 @@ export class AlbumsPage implements OnInit, OnDestroy {
           text: '✏️ Edit Album',
           handler: () => {
             this.editAlbum(album);
-          }
+          },
         },
         {
           text: '➕ Add Songs',
           handler: () => {
             this.showAddSongsToAlbum(album);
-          }
+          },
         },
         {
           text: '🗑️ Delete Album',
           role: 'destructive',
           handler: () => {
             this.confirmDeleteAlbum(album);
-          }
+          },
         },
         {
           text: 'Cancel',
-          role: 'cancel'
-        }
-      ]
+          role: 'cancel',
+        },
+      ],
     });
 
     await alert.present();
-  }  // ✨ Edit album information (artist-based)
+  } // ✨ Edit album information (artist-based)
   async editAlbum(album: Album) {
     const alert = await this.alertController.create({
       header: 'Edit Album',
@@ -238,42 +240,50 @@ export class AlbumsPage implements OnInit, OnDestroy {
           placeholder: 'Artist name',
           value: album.name, // Album name is artist name
           attributes: {
-            required: true
-          }
+            required: true,
+          },
         },
         {
           name: 'description',
           type: 'textarea',
           placeholder: 'Album description (optional)',
-          value: album.description || ''
-        }
+          value: album.description || '',
+        },
       ],
       buttons: [
         {
           text: 'Cancel',
-          role: 'cancel'
+          role: 'cancel',
         },
         {
           text: 'Save',
           handler: async (data) => {
             if (data.artistName) {
-              await this.updateAlbum(album.id, data.artistName, data.description);
+              await this.updateAlbum(
+                album.id,
+                data.artistName,
+                data.description
+              );
               return true;
             }
             return false;
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
 
     await alert.present();
   }
   // ✨ Update album (artist-based)
-  private async updateAlbum(albumId: string, artistName: string, description?: string) {
+  private async updateAlbum(
+    albumId: string,
+    artistName: string,
+    description?: string
+  ) {
     try {
       const success = await this.albumService.updateAlbum(albumId, {
         name: artistName, // Artist name becomes album name
-        description: description
+        description: description,
       });
 
       if (success) {
@@ -283,7 +293,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
         const successAlert = await this.alertController.create({
           header: 'Success',
           message: 'Album updated successfully!',
-          buttons: ['OK']
+          buttons: ['OK'],
         });
         await successAlert.present();
       } else {
@@ -295,7 +305,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
       const errorAlert = await this.alertController.create({
         header: 'Error',
         message: 'Failed to update album. Please try again.',
-        buttons: ['OK']
+        buttons: ['OK'],
       });
       await errorAlert.present();
     }
@@ -307,8 +317,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
     // For now, show a placeholder message
     const alert = await this.alertController.create({
       header: 'Add Songs',
-      message: 'This feature will allow you to add songs to your album. Implementation coming soon!',
-      buttons: ['OK']
+      message:
+        'This feature will allow you to add songs to your album. Implementation coming soon!',
+      buttons: ['OK'],
     });
     await alert.present();
   }
@@ -321,16 +332,16 @@ export class AlbumsPage implements OnInit, OnDestroy {
       buttons: [
         {
           text: 'Cancel',
-          role: 'cancel'
+          role: 'cancel',
         },
         {
           text: 'Delete',
           role: 'destructive',
           handler: async () => {
             await this.deleteAlbum(album.id);
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
 
     await alert.present();
@@ -348,7 +359,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
         const successAlert = await this.alertController.create({
           header: 'Success',
           message: 'Album deleted successfully!',
-          buttons: ['OK']
+          buttons: ['OK'],
         });
         await successAlert.present();
       } else {
@@ -360,9 +371,13 @@ export class AlbumsPage implements OnInit, OnDestroy {
       const errorAlert = await this.alertController.create({
         header: 'Error',
         message: 'Failed to delete album. Please try again.',
-        buttons: ['OK']
+        buttons: ['OK'],
       });
       await errorAlert.present();
     }
+  }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
   }
 }

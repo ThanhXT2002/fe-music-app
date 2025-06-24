@@ -131,7 +131,7 @@ import { SongItemComponent } from '../../components/shared/song-item.component';
                 <!-- Album Cover -->
                 <div class="relative mb-3">
                   <img
-                    [src]="album.thumbnail || 'assets/images/default-album.svg'"
+                    [src]="album.thumbnail || 'assets/images/musical-note.webp'"
                     [alt]="album.name"
                     class="w-full aspect-square rounded-lg object-cover">
 

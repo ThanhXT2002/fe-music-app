@@ -151,8 +151,9 @@
 
               <!-- Thumbnail -->
               <img
-                [src]="song.thumbnail || 'assets/images/default-album.svg'"
+                [src]="song.thumbnail || 'assets/images/musical-note.webp'"
                 [alt]="song.title"
+                 (error)="onImageError($event)"
                 class="w-12 h-12 rounded-lg object-cover flex-shrink-0"
               />
 
@@ -178,18 +179,6 @@
                 >
                   {{ song.artist }}
                 </p>
-              </div>
-
-              <!-- Actions -->
-              <div
-                class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <!-- <button
-                  (click)="removeSong($event, i)"
-                  class="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500 transition-colors"
-                >
-                  <i class="fas fa-times text-sm"></i>
-                </button> -->
               </div>
             </div>
           </div>
