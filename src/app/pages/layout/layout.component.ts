@@ -24,7 +24,6 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { ModalGestureControlService } from 'src/app/services/modal-gesture-control.service';
 
 @Component({
   selector: 'app-layout',
@@ -56,8 +55,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   private platform = inject(Platform);
   private refreshService = inject(RefreshService);
   private playlistModalService = inject(GlobalPlaylistModalService);
-  private modalGestureControl = inject(ModalGestureControlService);
-  private cdr = inject(ChangeDetectorRef);
 
   showSearch = false;
   isVisible = false;

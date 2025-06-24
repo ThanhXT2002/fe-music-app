@@ -21,7 +21,7 @@ import {
   moveItemInArray,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
-import { ModalGestureControlService } from 'src/app/services/modal-gesture-control.service';
+
 
 enum DragState {
   IDLE,
