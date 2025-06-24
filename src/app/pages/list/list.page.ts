@@ -121,7 +121,7 @@ export class ListPage implements OnInit, OnDestroy {
       });    // ✅ Listen to current song changes để update active artist
     // No need to call watchCurrentSong() here, effect is already set up in constructor
 
-    this.activeTab = "artists"; // Set default active tab to artists
+    // this.activeTab = "artists"; // Set default active tab to artists
   }
 
   ngOnDestroy() {
