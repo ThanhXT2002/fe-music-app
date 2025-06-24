@@ -191,10 +191,8 @@
 <ion-modal
   #playlistModal
   mode="ios"
-  [initialBreakpoint]="getInitialBreakpoint()"
-  [breakpoints]="getBreakpoints()"
-  [canDismiss]="canDismissModal()"
-  (gestureCanStart)="onGestureCanStart($event)"
+  [initialBreakpoint]="0.6"
+  [breakpoints]="[0, 0.6, 1]"
 >
   <ng-template class="h-full">
     <app-current-playlist class="h-full" (dragActive)="onPlaylistDragActive($event)"></app-current-playlist>

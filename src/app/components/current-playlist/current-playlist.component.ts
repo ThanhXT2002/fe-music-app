@@ -44,9 +44,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
-  private modalGestureControl = inject(ModalGestureControlService);
-
-  private readonly LONG_PRESS_DURATION = 500;
 
   // Drag and gesture state
   dragState = signal<DragState>(DragState.IDLE);
@@ -95,6 +92,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     return `-${this.formatTime(remaining)}`;
   });
   @Output() dragActive = new EventEmitter<boolean>();
+
   constructor() {
     // Force change detection when any signal changes - THIS IS THE KEY FIX
     effect(() => {
@@ -122,6 +120,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     // No need to manually assign since we're using signals directly
     // Signals will automatically update the UI when values change
   }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
@@ -132,7 +131,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         'player-action-triggered',
         this.handlePlayerAction
       );
-    }    // Clean up drag state
+    } // Clean up drag state
     this.resetNewDragState();
   }
   private handlePlayerAction = () => {
@@ -164,9 +163,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     }
 
     return `${baseClass} hover:bg-gray-50 dark:hover:bg-gray-800`;
-  }
-
-  // Play specific song
+  } // Play specific song
   async playSong(song: Song, index: number) {
     try {
       await this.audioPlayerService.playSong(
@@ -176,8 +173,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       );
       // Force UI update after playing
       this.cdr.detectChanges();
-      // Đảm bảo luôn mở lại modal gesture nếu có (fix bug modal bị khoá)
-      this.dragActive.emit(false);
     } catch (error) {
       console.error('Error playing song:', error);
     }
@@ -329,13 +324,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragItemIndex.set(index);
     this.activateNewDragMode();
   }
-
   private activateNewDragMode() {
     this.dragState.set(DragState.DRAG_ACTIVE);
     this.dragActive.emit(true); // Emit event to parent component
-
-    // Disable modal gestures during drag
-    this.modalGestureControl.disableGestures();
 
     // Add haptic feedback on mobile
     this.triggerHapticFeedback();
@@ -348,9 +339,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragItemIndex.set(-1);
     this.dragStartTime = 0;
     this.dragActive.emit(false); // Emit event to parent component
-
-    // Re-enable modal gestures when drag ends
-    this.modalGestureControl.enableGestures();
 
     this.cdr.detectChanges();
   }
@@ -395,7 +383,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         playlist[newCurrentIndex] &&
         playlist[newCurrentIndex].id === currentSong.id
       ) {
-        this.audioPlayerService.reorderPlaylistInPlace(playlist, newCurrentIndex);
+        this.audioPlayerService.reorderPlaylistInPlace(
+          playlist,
+          newCurrentIndex
+        );
         // KHÔNG gọi seek hoặc togglePlayPause nữa để đảm bảo hoàn toàn liền mạch
       } else {
         // Nếu currentSong thay đổi (trường hợp hiếm), fallback về setPlaylist

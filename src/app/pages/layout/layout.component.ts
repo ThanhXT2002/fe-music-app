@@ -1,4 +1,4 @@
-import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Song } from 'src/app/interfaces/song.interface';
@@ -57,6 +57,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   private refreshService = inject(RefreshService);
   private playlistModalService = inject(GlobalPlaylistModalService);
   private modalGestureControl = inject(ModalGestureControlService);
+  private cdr = inject(ChangeDetectorRef);
 
   showSearch = false;
   isVisible = false;
@@ -73,25 +74,14 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
   hTookbar: string =
-    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';
-  @ViewChild('navSearch') private navSearch!: IonNav;
+    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';  @ViewChild('navSearch') private navSearch!: IonNav;
   @ViewChild('navPlayer') private navPlayer!: IonNav;
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
   @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
 
-  private originalBreakpoints = [0, 0.60, 1];
-
   onPlaylistDragActive(active: boolean) {
-    if (this.playlistModal) {
-      if (active) {
-        this.playlistModal.breakpoints = [0.60];
-        this.playlistModal.canDismiss = false;
-      } else {
-        this.playlistModal.breakpoints = this.originalBreakpoints;
-        this.playlistModal.canDismiss = true;
-      }
-    }
+    // Không làm gì cả - chỉ để component con có thể emit mà không lỗi
   }
 
   onWillPresentSearch() {
@@ -108,35 +98,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
   openPlayerModal() {
     this.playerModal.present();
-  }
-  openPlaylistModal() {
+  }  openPlaylistModal() {
     this.playlistModal.present();
-  }
-  // Check if modal can be dismissed (when not in drag mode)
-  canDismissModal(): boolean {
-    return this.modalGestureControl.canStartGesture();
-  }
-
-  // Control modal breakpoints dynamically
-  getInitialBreakpoint(): number {
-    return this.modalGestureControl.canStartGesture() ? 0.60 : 0.60;
-  }
-
-  getBreakpoints(): number[] {
-    // Remove breakpoints completely when drag is active to prevent modal gestures
-    return this.modalGestureControl.canStartGesture() ? [0, 0.60, 1] : [];
-  }
-
-  // Handle modal gesture start - this is the key function
-  onGestureCanStart(event: any): boolean {
-    const canStart = this.modalGestureControl.canStartGesture();
-
-    if (!canStart) {
-      // Block all modal gestures when in drag mode
-      event.preventDefault();
-      return false;
-    }
-    return true;
   }
 
   async handleRefresh(event: CustomEvent) {
@@ -230,5 +193,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     await this.audioPlayerService.playSong(song);
     this.clearSearch();
     this.showSearch = false;
+  }
+  constructor() {
+    // Đơn giản hóa - không cần subscribe signals phức tạp nữa
   }
 }
