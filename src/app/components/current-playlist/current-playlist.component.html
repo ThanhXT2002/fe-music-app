@@ -118,8 +118,7 @@
         class="space-y-1"
         cdkDropList
         (cdkDropListDropped)="onDrop($event)"
-      >
-        <div
+      >        <div
           *ngFor="
             let song of currentPlaylist();
             let i = index;
@@ -129,19 +128,11 @@
           cdkDrag
           [cdkDragData]="song"
         >
-          <!-- Drag Handle (invisible, full item area) -->
-          <div
-            cdkDragHandle
-            class="absolute inset-0 z-20"
-            (pointerdown)="onDragHandleStart($event, i)"
-            (pointerup)="onDragHandleEnd($event)"
-            (contextmenu)="onLongPress($event, i)"
-            style="touch-action: none"
-          ></div>
           <!-- Song Item with Custom Styling for Current -->
           <div
-            [class]="getSongItemClass(song, i) + ' ' + getItemDragClass(i)"
+            [class]="getSongItemClass(song, i)"
             class="song-item rounded-lg transition-all duration-200 cursor-pointer group relative z-10"
+            (click)="playSong(song, i)"
           >
             <div class="flex items-center space-x-3 p-3">
               <!-- Index/Playing Indicator -->

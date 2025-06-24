@@ -8,8 +8,6 @@ import {
   computed,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
-  Output,
-  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
@@ -22,13 +20,7 @@ import {
   DragDropModule,
 } from '@angular/cdk/drag-drop';
 
-enum DragState {
-  IDLE,
-  DETECTING, // Đang đếm 1.5s
-  DRAG_ACTIVE, // Đã scale, ready to drag
-  REORDERING, // Đang drag vertical
-  DELETING, // Đang drag horizontal > 75%
-}
+
 
 @Component({
   selector: 'app-current-playlist',
@@ -43,17 +35,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
-
-  // Drag and gesture state
-  dragState = signal<DragState>(DragState.IDLE);
-  dragItemIndex = signal<number>(-1);
-  longPressTimer: any = null;
-  touchStartPos = { x: 0, y: 0 };
-  touchCurrentPos = { x: 0, y: 0 };
-  itemWidth = 0;
-
-  // Expose DragState enum to template
-  DragState = DragState;
 
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
@@ -84,13 +65,11 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     const remaining = total > 0 ? total - current : 0;
     return Math.max(0, remaining); // Đảm bảo không âm
   });
-
   // Formatted countdown time
   durationTime = computed(() => {
     const remaining = this.remainingTime();
     return `-${this.formatTime(remaining)}`;
   });
-  @Output() dragActive = new EventEmitter<boolean>();
 
   constructor() {
     // Force change detection when any signal changes - THIS IS THE KEY FIX
@@ -122,16 +101,13 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroy$.next();
-    this.destroy$.complete();
-
-    // Clean up custom event listener
+    this.destroy$.complete();    // Clean up custom event listener
     if (typeof window !== 'undefined') {
       window.removeEventListener(
         'player-action-triggered',
         this.handlePlayerAction
       );
-    } // Clean up drag state
-    this.resetNewDragState();
+    }
   }
   private handlePlayerAction = () => {
     requestAnimationFrame(() => {
@@ -284,60 +260,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     } else {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
-  }
-  // ============ NEW SIMPLIFIED DRAG METHODS ============
-
-  private dragStartTime = 0;
-  private dragThreshold = 500; // 500ms for long press
-
-  onDragHandleStart(event: PointerEvent, index: number) {
-    this.dragStartTime = Date.now();
-    this.dragItemIndex.set(index);
-
-    // Start monitoring for long press
-    setTimeout(() => {
-      if (Date.now() - this.dragStartTime >= this.dragThreshold) {
-        this.activateNewDragMode();
-      }
-    }, this.dragThreshold);
-  }
-
-  onDragHandleEnd(event: PointerEvent) {
-    const dragDuration = Date.now() - this.dragStartTime;
-
-    if (dragDuration < this.dragThreshold) {
-      // Short press - play song
-      const index = this.dragItemIndex();
-      const song = this.currentPlaylist()[index];
-      if (song) {
-        this.playSong(song, index);
-      }
-    }
-
-    this.resetNewDragState();
-  }
-
-  onLongPress(event: Event, index: number) {
-    // Context menu event for additional long press detection
-    event.preventDefault();
-    this.dragItemIndex.set(index);
-    this.activateNewDragMode();
-  }
-  private activateNewDragMode() {
-    this.dragState.set(DragState.DRAG_ACTIVE);
-    this.dragActive.emit(true); // Emit event to parent component
-
-    this.cdr.detectChanges();
-  }
-  private resetNewDragState() {
-    this.dragState.set(DragState.IDLE);
-    this.dragItemIndex.set(-1);
-    this.dragStartTime = 0;
-    this.dragActive.emit(false); // Emit event to parent component
-
-    this.cdr.detectChanges();
-  }
-  // Handle CDK drag drop for reordering
+  }  // Handle CDK drag drop for reordering
   onDrop(event: CdkDragDrop<Song[]>) {
     if (event.previousIndex !== event.currentIndex) {
       const playlist = [...this.currentPlaylist()];
@@ -376,35 +299,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
             }
           }
         }, 100);
-      }
-    }
-    this.resetNewDragState();
+      }    }
   }
-  // Get item styling based on drag state
-  getItemDragClass(index: number): string {
-    const currentState = this.dragState();
-    const dragIndex = this.dragItemIndex();
-
-    if (dragIndex !== index) return '';
-
-    switch (currentState) {
-      case DragState.DRAG_ACTIVE:
-        return 'scale-105 z-50 shadow-xl ring-2 ring-purple-500';
-      case DragState.REORDERING:
-        return 'scale-105 z-50 shadow-xl ring-2 ring-purple-500';
-      default:
-        return '';
-    }
-  }
-
-  // Simplified drag mode check
-  isDragModeActive(): boolean {
-    return this.dragState() !== DragState.IDLE;
-  }
-
   onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
-  }
-
-  
-}
+  }}
