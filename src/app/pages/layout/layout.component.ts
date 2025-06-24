@@ -24,6 +24,7 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
+import { ModalGestureControlService } from 'src/app/services/modal-gesture-control.service';
 
 @Component({
   selector: 'app-layout',
@@ -51,9 +52,11 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
   private audioPlayerService = inject(AudioPlayerService);
   private router = inject(Router);
-  private searchService = inject(SearchService);  private platform = inject(Platform);
+  private searchService = inject(SearchService);
+  private platform = inject(Platform);
   private refreshService = inject(RefreshService);
   private playlistModalService = inject(GlobalPlaylistModalService);
+  private modalGestureControl = inject(ModalGestureControlService);
 
   showSearch = false;
   isVisible = false;
@@ -94,6 +97,32 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   }
   openPlaylistModal() {
     this.playlistModal.present();
+  }
+  // Check if modal can be dismissed (when not in drag mode)
+  canDismissModal(): boolean {
+    return this.modalGestureControl.canStartGesture();
+  }
+
+  // Control modal breakpoints dynamically
+  getInitialBreakpoint(): number {
+    return this.modalGestureControl.canStartGesture() ? 0.60 : 0.60;
+  }
+
+  getBreakpoints(): number[] {
+    // Remove breakpoints completely when drag is active to prevent modal gestures
+    return this.modalGestureControl.canStartGesture() ? [0, 0.60, 1] : [];
+  }
+
+  // Handle modal gesture start - this is the key function
+  onGestureCanStart(event: any): boolean {
+    const canStart = this.modalGestureControl.canStartGesture();
+
+    if (!canStart) {
+      // Block all modal gestures when in drag mode
+      event.preventDefault();
+      return false;
+    }
+    return true;
   }
 
   async handleRefresh(event: CustomEvent) {

@@ -19,6 +19,7 @@ import {
   moveItemInArray,
   DragDropModule,
 } from '@angular/cdk/drag-drop';
+import { ModalGestureControlService } from 'src/app/services/modal-gesture-control.service';
 
 enum DragState {
   IDLE,
@@ -41,6 +42,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
+  private modalGestureControl = inject(ModalGestureControlService);
 
   private readonly LONG_PRESS_DURATION = 500;
 
@@ -127,10 +129,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         'player-action-triggered',
         this.handlePlayerAction
       );
-    }
-
-    // Clean up drag state
-    this.resetDragState();
+    }    // Clean up drag state
+    this.resetNewDragState();
   }
   private handlePlayerAction = () => {
     requestAnimationFrame(() => {
@@ -286,96 +286,64 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
   }
+  // ============ NEW SIMPLIFIED DRAG METHODS ============
 
-  // ============ DRAG & GESTURE METHODS ============
+  private dragStartTime = 0;
+  private dragThreshold = 500; // 500ms for long press
 
-  onTouchStart(event: TouchEvent, index: number) {
-    // Prevent default to avoid scrolling conflicts
-    event.preventDefault();
-
-    const touch = event.touches[0];
-    this.touchStartPos = { x: touch.clientX, y: touch.clientY };
-    this.touchCurrentPos = { x: touch.clientX, y: touch.clientY };
+  onDragHandleStart(event: PointerEvent, index: number) {
+    this.dragStartTime = Date.now();
     this.dragItemIndex.set(index);
-    this.dragState.set(DragState.DETECTING);
 
-    // Get item width for delete threshold calculation
-    const itemElement = (event.target as HTMLElement).closest(
-      '.song-item'
-    ) as HTMLElement;
-    if (itemElement) {
-      this.itemWidth = itemElement.offsetWidth;
-    }
-
-    // Start long press timer (1.5s)
-    this.longPressTimer = setTimeout(() => {
-      if (this.dragState() === DragState.DETECTING) {
-        this.activateDragMode();
+    // Start monitoring for long press
+    setTimeout(() => {
+      if (Date.now() - this.dragStartTime >= this.dragThreshold) {
+        this.activateNewDragMode();
       }
-    }, this.LONG_PRESS_DURATION);
-
-    this.cdr.detectChanges();
+    }, this.dragThreshold);
   }
 
-  onTouchMove(event: TouchEvent) {
-    if (this.dragState() === DragState.IDLE) return;
+  onDragHandleEnd(event: PointerEvent) {
+    const dragDuration = Date.now() - this.dragStartTime;
 
+    if (dragDuration < this.dragThreshold) {
+      // Short press - play song
+      const index = this.dragItemIndex();
+      const song = this.currentPlaylist()[index];
+      if (song) {
+        this.playSong(song, index);
+      }
+    }
+
+    this.resetNewDragState();
+  }
+
+  onLongPress(event: Event, index: number) {
+    // Context menu event for additional long press detection
     event.preventDefault();
-    const touch = event.touches[0];
-    this.touchCurrentPos = { x: touch.clientX, y: touch.clientY };
-
-    const deltaX = this.touchCurrentPos.x - this.touchStartPos.x;
-    const deltaY = this.touchCurrentPos.y - this.touchStartPos.y;
-    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-    // If significant movement during detection phase, cancel long press
-    if (this.dragState() === DragState.DETECTING && distance > 10) {
-      this.cancelLongPress();
-      return;
-    }
-
-    // Handle movement in active drag mode
-    if (this.dragState() === DragState.DRAG_ACTIVE) {
-      const absX = Math.abs(deltaX);
-      const absY = Math.abs(deltaY);
-
-      // Determine drag direction
-      if (absX > absY && absX > 20) {
-        // Horizontal drag - delete mode
-        this.dragState.set(DragState.DELETING);
-      } else if (absY > absX && absY > 20) {
-        // Vertical drag - reorder mode
-        this.dragState.set(DragState.REORDERING);
-      }
-    }
-
-    this.cdr.detectChanges();
+    this.dragItemIndex.set(index);
+    this.activateNewDragMode();
   }
 
-  onTouchEnd(event: TouchEvent) {
-    const currentState = this.dragState();
-    const index = this.dragItemIndex();
-
-    if (currentState === DragState.DELETING) {
-      const deltaX = this.touchCurrentPos.x - this.touchStartPos.x;
-      const deleteThreshold = this.itemWidth * 0.75; // 75% of item width
-
-      if (Math.abs(deltaX) >= deleteThreshold) {
-        // Execute delete
-        this.removeSong(event, index);
-      }
-    }
-
-    // Reset state
-    this.resetDragState();
-  }
-
-  private activateDragMode() {
+  private activateNewDragMode() {
     this.dragState.set(DragState.DRAG_ACTIVE);
-    console.log('🎯 Drag mode activated for item:', this.dragItemIndex());
+
+    // Disable modal gestures during drag
+    this.modalGestureControl.disableGestures();
 
     // Add haptic feedback on mobile
     this.triggerHapticFeedback();
+
+    this.cdr.detectChanges();
+  }
+
+  private resetNewDragState() {
+    this.dragState.set(DragState.IDLE);
+    this.dragItemIndex.set(-1);
+    this.dragStartTime = 0;
+
+    // Re-enable modal gestures when drag ends
+    this.modalGestureControl.enableGestures();
 
     this.cdr.detectChanges();
   }
@@ -397,27 +365,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       }, 100);
     }
   }
-
-  private cancelLongPress() {
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer);
-      this.longPressTimer = null;
-    }
-    this.resetDragState();
-  }
-
-  private resetDragState() {
-    if (this.longPressTimer) {
-      clearTimeout(this.longPressTimer);
-      this.longPressTimer = null;
-    }
-
-    this.dragState.set(DragState.IDLE);
-    this.dragItemIndex.set(-1);
-    this.touchStartPos = { x: 0, y: 0 };
-    this.touchCurrentPos = { x: 0, y: 0 };
-    this.cdr.detectChanges();
-  }
   // Handle CDK drag drop for reordering
   onDrop(event: CdkDragDrop<Song[]>) {
     if (event.previousIndex !== event.currentIndex) {
@@ -432,14 +379,11 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         newCurrentIndex = playlist.findIndex(
           (song) => song.id === currentSong.id
         );
-      }
-
-      // Update playlist with the correct current index
+      }      // Update playlist with the correct current index
       this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
     }
-    this.resetDragState();
+    this.resetNewDragState();
   }
-
   // Get item styling based on drag state
   getItemDragClass(index: number): string {
     const currentState = this.dragState();
@@ -449,21 +393,16 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
     switch (currentState) {
       case DragState.DRAG_ACTIVE:
-        return 'scale-110 z-50 shadow-2xl';
-      case DragState.DELETING:
-        const deltaX = this.touchCurrentPos.x - this.touchStartPos.x;
-        return `scale-110 z-50 opacity-70 transform translate-x-[${deltaX}px]`;
+        return 'scale-105 z-50 shadow-xl ring-2 ring-purple-500';
       case DragState.REORDERING:
-        return 'scale-110 z-50 shadow-2xl';
+        return 'scale-105 z-50 shadow-xl ring-2 ring-purple-500';
       default:
         return '';
     }
   }
 
-  // Check if item should show delete indicator
-  shouldShowDeleteIndicator(index: number): boolean {
-    return (
-      this.dragState() === DragState.DELETING && this.dragItemIndex() === index
-    );
+  // Simplified drag mode check
+  isDragModeActive(): boolean {
+    return this.dragState() !== DragState.IDLE;
   }
 }

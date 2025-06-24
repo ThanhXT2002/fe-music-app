@@ -191,9 +191,10 @@
 <ion-modal
   #playlistModal
   mode="ios"
-  [initialBreakpoint]="0.60"
-  [breakpoints]="[0, 0.60, 1]"
-  handleBehavior="cycle"
+  [initialBreakpoint]="getInitialBreakpoint()"
+  [breakpoints]="getBreakpoints()"
+  [canDismiss]="canDismissModal()"
+  (gestureCanStart)="onGestureCanStart($event)"
 >
   <ng-template class="h-full">
     <app-current-playlist class="h-full"></app-current-playlist>
