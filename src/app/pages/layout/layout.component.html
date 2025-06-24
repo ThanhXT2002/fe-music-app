@@ -197,6 +197,6 @@
   (gestureCanStart)="onGestureCanStart($event)"
 >
   <ng-template class="h-full">
-    <app-current-playlist class="h-full"></app-current-playlist>
+    <app-current-playlist class="h-full" (dragActive)="onPlaylistDragActive($event)"></app-current-playlist>
   </ng-template>
 </ion-modal>

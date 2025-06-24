@@ -80,6 +80,20 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
   @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
 
+  private originalBreakpoints = [0, 0.60, 1];
+
+  onPlaylistDragActive(active: boolean) {
+    if (this.playlistModal) {
+      if (active) {
+        this.playlistModal.breakpoints = [0.60];
+        this.playlistModal.canDismiss = false;
+      } else {
+        this.playlistModal.breakpoints = this.originalBreakpoints;
+        this.playlistModal.canDismiss = true;
+      }
+    }
+  }
+
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);
   }

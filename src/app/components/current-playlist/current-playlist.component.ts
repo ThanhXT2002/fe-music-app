@@ -8,6 +8,8 @@ import {
   computed,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
@@ -92,6 +94,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     const remaining = this.remainingTime();
     return `-${this.formatTime(remaining)}`;
   });
+  @Output() dragActive = new EventEmitter<boolean>();
   constructor() {
     // Force change detection when any signal changes - THIS IS THE KEY FIX
     effect(() => {
@@ -327,6 +330,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   private activateNewDragMode() {
     this.dragState.set(DragState.DRAG_ACTIVE);
+    this.dragActive.emit(true); // Emit event to parent component
 
     // Disable modal gestures during drag
     this.modalGestureControl.disableGestures();
@@ -341,6 +345,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     this.dragState.set(DragState.IDLE);
     this.dragItemIndex.set(-1);
     this.dragStartTime = 0;
+    this.dragActive.emit(false); // Emit event to parent component
 
     // Re-enable modal gestures when drag ends
     this.modalGestureControl.enableGestures();
@@ -371,16 +376,37 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       const playlist = [...this.currentPlaylist()];
       moveItemInArray(playlist, event.previousIndex, event.currentIndex);
 
-      // Find the new index of the current song after reordering
+      // Lưu lại bài hát, thời gian và trạng thái playing
       const currentSong = this.currentSong();
+      const currentTime = this.currentTime();
+      const wasPlaying = this.isPlaying();
       let newCurrentIndex = this.audioPlayerService.currentIndex();
 
       if (currentSong) {
         newCurrentIndex = playlist.findIndex(
           (song) => song.id === currentSong.id
         );
-      }      // Update playlist with the correct current index
-      this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
+      }
+      // Nếu bài hát không đổi, chỉ reorder in place để không reset audio
+      if (
+        currentSong &&
+        playlist[newCurrentIndex] &&
+        playlist[newCurrentIndex].id === currentSong.id
+      ) {
+        this.audioPlayerService.reorderPlaylistInPlace(playlist, newCurrentIndex);
+        // KHÔNG gọi seek hoặc togglePlayPause nữa để đảm bảo hoàn toàn liền mạch
+      } else {
+        // Nếu currentSong thay đổi (trường hợp hiếm), fallback về setPlaylist
+        this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
+        setTimeout(() => {
+          if (this.currentSong()?.id === currentSong?.id) {
+            this.audioPlayerService.seek(currentTime);
+            if (wasPlaying && !this.isPlaying()) {
+              this.audioPlayerService.togglePlayPause();
+            }
+          }
+        }, 100);
+      }
     }
     this.resetNewDragState();
   }

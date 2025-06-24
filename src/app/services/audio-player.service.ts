@@ -598,6 +598,31 @@ export class AudioPlayerService {
     }
   }
 
+  /**
+   * Reorder playlist in place without resetting audio if current song does not change
+   * @param playlist New playlist order
+   * @param newCurrentIndex Index of the current song in the new playlist
+   */
+  reorderPlaylistInPlace(playlist: Song[], newCurrentIndex: number) {
+    const state = this._playbackState();
+    // Only update if currentSong is the same
+    if (
+      playlist[newCurrentIndex] &&
+      state.currentSong &&
+      playlist[newCurrentIndex].id === state.currentSong.id
+    ) {
+      this.updatePlaybackState((prev) => ({
+        ...prev,
+        currentPlaylist: playlist,
+        currentIndex: newCurrentIndex,
+      }));
+      // No audio reset, seamless playback
+    } else {
+      // Fallback: if currentSong changed, do full setPlaylist
+      this.setPlaylist(playlist, newCurrentIndex);
+    }
+  }
+
   getCurrentSong(): Song | null {
     return this._playbackState().currentSong;
   }
