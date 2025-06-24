@@ -114,9 +114,7 @@
         <p class="text-gray-500 dark:text-gray-400">
           Chọn bài hát để bắt đầu phát nhạc
         </p>
-      </div>
-
-      <div *ngIf="currentPlaylist().length > 0" class="space-y-1">
+      </div>      <div *ngIf="currentPlaylist().length > 0" class="space-y-1" cdkDropList (cdkDropListDropped)="onDrop($event)">
         <div
           *ngFor="
             let song of currentPlaylist();
@@ -124,13 +122,26 @@
             trackBy: trackBySongId
           "
           class="relative"
+          cdkDrag
+          [cdkDragDisabled]="dragState() !== DragState.REORDERING"
         >
           <!-- Song Item with Custom Styling for Current -->
           <div
-            [class]="getSongItemClass(song, i)"
-            class="rounded-lg transition-all duration-200 cursor-pointer group"
+            [class]="getSongItemClass(song, i) + ' ' + getItemDragClass(i)"
+            class="song-item rounded-lg transition-all duration-200 cursor-pointer group"
             (click)="playSong(song, i)"
+            (touchstart)="onTouchStart($event, i)"
+            (touchmove)="onTouchMove($event)"
+            (touchend)="onTouchEnd($event)"
           >
+            <!-- Delete Indicator -->
+            <div
+              *ngIf="shouldShowDeleteIndicator(i)"
+              class="absolute inset-0 bg-red-500 flex items-center justify-center rounded-lg z-10"
+            >
+              <i class="fas fa-trash text-white text-2xl"></i>
+            </div>
+
             <div class="flex items-center space-x-3 p-3">
               <!-- Index/Playing Indicator -->
               <div class="w-8 flex items-center justify-center">

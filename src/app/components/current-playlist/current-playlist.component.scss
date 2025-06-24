@@ -1,0 +1,136 @@
+// ============ DRAG & GESTURE STYLES ============
+
+.song-item {
+  touch-action: none; // Prevent default touch behaviors
+  user-select: none;  // Prevent text selection during drag
+  position: relative;
+  overflow: hidden;
+
+  // Smooth transitions for all transformations
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  // Scale animation for long press
+  &.scale-110 {
+    transform: scale(1.1);
+    z-index: 50;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  // Delete mode styling
+  &.deleting {
+    opacity: 0.7;
+
+    &.swipe-left {
+      transform: translateX(-75%);
+    }
+
+    &.swipe-right {
+      transform: translateX(75%);
+    }
+  }
+
+  // Reorder mode styling
+  &.reordering {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    background: rgba(147, 51, 234, 0.1); // Purple tint
+    border: 2px solid rgb(147, 51, 234);
+  }
+}
+
+// CDK Drag Drop styles
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  background: white;
+  transform: scale(1.05);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.5;
+  background: rgba(147, 51, 234, 0.1);
+  border: 2px dashed rgb(147, 51, 234);
+  border-radius: 8px;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .song-item:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Delete indicator
+.delete-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 10;
+
+  i {
+    color: white;
+    font-size: 1.5rem;
+    animation: pulse 1s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+// Dark mode adjustments
+:host-context(.dark) {
+  .cdk-drag-preview {
+    background: rgb(31, 41, 55);
+    color: white;
+  }
+
+  .song-item.reordering {
+    background: rgba(147, 51, 234, 0.2);
+  }
+}
+
+// Responsive touch targets
+@media (max-width: 768px) {
+  .song-item {
+    min-height: 64px; // Ensure touch targets are large enough
+  }
+}
+
+// Animation for scale up on long press
+@keyframes scaleUp {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.scale-animation {
+  animation: scaleUp 0.2s ease-out forwards;
+}
+
+// Haptic feedback effect (visual only, actual haptic handled in TS)
+.haptic-feedback {
+  animation: hapticPulse 0.1s ease-out;
+}
+
+@keyframes hapticPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
