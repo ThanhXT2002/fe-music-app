@@ -405,4 +405,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
   }
+
+  
 }
