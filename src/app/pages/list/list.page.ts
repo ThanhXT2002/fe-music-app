@@ -14,9 +14,7 @@ import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ListPageStateService } from '../../services/list-page-state.service';
 import { SongItemComponent } from '../../components/shared/song-item.component';
-import {
-  ModalController,
-} from '@ionic/angular/standalone';
+import { ModalController } from '@ionic/angular/standalone';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
@@ -73,7 +71,7 @@ export class ListPage implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private playlistModalService: GlobalPlaylistModalService
   ) {
-    // ✅ Setup effect in constructor (injection context)
+    // Setup effect in constructor (injection context)
     this.setupCurrentSongWatcher();
   }
 
@@ -114,12 +112,12 @@ export class ListPage implements OnInit, OnDestroy {
     // Load data only if not already loaded
     if (!this.stateService.isDataLoaded) {
       await this.loadData();
-    }    this.refreshService.refresh$
+    }
+    this.refreshService.refresh$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
         this.loadData();
-      });    // ✅ Listen to current song changes để update active artist
-    // No need to call watchCurrentSong() here, effect is already set up in constructor
+      });
 
     // this.activeTab = "artists"; // Set default active tab to artists
   }
@@ -324,24 +322,26 @@ export class ListPage implements OnInit, OnDestroy {
       }
 
       // ✅ Lọc tất cả bài hát của artist này
-      const artistSongs = this.allSongs.filter(song => song.artist === artist.name);
+      const artistSongs = this.allSongs.filter(
+        (song) => song.artist === artist.name
+      );
 
       if (artistSongs.length === 0) {
         return;
       }
 
       // ✅ Sắp xếp theo thứ tự mới nhất
-      const sortedSongs = artistSongs.sort((a, b) =>
-        new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime()
+      const sortedSongs = artistSongs.sort(
+        (a, b) =>
+          new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime()
       );
 
       // ✅ Phát bài hát đầu tiên và set playlist
       this.playSong({
         song: sortedSongs[0],
         playlist: sortedSongs,
-        index: 0
+        index: 0,
       });
-
     } catch (error) {
       console.error('Error playing artist songs:', error);
     }
@@ -388,7 +388,7 @@ export class ListPage implements OnInit, OnDestroy {
 
   trackBySongId(index: number, song: Song): string {
     return song.id;
-  }  // ✅ Setup effect to watch current song changes (called in constructor)
+  } // ✅ Setup effect to watch current song changes (called in constructor)
   private setupCurrentSongWatcher() {
     effect(() => {
       const currentSong = this.audioPlayerService.currentSong();
