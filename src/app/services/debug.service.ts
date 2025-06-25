@@ -11,20 +11,20 @@ export class DebugService {
     'app-music.tranxuanthanhtxt.com',
   ];
 
-  initEruda(): void {
-    // Double check - chỉ load khi là native và development và domain được phép
-    if (!Capacitor.isNativePlatform() || !this.isLockDomain()) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-      script.onload = () => {
-        (window as any).eruda?.init();
-      };
-      document.head.appendChild(script);
-    }
-  }
+  // initEruda(): void {
+  //   // Double check - chỉ load khi là native và development và domain được phép
+  //   if (!Capacitor.isNativePlatform() || !this.isLockDomain()) {
+  //     const script = document.createElement('script');
+  //     script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+  //     script.onload = () => {
+  //       (window as any).eruda?.init();
+  //     };
+  //     document.head.appendChild(script);
+  //   }
+  // }
 
-  private isLockDomain(): boolean {
-    const currentDomain = window.location.origin;
-    return this.lockDomains.includes(currentDomain);
-  }
+  // private isLockDomain(): boolean {
+  //   const currentDomain = window.location.origin;
+  //   return this.lockDomains.includes(currentDomain);
+  // }
 }

@@ -32,10 +32,12 @@ import { Capacitor } from '@capacitor/core';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
 
-
-function initializeDebug(debugService: DebugService) {
-  return () => {
-    debugService.initEruda();
+function initializeFirebaseAuth() {
+  return async () => {
+    if (Capacitor.isNativePlatform()) {
+      // Firebase Authentication sẽ tự động initialize từ google-services.json
+      console.log('Firebase Authentication ready from google-services.json');
+    }
   };
 }
 
@@ -50,21 +52,23 @@ bootstrapApplication(AppComponent, {
     provideAuth(() => getAuth()),
     ThemeService,
     SafeAreaService,
-    ...(Capacitor.isNativePlatform() ? [{
-      provide: APP_INITIALIZER,
-      useFactory: initializeDebug,
-      deps: [DebugService],
-      multi: true
-    }] : []),
+    ...(Capacitor.isNativePlatform()
+      ? [
+          {
+            provide: APP_INITIALIZER,
+            useFactory: initializeFirebaseAuth,
+            multi: true,
+          },
+        ]
+      : []),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',
     }),
     provideLottieOptions({
       player: () => player,
-    })
+    }),
   ],
 }).catch((error) => {
   console.error('Error initializing app:', error);
-
 });

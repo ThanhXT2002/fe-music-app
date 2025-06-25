@@ -1,4 +1,4 @@
-package com.tranxuanthanhtxt.MusicApp;
+package xtmusic.tranxuanthanhtxt.com;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -29,14 +29,19 @@ public class SplashActivity extends AppCompatActivity {
         fadeIn.setDuration(800); // 800ms fade in
         rootView.startAnimation(fadeIn);
 
-        // Auto start main activity after 2.5 seconds
-        new Handler().postDelayed(() -> {
-            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-            startActivity(intent);
-            finish(); // Close splash activity
+        // Delay for splash screen then start MainActivity
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        }, 2000); // 2 second delay
+    }
 
-            // Add transition animation
-            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        }, 2500);
+    @Override
+    public void onBackPressed() {
+        // Disable back button on splash screen
     }
 }

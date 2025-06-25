@@ -1,13 +1,15 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import {
   Auth,
   signInWithPopup,
+  signInWithCredential,
   GoogleAuthProvider,
   signOut,
   User,
 } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
-import { ToastController } from '@ionic/angular/standalone';
+import { ToastController, Platform } from '@ionic/angular/standalone';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 @Injectable({
   providedIn: 'root',
@@ -16,11 +18,17 @@ export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
   private readonly USER_STORAGE_KEY = 'txt_music_user';
+  private _isLoading = signal<boolean>(false);
+
+  // Public readonly signals
+  public readonly isLoading = this._isLoading.asReadonly();
 
   constructor(
     private auth: Auth,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private platform: Platform
   ) {
+    this.initializeGoogleAuth();
     // Khôi phục user từ localStorage nếu có
     this.loadUserFromLocalStorage();
 
@@ -69,24 +77,59 @@ export class AuthService {
     } catch (error) {
       console.error('Error loading user from localStorage', error);
     }
-  }// Main login method for Firebase Google authentication
+  }  // Main login method for Firebase Google authentication
   async loginWithGoogle(): Promise<User> {
+    try {
+      this._isLoading.set(true);
+
+      if (this.platform.is('capacitor')) {
+        // Mobile platform - use Capacitor Google Auth
+        return await this.loginWithGoogleMobile();
+      } else {
+        // Web platform - use Firebase popup
+        return await this.loginWithGoogleWeb();
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+  private async loginWithGoogleMobile(): Promise<User> {
+    // Sử dụng Capacitor Firebase Authentication
+    const result = await FirebaseAuthentication.signInWithGoogle();
+
+    if (!result.user) {
+      throw new Error('Google sign in failed');
+    }
+
+    // User đã được authenticate qua Firebase
+    // this.auth.currentUser sẽ tự động cập nhật
+    const firebaseUser = this.auth.currentUser;
+    if (!firebaseUser) {
+      throw new Error('Firebase user not found after authentication');
+    }
+
+    // Save user info
+    this.saveUserToLocalStorage(firebaseUser);
+    this.userSubject.next(firebaseUser);
+    await this.showSuccessToast();
+
+    return firebaseUser;
+  }
+
+  private async loginWithGoogleWeb(): Promise<User> {
     const provider = new GoogleAuthProvider();
     provider.addScope('profile');
     provider.addScope('email');
-
-    // Luôn hiển thị màn hình chọn tài khoản
     provider.setCustomParameters({ prompt: 'select_account' });
 
     const result = await signInWithPopup(this.auth, provider);
 
-    // Lưu thông tin user vào localStorage ngay lập tức
+    // Save user info
     this.saveUserToLocalStorage(result.user);
-
-    // Cập nhật BehaviorSubject ngay lập tức
     this.userSubject.next(result.user);
-
-    // Hiển thị thông báo đăng nhập thành công
     await this.showSuccessToast();
 
     return result.user;
@@ -102,17 +145,29 @@ export class AuthService {
         return null;
       }
     }
-    return null;  }
-  // Main logout method
+    return null;
+  }  // Main logout method
   async logout(): Promise<void> {
-    // Xóa thông tin user từ localStorage trước
-    localStorage.removeItem(this.USER_STORAGE_KEY);
+    try {
+      this._isLoading.set(true);
 
-    // Cập nhật BehaviorSubject ngay lập tức
-    this.userSubject.next(null);
+      // Sign out from Firebase (sẽ tự động sign out khỏi Google)
+      await FirebaseAuthentication.signOut();
 
-    // Thực hiện đăng xuất với Firebase
-    await signOut(this.auth);
+      // Xóa thông tin user từ localStorage trước
+      localStorage.removeItem(this.USER_STORAGE_KEY);
+
+      // Cập nhật BehaviorSubject ngay lập tức
+      this.userSubject.next(null);
+
+      // Thực hiện đăng xuất với Firebase
+      await signOut(this.auth);
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    } finally {
+      this._isLoading.set(false);
+    }
   }
   /**
    * Xử lý đặc biệt để luôn ưu tiên thông tin từ localStorage trước
@@ -158,5 +213,13 @@ export class AuthService {
     });
 
     await toast.present();
+  }
+  private async initializeGoogleAuth() {
+    try {
+      // Không cần initialize vì sử dụng google-services.json
+      console.log('Firebase Authentication initialized from google-services.json');
+    } catch (error) {
+      console.error('Error initializing Firebase Auth:', error);
+    }
   }
 }

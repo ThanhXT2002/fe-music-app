@@ -17,12 +17,11 @@ export class SettingsPage implements OnInit {
   private authService = inject(AuthService);
   private themeService = inject(ThemeService);
   private router = inject(Router);
-
   // Sử dụng signal để track user state
   user = signal<User | null>(null);
 
-  // Sử dụng ThemeService thay vì local signal
-  preferences = this.themeService.preferences;
+  // Sử dụng ThemeService chỉ cho dark mode
+  isDarkMode = this.themeService.isDarkMode;
 
   ngOnInit() {
     // Subscribe to user changes
