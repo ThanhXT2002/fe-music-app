@@ -10,6 +10,7 @@ import {
 import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { Capacitor } from '@capacitor/core';
 
 @Injectable({
   providedIn: 'root',
@@ -28,7 +29,6 @@ export class AuthService {
     private toastController: ToastController,
     private platform: Platform
   ) {
-    this.initializeGoogleAuth();
     // Khôi phục user từ localStorage nếu có
     this.loadUserFromLocalStorage();
 
@@ -77,16 +77,22 @@ export class AuthService {
     } catch (error) {
       console.error('Error loading user from localStorage', error);
     }
-  }  // Main login method for Firebase Google authentication
+  } // Main login method for Firebase Google authentication
   async loginWithGoogle(): Promise<User> {
     try {
       this._isLoading.set(true);
 
-      if (this.platform.is('capacitor')) {
-        // Mobile platform - use Capacitor Google Auth
+      console.log('1 All platforms:', this.platform.platforms());
+      console.log('2 Is capacitor:', this.platform.is('capacitor'));
+      console.log('3 Is hybrid:', this.platform.is('hybrid'));
+      console.log('4 Is cordova:', this.platform.is('cordova'));
+      console.log('5 Is mobile:', this.platform.is('mobile'));
+
+      if (Capacitor.isNativePlatform()) {
+        console.log('Using Capacitor platform for Google login');
         return await this.loginWithGoogleMobile();
       } else {
-        // Web platform - use Firebase popup
+         console.log('Using Web platform for Google login');
         return await this.loginWithGoogleWeb();
       }
     } catch (error) {
@@ -96,27 +102,30 @@ export class AuthService {
       this._isLoading.set(false);
     }
   }
-  private async loginWithGoogleMobile(): Promise<User> {
-    // Sử dụng Capacitor Firebase Authentication
-    const result = await FirebaseAuthentication.signInWithGoogle();
+   async loginWithGoogleMobile(): Promise<User> {
+    try {
+      const result = await FirebaseAuthentication.signInWithGoogle();
 
-    if (!result.user) {
-      throw new Error('Google sign in failed');
+      if (!result.credential?.idToken) {
+        throw new Error('Google sign in failed: Missing ID token');
+      }
+
+      // Tạo credential để liên kết với Firebase Web SDK
+      const credential = GoogleAuthProvider.credential(
+        result.credential.idToken
+      );
+      const firebaseResult = await signInWithCredential(this.auth, credential);
+
+      // Save user info
+      this.saveUserToLocalStorage(firebaseResult.user);
+      this.userSubject.next(firebaseResult.user);
+      await this.showSuccessToast();
+
+      return firebaseResult.user;
+    } catch (error) {
+      console.error('Mobile Google login error:', error);
+      throw error;
     }
-
-    // User đã được authenticate qua Firebase
-    // this.auth.currentUser sẽ tự động cập nhật
-    const firebaseUser = this.auth.currentUser;
-    if (!firebaseUser) {
-      throw new Error('Firebase user not found after authentication');
-    }
-
-    // Save user info
-    this.saveUserToLocalStorage(firebaseUser);
-    this.userSubject.next(firebaseUser);
-    await this.showSuccessToast();
-
-    return firebaseUser;
   }
 
   private async loginWithGoogleWeb(): Promise<User> {
@@ -134,6 +143,8 @@ export class AuthService {
 
     return result.user;
   }
+
+
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;
     if (user) {
@@ -146,7 +157,7 @@ export class AuthService {
       }
     }
     return null;
-  }  // Main logout method
+  } // Main logout method
   async logout(): Promise<void> {
     try {
       this._isLoading.set(true);
@@ -207,19 +218,11 @@ export class AuthService {
       buttons: [
         {
           text: 'OK',
-          role: 'cancel'
-        }
-      ]
+          role: 'cancel',
+        },
+      ],
     });
 
     await toast.present();
-  }
-  private async initializeGoogleAuth() {
-    try {
-      // Không cần initialize vì sử dụng google-services.json
-      console.log('Firebase Authentication initialized from google-services.json');
-    } catch (error) {
-      console.error('Error initializing Firebase Auth:', error);
-    }
   }
 }
