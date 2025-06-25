@@ -25,10 +25,10 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private dbService: DatabaseService,
     private permissionService: PermissionService,
-    private debugService: DebugService,
+    // private debugService: DebugService,
     public themeService: ThemeService
   ) {
-    this.debugService.initEruda();
+    // this.debugService.initEruda();
   }
   ngOnInit() {
     this.initializeApp();
