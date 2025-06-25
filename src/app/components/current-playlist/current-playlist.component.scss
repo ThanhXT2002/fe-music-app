@@ -12,8 +12,6 @@
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   background: white;
   color: rgb(17 24 39);
-  transform: scale(1.05);
-  border: 2px dashed rgb(147, 51, 234);
 
   @media (prefers-color-scheme: dark) {
     background: rgb(17, 24, 39);
@@ -28,5 +26,13 @@
 .cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
+
+.song-item:active,
+.song-item.touch-active {
+  border: 2px solid rgba(147, 51, 234, 0.7) !important;
+  background: rgba(147, 51, 234, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.2);
+}
+
 
 

@@ -8,6 +8,8 @@ import {
   computed,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
+  Output,
+  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
@@ -18,6 +20,8 @@ import {
   CdkDragDrop,
   moveItemInArray,
   DragDropModule,
+  CdkDragStart,
+  CdkDragEnd,
 } from '@angular/cdk/drag-drop';
 
 
@@ -35,6 +39,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
+
+  // Output để thông báo trạng thái drag cho parent component
+  @Output() dragActive = new EventEmitter<boolean>();
 
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
@@ -296,11 +303,34 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
             this.audioPlayerService.seek(currentTime);
             if (wasPlaying && !this.isPlaying()) {
               this.audioPlayerService.togglePlayPause();
-            }
-          }
+            }          }
         }, 100);
       }    }
   }
+
+  // Handle CDK drag start
+  onDragStart(event: CdkDragStart) {
+    this.dragActive.emit(true);
+  }
+
+  // Handle CDK drag end
+  onDragEnd(event: CdkDragEnd) {
+    this.dragActive.emit(false);
+  }
+
+  // Handle touch events for immediate visual feedback
+  onTouchStart(event: TouchEvent, index: number) {
+    // Add visual feedback class immediately
+    const target = event.currentTarget as HTMLElement;
+    target.classList.add('touch-active');
+  }
+
+  onTouchEnd(event: TouchEvent, index: number) {
+    // Remove visual feedback class
+    const target = event.currentTarget as HTMLElement;
+    target.classList.remove('touch-active');
+  }
+
   onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
   }}
