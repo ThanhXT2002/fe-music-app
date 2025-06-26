@@ -77,6 +77,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
   @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
 
+  
+
 
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);

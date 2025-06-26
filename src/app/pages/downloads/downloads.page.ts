@@ -15,6 +15,7 @@ import {
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
+import { routeAnimation } from 'src/app/shared/route-animation';
 
 @Component({
   selector: 'app-downloads',
@@ -22,6 +23,7 @@ import { finalize, firstValueFrom, tap } from 'rxjs';
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
   imports: [CommonModule, FormsModule],
+    animations: [routeAnimation],
 })
 export class DownloadsPage implements OnInit {
   private databaseService = inject(DatabaseService);

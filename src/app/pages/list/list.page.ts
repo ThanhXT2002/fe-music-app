@@ -18,6 +18,7 @@ import { ModalController } from '@ionic/angular/standalone';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
+import { routeAnimation } from 'src/app/shared/route-animation';
 
 @Component({
   selector: 'app-list',
@@ -26,6 +27,7 @@ import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-mod
   standalone: true,
   imports: [CommonModule, SongItemComponent],
   providers: [ModalController],
+  animations: [routeAnimation]
 })
 export class ListPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();

@@ -38,6 +38,8 @@ export class AppComponent implements OnInit {
     }, 30 * 60 * 1000);
   }
 
+
+
   async initializeApp() {
     await this.platform.ready();
     await this.initializeDatabaseWithRetry();

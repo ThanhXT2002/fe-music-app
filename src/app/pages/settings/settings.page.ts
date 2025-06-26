@@ -6,12 +6,14 @@ import { AuthService } from '../../services/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { User } from '@angular/fire/auth';
+import { routeAnimation } from 'src/app/shared/route-animation';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [CommonModule, FormsModule, InstallPromptComponent],
   templateUrl: './settings.page.html',
+    animations: [routeAnimation],
 })
 export class SettingsPage implements OnInit {
   private authService = inject(AuthService);

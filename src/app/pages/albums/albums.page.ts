@@ -8,7 +8,6 @@ import {
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Album } from '../../interfaces/song.interface';
-import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { AlbumsPageStateService } from '../../services/albums-page-state.service';
 import { AlbumService } from '../../services/album.service'; // ✨ New import
@@ -16,6 +15,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
 import { FormsModule } from '@angular/forms';
+import { routeAnimation } from 'src/app/shared/route-animation';
 
 
 @Component({
@@ -33,6 +33,7 @@ import { FormsModule } from '@angular/forms';
     `,
   ],
   imports: [CommonModule, RouterLink, FormsModule],
+  animations: [routeAnimation],
   standalone: true,
 })
 export class AlbumsPage implements OnInit, OnDestroy {
