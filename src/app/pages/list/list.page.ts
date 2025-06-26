@@ -13,7 +13,7 @@ import { Song } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { ListPageStateService } from '../../services/list-page-state.service';
-import { SongItemComponent } from '../../components/shared/song-item.component';
+import { SongItemComponent } from '../../components/song-item.component';
 import { ModalController } from '@ionic/angular/standalone';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';

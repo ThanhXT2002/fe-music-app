@@ -10,7 +10,8 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AudioPlayerService } from '../../../services/audio-player.service';
+import { AudioPlayerService } from 'src/app/services/audio-player.service';
+
 
 @Component({
   selector: 'app-audio-equalizer',

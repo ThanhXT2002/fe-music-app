@@ -5,7 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Artist, Album, Song } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
-import { SongItemComponent } from '../../components/shared/song-item.component';
+import { SongItemComponent } from '../../components/song-item.component';
 
 @Component({
   selector: 'app-artist-detail',

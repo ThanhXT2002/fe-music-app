@@ -21,7 +21,7 @@ import {
 } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { AudioEqualizerComponent } from '../../components/shared/audio-equalizer/audio-equalizer.component';
+
 
 @Component({
   selector: 'app-player',

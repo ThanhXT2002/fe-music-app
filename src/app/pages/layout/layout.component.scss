@@ -26,9 +26,8 @@ ion-toolbar{
   --tw-border-opacity: 1;
 }
 
-::ng-deep .dark{
-  ion-toolbar,ion-toolbar{
-    --tw-bg-opacity: 1;
+::ng-deep .dark .footer-layout{
+ ion-toolbar{
     --background: rgb(55 65 81 / var(--tw-bg-opacity, 1)) !important
   }
 
@@ -37,3 +36,5 @@ ion-toolbar{
     --background: rgb(31 41 55 / var(--tw-bg-opacity, 1));
   }
 }
+
+

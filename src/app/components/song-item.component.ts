@@ -10,13 +10,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Song } from '../../interfaces/song.interface';
+import { Song } from '../interfaces/song.interface';
 import { IonIcon } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
 import { apps } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
+import { LottieEqualizerComponent } from './lottie-equalizer/lottie-equalizer.component';
 
 @Component({
   selector: 'app-song-item',

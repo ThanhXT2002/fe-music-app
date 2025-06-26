@@ -15,7 +15,8 @@ import { AlbumService } from '../../services/album.service'; // ✨ New import
 import { Subject, takeUntil } from 'rxjs';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
-import { FormsModule } from '@angular/forms'; // ✨ Add FormsModule for forms
+import { FormsModule } from '@angular/forms';
+
 
 @Component({
   selector: 'app-albums',
@@ -37,8 +38,9 @@ import { FormsModule } from '@angular/forms'; // ✨ Add FormsModule for forms
 export class AlbumsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
+  @ViewChild('albumNameInput') albumNameInput!: ElementRef<HTMLInputElement>;
+
   constructor(
-    private databaseService: DatabaseService,
     private audioPlayerService: AudioPlayerService,
     public albumsState: AlbumsPageStateService,
     private refreshService: RefreshService,
@@ -117,33 +119,28 @@ export class AlbumsPage implements OnInit, OnDestroy {
   // ✨ Show create album modal
   async showCreateAlbumModal() {
     const alert = await this.alertController.create({
-      header: 'Create New Album',
-      subHeader: 'Enter artist name (will be used as album name)',
+      mode: 'ios',
+      header: 'Tạo Album Mới',
       inputs: [
         {
-          name: 'artistName',
+          name: 'name',
           type: 'text',
-          placeholder: 'Artist name',
+          placeholder: 'Album name',
           attributes: {
             required: true,
           },
         },
-        {
-          name: 'description',
-          type: 'textarea',
-          placeholder: 'Album description (optional)',
-        },
       ],
       buttons: [
         {
-          text: 'Cancel',
+          text: 'Hủy',
           role: 'cancel',
         },
         {
-          text: 'Create',
+          text: 'Lưu',
           handler: async (data) => {
-            if (data.artistName) {
-              await this.createNewAlbum(data.artistName, data.description);
+            if (data.name) {
+              await this.createNewAlbum(data.name, data.description);
               return true;
             }
             return false;
@@ -155,10 +152,10 @@ export class AlbumsPage implements OnInit, OnDestroy {
     await alert.present();
   }
   // ✨ Create new album (artist-based)
-  private async createNewAlbum(artistName: string, description?: string) {
+  private async createNewAlbum(name: string, description?: string) {
     try {
       const newAlbum = await this.albumService.createAlbum({
-        name: artistName, // Artist name becomes album name
+        name: name, // Artist name becomes album name
         description: description,
       });
 
@@ -169,8 +166,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
         // Show success message
         const successAlert = await this.alertController.create({
-          header: 'Success',
-          message: `Album "${artistName}" created successfully!`,
+          mode: 'ios',
+          header: 'Thành Công',
+          message: `Album "${name}" đã được tạo!`,
           buttons: ['OK'],
         });
         await successAlert.present();
@@ -182,8 +180,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
       // Show error message
       const errorAlert = await this.alertController.create({
-        header: 'Error',
-        message: 'Failed to create album. Please try again.',
+        mode: 'ios',
+        header: 'Lỗi',
+        message: 'Không thể tạo album. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();
@@ -198,30 +197,30 @@ export class AlbumsPage implements OnInit, OnDestroy {
       return; // Only for user-created albums
     }
     const alert = await this.alertController.create({
+      mode: 'ios',
       header: album.name,
-      subHeader: `By ${album.artist}`,
       buttons: [
         {
-          text: '✏️ Edit Album',
+          text: '✏️ Chỉnh sửa Album',
           handler: () => {
             this.editAlbum(album);
           },
         },
         {
-          text: '➕ Add Songs',
+          text: '➕ Thêm nhạc vào Album',
           handler: () => {
             this.showAddSongsToAlbum(album);
           },
         },
         {
-          text: '🗑️ Delete Album',
+          text: '🗑️ Xóa Album',
           role: 'destructive',
           handler: () => {
             this.confirmDeleteAlbum(album);
           },
         },
         {
-          text: 'Cancel',
+          text: 'Đóng',
           role: 'cancel',
         },
       ],
@@ -231,13 +230,13 @@ export class AlbumsPage implements OnInit, OnDestroy {
   } // ✨ Edit album information (artist-based)
   async editAlbum(album: Album) {
     const alert = await this.alertController.create({
-      header: 'Edit Album',
-      subHeader: 'Edit artist name (album name)',
+      mode: 'ios',
+      header: 'Chỉnh sửa Album',
       inputs: [
         {
-          name: 'artistName',
+          name: 'name',
           type: 'text',
-          placeholder: 'Artist name',
+          placeholder: 'Tên abum',
           value: album.name, // Album name is artist name
           attributes: {
             required: true,
@@ -252,11 +251,11 @@ export class AlbumsPage implements OnInit, OnDestroy {
       ],
       buttons: [
         {
-          text: 'Cancel',
+          text: 'Hủy',
           role: 'cancel',
         },
         {
-          text: 'Save',
+          text: 'Lưu',
           handler: async (data) => {
             if (data.artistName) {
               await this.updateAlbum(
@@ -291,8 +290,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
         console.log('Album updated successfully');
 
         const successAlert = await this.alertController.create({
-          header: 'Success',
-          message: 'Album updated successfully!',
+          mode: 'ios',
+          header: 'Thành Công',
+          message: 'Album đã được cập nhật thành công!',
           buttons: ['OK'],
         });
         await successAlert.present();
@@ -303,8 +303,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
       console.error('Error updating album:', error);
 
       const errorAlert = await this.alertController.create({
-        header: 'Error',
-        message: 'Failed to update album. Please try again.',
+        mode: 'ios',
+        header: 'Lỗi',
+        message: 'Không thể cập nhật album. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();
@@ -316,9 +317,10 @@ export class AlbumsPage implements OnInit, OnDestroy {
     // TODO: Implement add songs interface
     // For now, show a placeholder message
     const alert = await this.alertController.create({
-      header: 'Add Songs',
+      mode: 'ios',
+      header: 'Thêm Nhạc vào Album',
       message:
-        'This feature will allow you to add songs to your album. Implementation coming soon!',
+        'Chức năng này sẽ sớm được cập nhật. Hiện tại bạn có thể thêm bài hát vào album thông qua trang chi tiết album.',
       buttons: ['OK'],
     });
     await alert.present();
@@ -327,15 +329,16 @@ export class AlbumsPage implements OnInit, OnDestroy {
   // ✨ Confirm delete album
   async confirmDeleteAlbum(album: Album) {
     const alert = await this.alertController.create({
-      header: 'Delete Album',
-      message: `Are you sure you want to delete "${album.name}"? This action cannot be undone.`,
+      mode: 'ios',
+      header: 'Xóa Album',
+      message: `Bạn có chắc chắn muốn xóa album "${album.name}"?`,
       buttons: [
         {
-          text: 'Cancel',
+          text: 'Hủy',
           role: 'cancel',
         },
         {
-          text: 'Delete',
+          text: 'Xóa',
           role: 'destructive',
           handler: async () => {
             await this.deleteAlbum(album.id);
@@ -357,8 +360,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
         console.log('Album deleted successfully');
 
         const successAlert = await this.alertController.create({
-          header: 'Success',
-          message: 'Album deleted successfully!',
+          mode: 'ios',
+          header: 'Thành Công',
+          message: 'Album đã được xóa thành công!',
           buttons: ['OK'],
         });
         await successAlert.present();
@@ -369,8 +373,9 @@ export class AlbumsPage implements OnInit, OnDestroy {
       console.error('Error deleting album:', error);
 
       const errorAlert = await this.alertController.create({
-        header: 'Error',
-        message: 'Failed to delete album. Please try again.',
+        mode: 'ios',
+        header: 'Lỗi',
+        message: 'Không thể xóa album. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();

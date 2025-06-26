@@ -6,17 +6,14 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-xl font-bold text-gray-900 dark:text-white">Albums</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {{ albumsState.albums.length }} albums
-        </p>
       </div>
       <!-- ✨ Create Album Button -->
+
       <button
         (click)="showCreateAlbumModal()"
-        class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center space-x-2"
+        class="h-10 w-10 text-gray-900 dark:text-white rounded-full hover:bg-slate-400 hover:bg-opacity-20 flex items-center justify-center transition-colors"
       >
-        <i class="fas fa-plus text-sm"></i>
-        <span>New Album</span>
+        <i class="fas fa-plus text-lg"></i>
       </button>
     </div>
   </div>
@@ -106,3 +103,4 @@
     </div>
   </div>
 </div>
+
