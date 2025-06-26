@@ -13,7 +13,7 @@ import { routeAnimation } from 'src/app/shared/route-animation';
   standalone: true,
   imports: [CommonModule, FormsModule, InstallPromptComponent],
   templateUrl: './settings.page.html',
-    animations: [routeAnimation],
+  animations: [routeAnimation],
 })
 export class SettingsPage implements OnInit {
   private authService = inject(AuthService);
