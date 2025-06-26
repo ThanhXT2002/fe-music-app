@@ -81,18 +81,9 @@ export class AuthService {
   async loginWithGoogle(): Promise<User> {
     try {
       this._isLoading.set(true);
-
-      console.log('1 All platforms:', this.platform.platforms());
-      console.log('2 Is capacitor:', this.platform.is('capacitor'));
-      console.log('3 Is hybrid:', this.platform.is('hybrid'));
-      console.log('4 Is cordova:', this.platform.is('cordova'));
-      console.log('5 Is mobile:', this.platform.is('mobile'));
-
       if (Capacitor.isNativePlatform()) {
-        console.log('Using Capacitor platform for Google login');
         return await this.loginWithGoogleMobile();
       } else {
-         console.log('Using Web platform for Google login');
         return await this.loginWithGoogleWeb();
       }
     } catch (error) {
