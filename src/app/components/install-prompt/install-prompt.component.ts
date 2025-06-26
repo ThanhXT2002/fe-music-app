@@ -12,7 +12,7 @@ import { InstallService } from '../../services/install.service';
       <div class="flex items-center justify-between">
         <div>
           <h3 class="font-medium text-gray-900 dark:text-white">Cài đặt</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
+          <p class="text-sm text-gray-700 dark:text-gray-100">
             Cài đặt app để có trải nghiệm tốt nhất với XTMusic.
           </p>
         </div>
