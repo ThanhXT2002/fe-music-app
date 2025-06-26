@@ -24,6 +24,7 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
+import { BtnIconComponent } from "../../components/btn-icon/btn-icon.component";
 
 @Component({
   selector: 'app-layout',
@@ -41,8 +42,9 @@ import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-mod
     IonModal,
     IonNav,
     IonRefresherContent,
-    CurrentPlaylistComponent
-  ],
+    CurrentPlaylistComponent,
+    BtnIconComponent
+],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],

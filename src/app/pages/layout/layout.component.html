@@ -19,16 +19,29 @@
     </div>
 
     <!-- Search Button -->
-    <button
+     <!-- <i class="fa-solid fa-magnifying-glass"></i> -->
+    <app-btn-icon
+      id="openSearchModal"
+      icon="fa-solid fa-magnifying-glass"
+      borderClass="border border-gray-300 dark:border-gray-200"
+      cssClass="text-gray-600 dark:text-white"
+
+    ></app-btn-icon>
+    <!-- <button
       id="openSearchModal"
       class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
     >
       <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
-    </button>
+    </button> -->
   </div>
 </ion-header>
-<ion-content  >
-  <ion-refresher #refresher mode="md" slot="fixed" (ionRefresh)="handleRefresh($event)">
+<ion-content>
+  <ion-refresher
+    #refresher
+    mode="md"
+    slot="fixed"
+    (ionRefresh)="handleRefresh($event)"
+  >
     <ion-refresher-content mode="md"></ion-refresher-content>
   </ion-refresher>
   <ion-router-outlet></ion-router-outlet>

@@ -1,6 +1,12 @@
-<button
-  (click)="onClick()"
-  class="w-10 h-10 bg-black bg-opacity-20 hover:bg-opacity-40 rounded-full flex items-center justify-center text-white transition-all"
->
-  <i class="fas fa-ellipsis-v text-sm"></i>
-</button>
+<div  [ngClass]="rounded + ' ' + borderClass">
+  <button
+    (click)="onClick()"
+    class="liquid-glass-btn"
+    [ngClass]="cssClass + ' ' + rounded"
+    [ngStyle]="{ height: height, width: width }"
+    [disabled]="disabled"
+  >
+    <i [ngClass]="icon" *ngIf="icon"></i>
+    <ng-content></ng-content>
+  </button>
+</div>

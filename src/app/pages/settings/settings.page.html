@@ -1,66 +1,76 @@
-<div class="settings-page h-full flex flex-col bg-gray-50 dark:bg-gray-900" >
-      <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <!-- Theme Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
+<div class="settings-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-4">
+    <!-- Theme Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Appearance
+        </h2>
+      </div>
 
+      <app-install-prompt></app-install-prompt>
+
+      <div class="p-4 space-y-4">
+        <!-- Dark Mode Toggle -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-medium text-gray-900 dark:text-white">Dark Mode</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Switch between light and dark themes
+            </p>
           </div>
-
-          <app-install-prompt></app-install-prompt>
-
-          <div class="p-4 space-y-4">
-            <!-- Dark Mode Toggle -->
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-medium text-gray-900 dark:text-white">Dark Mode</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark themes</p>
-              </div>              <label class="toggle-switch">
-                <input
-                  type="checkbox"
-                  [checked]="isDarkMode()"
-                  (change)="toggleDarkMode()">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Account Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
-          <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Account</h2>
-          </div>
-
-          <div class="p-4 space-y-4">            <!-- User Info -->
-            <div class="flex items-center space-x-3">
-              <img
-                [src]="getUserAvatar()"
-                [alt]="user()?.displayName || 'User'"
-                (error)="onImageError($event)"
-                class="w-12 h-12 rounded-full object-cover bg-gray-200 dark:bg-gray-700">
-              <div>
-                <p class="font-medium text-gray-900 dark:text-white">
-                  {{ user()?.displayName || 'Guest User' }}
-                </p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ user()?.email || 'No email' }}
-                </p>
-              </div>            </div>
-
-            <!-- Action Buttons -->
-            <div class="space-y-2" *ngIf="user()">
-              <button (click)="logout()" class="btn btn-primary w-full">
-                Log Out
-              </button>
-            </div>
-            <div class="space-y-2" *ngIf="!user()">
-              <button (click)="navigateToLogin()" class="btn btn-primary w-full">
-                Log In
-              </button>
-            </div>
-          </div>
+          <label class="toggle-switch">
+            <input
+              type="checkbox"
+              [checked]="isDarkMode()"
+              (change)="toggleDarkMode()"
+            />
+            <span class="toggle-slider"></span>
+          </label>
         </div>
       </div>
     </div>
+
+    <!-- Account Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Account
+        </h2>
+      </div>
+
+      <div class="p-4 space-y-4">
+        <!-- User Info -->
+        <div class="flex items-center space-x-3">
+          <img
+            [src]="getUserAvatar()"
+            [alt]="user()?.displayName || 'User'"
+            (error)="onImageError($event)"
+            class="w-12 h-12 rounded-full object-cover bg-gray-200 dark:bg-gray-700"
+          />
+          <div>
+            <p class="font-medium text-gray-900 dark:text-white">
+              {{ user()?.displayName || 'Guest User' }}
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ user()?.email || 'No email' }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="space-y-2" *ngIf="user()">
+          <button (click)="logout()" class="btn btn-primary w-full">
+            Log Out
+          </button>
+        </div>
+        <div class="space-y-2" *ngIf="!user()">
+          <button (click)="navigateToLogin()" class="btn btn-primary w-full">
+            Log In
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
