@@ -27,8 +27,8 @@
     </button>
   </div>
 </ion-header>
-<ion-content>
-  <ion-refresher mode="md" slot="fixed" (ionRefresh)="handleRefresh($event)">
+<ion-content  >
+  <ion-refresher #refresher mode="md" slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content mode="md"></ion-refresher-content>
   </ion-refresher>
   <ion-router-outlet></ion-router-outlet>

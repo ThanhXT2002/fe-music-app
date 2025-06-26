@@ -1,4 +1,4 @@
-import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit, ChangeDetectorRef, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Song } from 'src/app/interfaces/song.interface';
@@ -41,7 +41,7 @@ import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-mod
     IonModal,
     IonNav,
     IonRefresherContent,
-    CurrentPlaylistComponent,
+    CurrentPlaylistComponent
   ],
   standalone: true,
   templateUrl: './layout.component.html',
@@ -76,9 +76,12 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
   @ViewChild('playlistModal', { static: false }) playlistModal!: IonModal;
+  @ViewChild(IonRefresher) refresher!: IonRefresher;
+  @ViewChild(IonContent, { read: ElementRef }) contentEl!: ElementRef;
 
-  
 
+  refresherEnabled = true;
+  topRegionHeight = 100;
 
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);
@@ -131,12 +134,22 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   ngAfterViewInit() {
     // Set modal reference để service có thể control
     this.playlistModalService.setModal(this.playlistModal);
+
+    // Lắng nghe touchstart trên vùng ion-content
+    this.contentEl.nativeElement.addEventListener('touchstart', (event: TouchEvent) => {
+      const startY = event.touches[0].clientY;
+      // Chỉ bật refresher nếu vuốt bắt đầu từ vùng top
+      if (this.refresher) {
+        this.refresher.disabled = startY > this.topRegionHeight;
+      }
+    });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
   }
+
 
   async togglePlayPause() {
     await this.audioPlayerService.togglePlayPause();
