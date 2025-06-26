@@ -1,4 +1,4 @@
-@import '@fontsource/open-sans/index.css';
+@import "@fontsource/open-sans/index.css";
 
 /* Core CSS required for Ionic components to work properly */
 @import "@ionic/angular/css/core.css";
@@ -31,13 +31,15 @@
     box-sizing: border-box;
   }
 
-  html, body {
+  html,
+  body {
     height: 100%;
     margin: 0;
     padding: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #f8fafc;
-    color: #1e293b;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      sans-serif;
+    background: url('/assets/images/hoa-anh-dao.png') no-repeat center center;
+    @apply modeDarkLight;
   }
 
   :root {
@@ -52,13 +54,10 @@
     --surface-dark: #1e293b;
     --on-surface: #1e293b;
     --on-surface-dark: #f8fafc;
+    --black-mode:#030712;
+    --white-mode: #f8fafc;
     --h-header: 55px;
     --h-bottom-tabs: 55px; /* Header height */
-  }
-
-  .dark {
-    background: #0f172a;
-    color: #f8fafc;
   }
 
   .h__header {
@@ -67,15 +66,6 @@
 }
 
 @layer components {
-
-  .modeDarkLight{
-    @apply bg-slate-50 dark:bg-black text-gray-900 dark:text-white
-  }
-
-  .itemDarkLight {
-    @apply bg-white dark:bg-gray-800;
-  }
-
   /* Custom Button Styles */
   .btn {
     @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
@@ -228,7 +218,7 @@
   }
 }
 
-@layer utilities{
+@layer utilities {
   .shadow-purple-glow {
     box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.4);
   }
@@ -284,18 +274,30 @@
 
 /* Animation classes */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideDown {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .fade-in {
@@ -316,8 +318,8 @@ ion-content {
   padding-left: var(--padding-left);
   padding-right: var(--padding-right);
   touch-action: pan-y;
+  --background: none;
 }
-
 .spin-with-fill {
   animation: spin 5s linear infinite;
   animation-fill-mode: forwards;
@@ -378,4 +380,12 @@ ion-backdrop {
   }
 }
 
+@layer utilities {
+  .modeDarkLight {
+    @apply bg-slate-50 dark:bg-gray-950 text-gray-900 dark:text-white;
+  }
 
+  .itemDarkLight {
+    @apply bg-white dark:bg-gray-800;
+  }
+}

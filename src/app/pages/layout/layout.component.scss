@@ -1,5 +1,3 @@
-
-
 .tab-item {
   @apply text-gray-500 dark:text-gray-400;
   min-width: 70px;
@@ -21,20 +19,16 @@
   height: var(--h-bottom-tabs);
 }
 
-ion-toolbar{
-  --background: rgb(229 231 235 / var(--tw-border-opacity, 1));
-  --tw-border-opacity: 1;
+ion-toolbar .footer-layout {
+  --background: var(--white-mode);
+  --tw-border-opacity: 0;
 }
 
-::ng-deep .dark .footer-layout{
- ion-toolbar{
-    --background: rgb(55 65 81 / var(--tw-bg-opacity, 1)) !important
+::ng-deep .dark .footer-layout {
+  ion-toolbar {
+    --background: var(--black-mode);
+    --tw-border-opacity: 0;
   }
 
-  ion-content{
-   --tw-border-opacity: 1;
-    --background: rgb(31 41 55 / var(--tw-bg-opacity, 1));
-  }
+
 }
-
-

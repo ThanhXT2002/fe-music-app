@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PWAService } from './services/pwa.service';
-import { IonApp, IonRouterOutlet, IonModal } from "@ionic/angular/standalone";
+import { IonApp, IonRouterOutlet, IonModal, IonContent } from "@ionic/angular/standalone";
 import { Platform } from '@ionic/angular';
 import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -14,7 +14,8 @@ import { ThemeService } from './services/theme.service';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonRouterOutlet, IonApp, CommonModule],
+  styleUrls: ['app.component.scss'],
+  imports: [IonContent, IonRouterOutlet, IonApp, CommonModule],
   standalone: true
 })
 export class AppComponent implements OnInit {
@@ -27,7 +28,7 @@ export class AppComponent implements OnInit {
     public themeService: ThemeService
   ) { }
 
-  
+
   ngOnInit() {
     this.initializeApp();
     this.pwaService.onNetworkStatusChange();
