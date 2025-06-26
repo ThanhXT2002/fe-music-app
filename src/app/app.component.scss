@@ -30,8 +30,5 @@
 }
 
 .blur-overlay {
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(10px);
-  z-index: 1;
+  @apply absolute inset-0 backdrop-blur-md dark:backdrop-blur-xl z-[1]
 }
