@@ -24,8 +24,6 @@ import {
   CdkDragEnd,
 } from '@angular/cdk/drag-drop';
 
-
-
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
@@ -42,6 +40,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Output để thông báo trạng thái drag cho parent component
   @Output() dragActive = new EventEmitter<boolean>();
+
+  allowDragIndexes = new Set<number>();
+  private longPressTimeout: any = null;
+  private readonly LONG_PRESS_DURATION = 1300; // ms
 
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
@@ -108,7 +110,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.destroy$.next();
-    this.destroy$.complete();    // Clean up custom event listener
+    this.destroy$.complete(); // Clean up custom event listener
     if (typeof window !== 'undefined') {
       window.removeEventListener(
         'player-action-triggered',
@@ -267,7 +269,8 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     } else {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
-  }  // Handle CDK drag drop for reordering
+  }
+  // Handle CDK drag drop for reordering
   onDrop(event: CdkDragDrop<Song[]>) {
     if (event.previousIndex !== event.currentIndex) {
       const playlist = [...this.currentPlaylist()];
@@ -303,9 +306,11 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
             this.audioPlayerService.seek(currentTime);
             if (wasPlaying && !this.isPlaying()) {
               this.audioPlayerService.togglePlayPause();
-            }          }
+            }
+          }
         }, 100);
-      }    }
+      }
+    }
   }
 
   // Handle CDK drag start
@@ -320,17 +325,26 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Handle touch events for immediate visual feedback
   onTouchStart(event: TouchEvent, index: number) {
-    // Add visual feedback class immediately
-    const target = event.currentTarget as HTMLElement;
-    target.classList.add('touch-active');
+    this.longPressTimeout = setTimeout(() => {
+      this.allowDragIndexes.add(index);
+      // Kích hoạt lại detectChanges nếu đang dùng OnPush
+      this.cdr.detectChanges();
+    }, this.LONG_PRESS_DURATION);
   }
 
-  onTouchEnd(event: TouchEvent, index: number) {
-    // Remove visual feedback class
-    const target = event.currentTarget as HTMLElement;
-    target.classList.remove('touch-active');
+onTouchEnd(event: TouchEvent, index: number) {
+  clearTimeout(this.longPressTimeout);
+  this.longPressTimeout = null;
+  if (this.allowDragIndexes.has(index)) {
+    // Nếu đã activate drag, khi kết thúc sẽ tắt drag cho index này
+    setTimeout(() => {
+      this.allowDragIndexes.delete(index);
+      this.cdr.detectChanges();
+    }, 500); // Chờ một chút để drag kết thúc, có thể chỉnh lại
   }
+}
 
   onImageError(event: any): void {
     event.target.src = './assets/images/musical-note.webp';
-  }}
+  }
+}
