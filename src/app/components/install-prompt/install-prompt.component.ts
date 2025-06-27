@@ -7,12 +7,12 @@ import { InstallService } from '../../services/install.service';
 @Component({
   selector: 'app-install-prompt',
   template: `
-    <div class="p-4" *ngIf="shouldShowInstallPrompt()">
+    <div  *ngIf="shouldShowInstallPrompt()">
       <!-- Install Prompt -->
-      <div class="flex items-center justify-between">
+      <div class="liquid-glass-row-between ">
         <div>
-          <h3 class="font-medium text-gray-900 dark:text-white">Cài đặt</h3>
-          <p class="text-sm text-gray-700 dark:text-gray-100">
+          <h3 class="liquid-glass-subtitle">Cài đặt</h3>
+          <p class="liquid-glass-description-strong">
             Cài đặt app để có trải nghiệm tốt nhất với XTMusic.
           </p>
         </div>

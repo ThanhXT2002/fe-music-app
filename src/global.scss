@@ -164,11 +164,11 @@
     height: 18px;
     width: 18px;
     left: 3px;
-    bottom: 3px;
+    bottom: 2px;
     background-color: white;
     transition: 0.3s;
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 
   input:checked + .toggle-slider {
@@ -393,12 +393,12 @@ ion-backdrop {
 
 // Panel kính mờ Liquid Glass
 .liquid-glass-panel {
-  @apply rounded-xl shadow-xl mb-4 border border-gray-300 dark:border-gray-200 relative overflow-hidden;
+  @apply rounded-xl shadow-xl mb-4 border border-gray-300 dark:border-gray-200 relative overflow-hidden ;
 }
 
 // Overlay nền glass cho panel
 .liquid-glass-bg {
-  @apply absolute inset-0 z-0 pointer-events-none;
+  @apply absolute inset-0 z-0 pointer-events-none ;
   .liquid-glass-blur {
     @apply w-full h-full bg-white/25 dark:bg-white/10 backdrop-blur-md saturate-150;
   }
@@ -409,15 +409,15 @@ ion-backdrop {
 
 // Header panel
 .liquid-glass-header {
-  @apply relative z-10 p-4 border-b border-gray-300 dark:border-gray-200 bg-transparent;
+  @apply relative z-10 p-4 border-b border-gray-300 dark:border-gray-200 bg-transparent backdrop-blur-sm;
   .liquid-glass-title {
-    @apply text-lg font-semibold text-gray-900 dark:text-white drop-shadow-[0_1px_6px_rgba(255,255,255,0.2)];
+    @apply text-lg font-semibold text-gray-900 dark:text-white drop-shadow-[0_1px_6px_rgba(255,255,255,0.2)] ;
   }
 }
 
 // Nội dung panel
 .liquid-glass-content {
-  @apply relative z-10 p-4 space-y-4;
+  @apply relative z-10 p-4 space-y-4 backdrop-blur-sm;
 }
 
 // Avatar user (hiệu ứng kính mờ)
@@ -440,11 +440,17 @@ ion-backdrop {
 .liquid-glass-row {
   @apply flex items-center space-x-3;
 }
+
 .liquid-glass-row-between {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-between ;
 }
 
 // Action button wrapper
 .liquid-glass-action-group {
   @apply space-y-2;
 }
+
+.toggle-switch .toggle-slider {
+  @apply bg-white/60 dark:bg-gray-600 backdrop-blur-sm rounded-full transition-all duration-200 border border-purple-500;
+}
+
