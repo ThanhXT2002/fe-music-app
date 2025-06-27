@@ -43,7 +43,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   allowDragIndexes = new Set<number>();
   private longPressTimeout: any = null;
-  private readonly LONG_PRESS_DURATION = 1300; // ms
+  private readonly LONG_PRESS_DURATION = 500; // ms
 
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
