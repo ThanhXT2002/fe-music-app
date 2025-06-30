@@ -55,7 +55,7 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
           <h4
             class="font-medium truncate transition-colors duration-300"
             [ngClass]="{
-              'text-blue-600 dark:text-blue-400': isCurrentSong,
+              'text-pink-700 dark:text-pink-200': isCurrentSong,
               'text-gray-900 dark:text-gray-100': !isCurrentSong
             }"
           >
@@ -64,7 +64,7 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
           <p
             class="text-sm truncate transition-colors duration-300"
             [ngClass]="{
-              'text-blue-500 dark:text-blue-300': isCurrentSong,
+               'text-pink-500 dark:text-pink-100': isCurrentSong,
               'text-gray-600 dark:text-gray-400': !isCurrentSong
             }"
           >
@@ -73,7 +73,7 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
           <p
             class="text-xs"
             [ngClass]="{
-              'text-blue-400 dark:text-blue-300': isCurrentSong,
+              'text-pink-500 dark:text-pink-100': isCurrentSong,
               'text-gray-600 dark:text-gray-400': !isCurrentSong
             }"
           >
