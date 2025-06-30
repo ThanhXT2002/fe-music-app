@@ -16,13 +16,14 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
+import { SongItemComponent } from "../../components/song-item/song-item.component";
 
 @Component({
   selector: 'app-downloads',
   templateUrl: './downloads.page.html',
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SongItemComponent],
     animations: [routeAnimation],
 })
 export class DownloadsPage implements OnInit {

@@ -1,8 +1,6 @@
 <div class="current-playlist-container h-full flex flex-col modeDarkLight">
   <!-- Header -->
-  <div
-    class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border-b h-[25%] relative"
-  >
+  <div class="border-b h-[25%] relative bg-black">
     <div class="absolute inset-0 opacity-50">
       @if (currentSong()?.thumbnail) {
       <img
@@ -15,7 +13,9 @@
     <div class="relative z-10 py-4 px-4 flex flex-col justify-between h-full">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-white">Danh sách phát hiện tại</h2>
+          <h2 class="text-lg font-semibold text-white">
+            Danh sách phát hiện tại
+          </h2>
           <p class="text-sm text-gray-200" *ngIf="currentPlaylist().length > 0">
             {{ currentPlaylist().length }} bài hát •
             {{ getCurrentSongIndex() + 1 }}/{{ currentPlaylist().length }}
@@ -115,60 +115,17 @@
           [disabled]="false"
           (ionItemReorder)="onIonReorder($event)"
         >
-          <div
-            *ngFor="
-              let song of currentPlaylist();
-              let i = index;
-              trackBy: trackBySongId
-            "
-          >
-            <!-- Song Item with Custom Styling for Current -->
-            <div
-              class="rounded-lg transition-all duration-200 cursor-pointer border-2 relative z-10 my-2"
-              [ngClass]="getSongItemClass(song, i)"
-              (click)="playSong(song, i)"
-            >
-              <div class="flex items-center space-x-3 py-3 px-2">
-                <!-- Thumbnail -->
-                <img
-                  [src]="song.thumbnail || 'assets/images/musical-note.webp'"
-                  [alt]="song.title"
-                  (error)="onImageError($event)"
-                  class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2"
-                   [ngClass]="getThumbnailClass(song)"
-                />
-
-                <!-- Song Info -->
-                <div class="flex-1 min-w-0">
-                  <h4
-                    [class]="
-                      isCurrentSong(song)
-                        ? 'text-purple-600 dark:text-purple-400'
-                        : 'text-gray-900 dark:text-white'
-                    "
-                    class="font-medium truncate"
-                  >
-                    {{ song.title }}
-                  </h4>
-                  <p
-                    [class]="
-                      isCurrentSong(song)
-                        ? 'text-purple-500 dark:text-purple-300'
-                        : 'text-gray-600 dark:text-gray-400'
-                    "
-                    class="text-sm truncate"
-                  >
-                    {{ song.artist }}
-                  </p>
-                </div>
-                <ion-reorder slot="end" >
-                  <ion-icon
-                  class="text-gray-500 dark:text-gray-400"
-                  name="reorder-three-outline" size="large" ></ion-icon>
-                </ion-reorder>
-              </div>
-            </div>
-          </div>
+          <app-song-item
+          *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"
+          [song]="song"
+          [playlist]="currentPlaylist()"
+          [index]="i"
+          (play)="playSong($event.song, $event.index)"
+          [modePage]="'current-play'"
+        >
+         <!-- (showMenu)="showSongMenu($event)"
+          (removeSong)="removeSong($event, i)" -->
+        </app-song-item>
         </ion-reorder-group>
       </div>
     </div>

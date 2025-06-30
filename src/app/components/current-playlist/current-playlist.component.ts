@@ -24,13 +24,14 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { reorderThreeOutline } from 'ionicons/icons';
+import { SongItemComponent } from "../song-item/song-item.component";
 
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [IonIcon, IonReorderGroup, IonReorder, IonContent, CommonModule],
+  imports: [IonIcon, IonReorderGroup, IonReorder, IonContent, CommonModule, SongItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
@@ -141,7 +142,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       return `bg-purple-50 dark:bg-purple-900/20 border-purple-500 dark:border-purple-700`;
     }
 
-    return `borderItemDarkLight`;
+    return `border-gray-300 dark:border-gray-400`;
   }
 
   // Play specific song

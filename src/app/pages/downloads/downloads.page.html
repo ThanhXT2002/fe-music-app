@@ -1,4 +1,4 @@
-<div class="search-page h-full flex flex-col" >
+<div class="search-page h-full flex flex-col">
   <!-- Content -->
   <div
     class="overflow-y-auto"
@@ -100,62 +100,17 @@
           Thông tin tìm kiếm
         </h3>
 
-        <div
-          *ngFor="let result of searchResults()"
-          class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <div class="flex items-center space-x-3">
-            <!-- Thumbnail -->
-            <img
-              [src]="result.thumbnail_url"
-              [alt]="result.title"
-              class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500"
-            />
-
-            <!-- Song Info -->
-            <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate">
-                {{ result.title }}
-              </h4>
-              <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
-                {{ result.artist }}
-              </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                {{ result.duration_formatted }}
-              </p>
-            </div>
-
-            <!-- Download Button -->
-            <div class="flex-shrink-0">
-              @if(isDownloaded(result.id)) {
-              <!-- Downloaded -->
-              <div class="text-green-600">
-                <i class="fa-solid fa-check-circle text-lg"></i>
-              </div>
-              } @else if(isDownloading(result.id)) {
-              <!-- Downloading -->
-              <div class="text-center min-w-[60px]">
-                <div
-                  class="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"
-                ></div>
-                <p class="text-xs text-purple-600 mt-1">
-                  {{ getDownloadProgress(result.id) }}%
-                </p>
-              </div>
-              } @else {
-              <!-- Download Button -->
-              <button
-                (click)="downloadSong(result)"
-                class="btn-icon text-purple-600 hover:text-purple-700"
-              >
-                <i
-                  class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"
-                ></i>
-              </button>
-              }
-            </div>
-          </div>
-        </div>
+        <app-song-item
+  *ngFor="let result of searchResults()"
+  [song]="result"
+  [modePage]="'down-page'"
+  [isDownloaded]="isDownloaded(result.id)"
+  [isDownloading]="isDownloading(result.id)"
+  [downloadProgress]="getDownloadProgress(result.id)"
+  (download)="downloadSong(result)"
+  (pauseDownload)="pauseDownload(result.id)"
+  (cancelDownload)="cancelDownload(result.id)"
+/>
       </div>
       }
       <!-- No Results -->
@@ -186,95 +141,11 @@
         sử
       </p>
     </div>
-  </div>
-  @if(searchHistoryItem().length > 0){
-  <div class="h-3/5">
-    <div class="space-y-3 h-full">
-      @if(searchQuery().length >= 2 &&
-      !downloadService.validateYoutubeUrl(searchQuery())) {
-      <h3
-        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
-      >
-        <i class="fa-solid fa-filter mr-2"></i> Kết quả tìm kiếm "{{
-        searchQuery() }}"
-      </h3>
-      } @else {
-      <h3
-        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
-      >
-        <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
-      </h3>
-      }
-      <div class="h-full overflow-y-auto">
-        <div class="space-y-2 px-4">
-          <div
-            *ngFor="let song of searchHistoryItem()"
-            class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
-          >
-            <div class="flex items-center space-x-3">
-              <!-- Thumbnail -->
-              <img
-                [src]="song.thumbnail_url || 'assets/images/musical-note.webp'"
-                [alt]="song.title"
-                 (error)="onImageError($event)"
-                class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-purple-500"
-              />
 
-              <!-- Song Info -->
-              <div class="flex-1 min-w-0">
-                <h4
-                  class="font-medium text-gray-900 dark:text-gray-100 truncate"
-                >
-                  {{ song.title }}
-                </h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {{ song.artist }}
-                </p>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
-                  {{ song.duration_formatted }}
-                </p>
-              </div>
-
-              <!-- Download Status -->
-              <div class="flex-shrink-0">
-                @if(isDownloaded(song.songId)) {
-                <!-- Already Downloaded -->
-                <div class="text-green-600">
-                  <i class="fa-solid fa-check-circle text-lg"></i>
-                </div>
-                } @else if(isDownloading(song.songId)) {
-                <!-- Currently Downloading -->
-                <div class="text-center min-w-[60px]">
-                  <div
-                    class="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"
-                  ></div>
-                  <p class="text-xs text-purple-600 mt-1">
-                    {{ getDownloadProgress(song.songId) }}%
-                  </p>
-                </div>
-                } @else {
-                <!-- Download Button -->
-                <button
-                  (click)="downloadFromHistory(song)"
-                  class="btn-icon text-purple-600 hover:text-purple-700"
-                >
-                  <i
-                    class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-purple-300 to-pink-500 bg-clip-text text-transparent"
-                  ></i>
-                </button>
-                }
-              </div>
-            </div>
-          </div>
-          <div class="h-[110px]"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  } @else if(searchQuery().length >= 2 &&
+    @if(searchQuery().length >= 2 &&
   !downloadService.validateYoutubeUrl(searchQuery()) && !isSearching()) {
   <!-- No search results found for text search -->
-  <div class="h-full flex flex-col items-start justify-center px-4">
+  <div class=" flex flex-col items-start justify-center px-4">
     <div class="text-center">
       <i
         class="fa-solid fa-search text-6xl text-gray-300 dark:text-gray-600 mb-4"
@@ -309,6 +180,45 @@
             <i class="fa-solid fa-edit mr-1"></i>
             Sửa từ khóa
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  </div>
+  @if(searchHistoryItem().length > 0){
+  <div class="h-3/5">
+    <div class="space-y-3 h-full">
+      @if(searchQuery().length >= 2 &&
+      !downloadService.validateYoutubeUrl(searchQuery())) {
+      <h3
+        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
+      >
+        <i class="fa-solid fa-filter mr-2"></i> Kết quả tìm kiếm "{{
+        searchQuery() }}"
+      </h3>
+      } @else {
+      <h3
+        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
+      >
+        <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
+      </h3>
+      }
+      <div class="h-full overflow-y-auto">
+        <div class="space-y-2 px-4">
+         <app-song-item
+  *ngFor="let song of searchHistoryItem()"
+  [song]="song"
+  [modePage]="'down-page'"
+  [isDownloaded]="isDownloaded(song.songId)"
+  [isDownloading]="isDownloading(song.songId)"
+  [downloadProgress]="getDownloadProgress(song.songId)"
+  (download)="downloadFromHistory(song)"
+  (pauseDownload)="pauseDownload(song.songId)"
+  (cancelDownload)="cancelDownload(song.songId)"
+/>
+          <div class="h-[110px]"></div>
         </div>
       </div>
     </div>

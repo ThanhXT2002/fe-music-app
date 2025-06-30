@@ -336,6 +336,8 @@ export class DownloadService {
     try {
       // Step 1: Download audio file (70% of total progress)
       this.updateDownloadProgress(id, 10, 'downloading');
+      // Fake progress to 50% for audio download (2.5s)
+      await this.animateProgress(id, 10, 50, 2500);
 
       console.log('🎵 Downloading audio from:', songData.audio_url);
       const audioBlob = await firstValueFrom(
@@ -356,10 +358,10 @@ export class DownloadService {
       if (signal.aborted) return;
       // Audio downloaded successfully
 
-      totalProgress = 50;
-      this.updateDownloadProgress(id, totalProgress);
-
       // Step 2: Download thumbnail (20% of total progress) - optional
+      // Animate progress from 50 to 70% (0.8s)
+      await this.animateProgress(id, 50, 70, 800);
+
       let thumbnailBlob: Blob | null = null;
       try {
         console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);
@@ -376,7 +378,6 @@ export class DownloadService {
               timeout(30000) // 30 seconds timeout for thumbnail
             )
         );
-
         // Thumbnail downloaded successfully
       } catch (thumbError) {
         console.warn(
@@ -386,10 +387,11 @@ export class DownloadService {
         // Continue without thumbnail - this is not critical
       }
 
-      totalProgress = 70;
-      this.updateDownloadProgress(id, totalProgress);
+      // Step 3: Save audio to IndexedDB (15% of total progress)
+      // Animate progress from 70 to 85% (0.8s)
+      await this.animateProgress(id, 70, 85, 800);
 
-      if (signal.aborted) return; // Step 3: Save audio to IndexedDB (15% of total progress)
+      if (signal.aborted) return;
       console.log('💾 Saving audio to IndexedDB...');
       console.log('📊 Audio blob info:', {
         size: audioBlob.size,
@@ -435,8 +437,10 @@ export class DownloadService {
         // Audio file saved successfully on retry
       }
 
-      totalProgress = 85;
-      this.updateDownloadProgress(id, totalProgress); // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      // Animate progress from 85 to 100% (0.6s)
+      await this.animateProgress(id, 85, 100, 600);
+
       if (thumbnailBlob) {
         console.log('💾 Saving thumbnail to IndexedDB...');
         try {
@@ -463,8 +467,7 @@ export class DownloadService {
         );
       }
 
-      totalProgress = 100;
-      this.updateDownloadProgress(id, totalProgress); // Complete download (no filePath needed since we use IndexedDB for all platforms)
+      this.updateDownloadProgress(id, 100); // Ensure hits 100%
       await this.completeDownload(id, undefined);
     } catch (error) {
       if (signal.aborted) {
@@ -491,6 +494,38 @@ export class DownloadService {
       console.error('❌ Web download error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Animate progress between two values over a given duration.
+   */
+  private animateProgress(
+    id: string,
+    from: number,
+    to: number,
+    duration: number
+  ) {
+    const stepTime = 16; // ms (60fps)
+    const steps = duration / stepTime;
+    let current = from;
+    const increment = (to - from) / steps;
+
+    return new Promise<void>((resolve) => {
+      const timer = setInterval(() => {
+        current += increment;
+        if (
+          (increment > 0 && current >= to) ||
+          (increment < 0 && current <= to)
+        ) {
+          current = to;
+          clearInterval(timer);
+          this.updateDownloadProgress(id, Math.round(current));
+          resolve();
+        } else {
+          this.updateDownloadProgress(id, Math.round(current));
+        }
+      }, stepTime);
+    });
   }
   /**
    * Lưu bài hát vào database

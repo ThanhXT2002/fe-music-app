@@ -11,141 +11,24 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Song } from '../../interfaces/song.interface';
-import { IonIcon } from '@ionic/angular/standalone';
+import { IonIcon, IonReorder } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
-import { apps } from 'ionicons/icons';
+import { apps, reorderThreeOutline } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
 
 @Component({
   selector: 'app-song-item',
-  template: `
-    <div
-      (click)="onPlay()"
-      (contextmenu)="onShowMenu($event)"
-      class="rounded-lg px-3 py-2 shadow-sm border border-gray-300 dark:border-gray-400 mb-2 transition-all duration-300 cursor-pointer  relative"
-      [ngClass]="{
-        'bg-pink-100/40 dark:bg-violet-900/40 bg-opacity-60  border-2 border-pink-300 dark:border-purple-500':
-          isCurrentSong,
-        'scale-[0.99]': isCurrentSong && isThisSongPlaying,
-        'hover:shadow-md': !isCurrentSong,
-      }"
-    >
-      <div class="liquid-glass-bg !rounded-lg">
-        <div class="liquid-glass-blur !rounded-lg"></div>
-        <div class="liquid-glass-highlight !rounded-lg"></div>
-      </div>
-
-      <div class="flex items-center space-x-3  relative z-10  rounded-lg">
-        <!-- Thumbnail -->
-        <img
-          [src]="song.thumbnail || 'assets/images/musical-note.webp'"
-          [alt]="song.title"
-          (error)="onImageError($event)"
-          class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2  shadow-2xl shadow-rose-500"
-          [ngClass]="{
-            'spin-with-fill border-lime-500': isThisSongPlaying,
-            'spin-paused border-purple-500': !isThisSongPlaying,
-            'border-blue-500': isCurrentSong && !isThisSongPlaying
-          }"
-        />
-        <!-- Song Info -->
-        <div class="flex-1 min-w-0">
-          <h4
-            class="font-medium truncate transition-colors duration-300"
-            [ngClass]="{
-              'text-pink-700 dark:text-pink-200': isCurrentSong,
-              'text-gray-900 dark:text-gray-100': !isCurrentSong
-            }"
-          >
-            {{ song.title }}
-          </h4>
-          <p
-            class="text-sm truncate transition-colors duration-300"
-            [ngClass]="{
-               'text-pink-500 dark:text-pink-100': isCurrentSong,
-              'text-gray-600 dark:text-gray-400': !isCurrentSong
-            }"
-          >
-            {{ song.artist }}
-          </p>
-          <p
-            class="text-xs"
-            [ngClass]="{
-              'text-pink-500 dark:text-pink-100': isCurrentSong,
-              'text-gray-600 dark:text-gray-400': !isCurrentSong
-            }"
-          >
-            {{ song.duration_formatted }}
-          </p>
-        </div>
-        <!-- Action Buttons -->
-        <div class="flex-shrink-0 flex justify-end items-center space-x-2">
-          <!-- ✨ Remove Button (for user albums) -->
-          <button
-            *ngIf="showRemoveButton"
-            (click)="onRemoveSong($event)"
-            class="w-8 h-8 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full transition-colors text-red-500 hover:text-red-600"
-            title="Remove from album"
-          >
-            <i class="fas fa-times text-sm"></i>
-          </button>
-
-          <!-- Menu Button -->
-          <button
-            (click)="onShowMenu($event)"
-            class="w-10 h-10 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 dark:text-gray-500"
-          >
-            <!-- Show playing indicator if this song is currently playing -->
-            <div
-              *ngIf="isThisSongPlaying"
-              class="text-blue-500 playing-indicator"
-            >
-              <!-- <i class="fas fa-volume-up text-lg"></i> -->
-              <app-lottie-equalizer
-                *ngIf="isThisSongPlaying"
-                [width]="20"
-                [height]="20"
-                cssClass="playing"
-              >
-              </app-lottie-equalizer>
-            </div>
-            <!-- Show menu icon if not playing -->
-            <ion-icon *ngIf="!isThisSongPlaying" name="apps"></ion-icon>
-          </button>
-        </div>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      .song-item:active {
-        transform: scale(0.98);
-      }
-
-      /* Animation cho playing song */
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.7;
-        }
-      }
-
-      .playing-indicator {
-        animation: pulse 1.5s ease-in-out infinite;
-      }
-    `,
-  ],
-  imports: [CommonModule, IonIcon, LottieEqualizerComponent],
+  templateUrl: './song-item.component.html',
+  styleUrls: ['./song-item.component.scss'],
+  imports: [IonReorder, CommonModule, IonIcon, LottieEqualizerComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SongItemComponent implements OnInit {
-  @Input() song!: Song;
+  @Input() modePage: 'list-page' | 'current-play' | 'down-page' = 'list-page';
+  @Input() song!: any;
   @Input() showAlbum: boolean = true;
   @Input() showArtist: boolean = true;
   @Input() playlist: Song[] = [];
@@ -162,12 +45,32 @@ export class SongItemComponent implements OnInit {
   @Output() removeSong = new EventEmitter<Song>(); // ✨ Remove song event
   currentSong: Song | null = null;
   isPlaying = false;
+
+  // -- Download state:
+  @Input() isDownloaded: boolean = false;
+  @Input() isDownloading: boolean = false;
+  @Input() downloadProgress: number = 0;
+  @Output() download = new EventEmitter<any>();
+  @Output() pauseDownload = new EventEmitter<any>();
+  @Output() resumeDownload = new EventEmitter<any>();
+  @Output() cancelDownload = new EventEmitter<any>();
+
+  get isCurrentPlayPage(): boolean {
+    return this.modePage === 'current-play';
+  }
+  get isDownPage(): boolean {
+    return this.modePage === 'down-page';
+  }
+  get isListPage(): boolean {
+    return this.modePage === 'list-page';
+  }
+
   constructor(
     private audioPlayerService: AudioPlayerService,
     private cdr: ChangeDetectorRef,
     private router: Router
   ) {
-    addIcons({ apps });
+    addIcons({ apps, reorderThreeOutline });
 
     // Use effect to reactively update when playback state changes
     effect(() => {
@@ -192,19 +95,24 @@ export class SongItemComponent implements OnInit {
   get isThisSongPlaying(): boolean {
     return this.isCurrentSong && this.audioPlayerService.isPlaying();
   }
+
   onPlay() {
-    // Nếu song này đang được phát (active), thì mở player page
-    if (this.isCurrentSong) {
+    this.isCurrentSong ? this.handleCurrentSong() : this.playNewSong();
+  }
+
+  private handleCurrentSong() {
+    if (this.isListPage) {
       this.router.navigate(['/player']);
-      this.openPlayer.emit();
-    } else {
-      // Nếu không phải song đang phát, thì phát bài hát này
-      this.play.emit({
-        song: this.song,
-        playlist: this.playlist,
-        index: this.index,
-      });
     }
+    this.openPlayer.emit();
+  }
+
+  private playNewSong() {
+    this.play.emit({
+      song: this.song,
+      playlist: this.playlist,
+      index: this.index,
+    });
   }
 
   onShowMenu(event: Event) {

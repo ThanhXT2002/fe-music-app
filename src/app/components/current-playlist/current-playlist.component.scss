@@ -1,2 +1,35 @@
 
 
+.bg-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  @apply modeDarkLight;
+}
+
+.img-top {
+  position: absolute;
+
+  top:-100px;
+  right: 0;
+  width: 350px; /* thu nhỏ */
+  height: auto;
+  opacity: 0.9;
+}
+
+.img-bottom {
+  position: absolute;
+  left: 0;
+  bottom:20px;
+  width: 350px; /* thu nhỏ */
+  height: auto;
+  opacity: 0.9;
+}
+
+.blur-overlay {
+  @apply absolute inset-0 backdrop-blur-md dark:backdrop-blur-xl z-[1]
+}
