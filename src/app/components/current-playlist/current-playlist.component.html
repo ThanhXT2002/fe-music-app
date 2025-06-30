@@ -1,6 +1,4 @@
-<div
-  class="current-playlist-container h-full flex flex-col bg-gray-50 dark:bg-gray-900"
->
+<div class="current-playlist-container h-full flex flex-col modeDarkLight">
   <!-- Header -->
   <div
     class="bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 border-b h-[25%] relative"
@@ -17,7 +15,7 @@
     <div class="relative z-10 py-4 px-4 flex flex-col justify-between h-full">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-bold text-white">Danh sách phát hiện tại</h2>
+          <h2 class="text-lg font-semibold text-white">Danh sách phát hiện tại</h2>
           <p class="text-sm text-gray-200" *ngIf="currentPlaylist().length > 0">
             {{ currentPlaylist().length }} bài hát •
             {{ getCurrentSongIndex() + 1 }}/{{ currentPlaylist().length }}
@@ -45,7 +43,7 @@
       </div>
       <div *ngIf="currentSong()">
         <h4
-          class="font-extrabold text-white text-lg max-h-[56px] overflow-hidden text-ellipsis"
+          class="font-bold text-white text-lg max-h-[56px] overflow-hidden text-ellipsis"
         >
           {{ currentSong()!.title }}
         </h4>
@@ -67,11 +65,10 @@
           (click)="togglePlayPause()"
           class="!w-10 !h-10 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105"
         >
-          @if (!isPlaying()) {
-          <i class="fas fa-play text-3xl"></i>
-          } @else {
-          <i class="fas fa-pause text-3xl"></i>
-          }
+          <i
+            class="fas text-3xl"
+            [ngClass]="isPlaying() ? 'fa-pause' : 'fa-play'"
+          ></i>
         </button>
 
         <!-- Next -->
@@ -99,7 +96,7 @@
   </div>
 
   <!-- Content -->
-  <div class="flex-1 overflow-y-auto">
+  <ion-content class="flex-1">
     <!-- Playlist -->
     <div class="px-3 py-2">
       <div *ngIf="currentPlaylist().length === 0" class="text-center py-16">
@@ -113,77 +110,70 @@
           Chọn bài hát để bắt đầu phát nhạc
         </p>
       </div>
-      <div
-        *ngIf="currentPlaylist().length > 0"
-        class="space-y-1"
-        cdkDropList
-        (cdkDropListDropped)="onDrop($event)"
-      >        <div
-          *ngFor="
-            let song of currentPlaylist();
-            let i = index;
-            trackBy: trackBySongId
-          "
-          class="relative"
-          cdkDrag
-          [cdkDragDisabled]="!allowDragIndexes.has(i)"
-          [cdkDragData]="song"
-          (cdkDragStarted)="onDragStart($event)"
-          (cdkDragEnded)="onDragEnd($event)"
+      <div *ngIf="currentPlaylist().length > 0" class="space-y-1">
+        <ion-reorder-group
+          [disabled]="false"
+          (ionItemReorder)="onIonReorder($event)"
         >
-          <!-- Song Item with Custom Styling for Current -->
           <div
-            [class]="getSongItemClass(song, i)"
-            class="song-item rounded-lg transition-all duration-200 cursor-pointer group relative z-10"
-
-            (click)="playSong(song, i)"
-            (touchstart)="onTouchStart($event, i)"
-            (touchend)="onTouchEnd($event, i)"
+            *ngFor="
+              let song of currentPlaylist();
+              let i = index;
+              trackBy: trackBySongId
+            "
           >
-            <div class="flex items-center space-x-3 p-3">
-              <!-- Index/Playing Indicator -->
-              <div class="w-8 flex items-center justify-center">
-                <span class="text-sm text-gray-400">{{ i + 1 }}</span>
-              </div>
+            <!-- Song Item with Custom Styling for Current -->
+            <div
+              class="rounded-lg transition-all duration-200 cursor-pointer border-2 relative z-10 my-2"
+              [ngClass]="getSongItemClass(song, i)"
+              (click)="playSong(song, i)"
+            >
+              <div class="flex items-center space-x-3 py-3 px-2">
+                <!-- Thumbnail -->
+                <img
+                  [src]="song.thumbnail || 'assets/images/musical-note.webp'"
+                  [alt]="song.title"
+                  (error)="onImageError($event)"
+                  class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2"
+                   [ngClass]="getThumbnailClass(song)"
+                />
 
-              <!-- Thumbnail -->
-              <img
-                [src]="song.thumbnail || 'assets/images/musical-note.webp'"
-                [alt]="song.title"
-                 (error)="onImageError($event)"
-                class="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-              />
-
-              <!-- Song Info -->
-              <div class="flex-1 min-w-0">
-                <h4
-                  [class]="
-                    isCurrentSong(song)
-                      ? 'text-purple-600 dark:text-purple-400'
-                      : 'text-gray-900 dark:text-white'
-                  "
-                  class="font-medium truncate"
-                >
-                  {{ song.title }}
-                </h4>
-                <p
-                  [class]="
-                    isCurrentSong(song)
-                      ? 'text-purple-500 dark:text-purple-300'
-                      : 'text-gray-600 dark:text-gray-400'
-                  "
-                  class="text-sm truncate"
-                >
-                  {{ song.artist }}
-                </p>
+                <!-- Song Info -->
+                <div class="flex-1 min-w-0">
+                  <h4
+                    [class]="
+                      isCurrentSong(song)
+                        ? 'text-purple-600 dark:text-purple-400'
+                        : 'text-gray-900 dark:text-white'
+                    "
+                    class="font-medium truncate"
+                  >
+                    {{ song.title }}
+                  </h4>
+                  <p
+                    [class]="
+                      isCurrentSong(song)
+                        ? 'text-purple-500 dark:text-purple-300'
+                        : 'text-gray-600 dark:text-gray-400'
+                    "
+                    class="text-sm truncate"
+                  >
+                    {{ song.artist }}
+                  </p>
+                </div>
+                <ion-reorder slot="end" >
+                  <ion-icon
+                  class="text-gray-500 dark:text-gray-400"
+                  name="reorder-three-outline" size="large" ></ion-icon>
+                </ion-reorder>
               </div>
             </div>
           </div>
-        </div>
+        </ion-reorder-group>
       </div>
     </div>
 
     <!-- Bottom Spacing -->
     <div class="h-4"></div>
-  </div>
+  </ion-content>
 </div>

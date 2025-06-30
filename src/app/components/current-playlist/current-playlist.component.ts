@@ -4,7 +4,6 @@ import {
   OnDestroy,
   effect,
   inject,
-  signal,
   computed,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
@@ -14,22 +13,24 @@ import {
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Song } from 'src/app/interfaces/song.interface';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject } from 'rxjs';
 import { DatabaseService } from 'src/app/services/database.service';
+
 import {
-  CdkDragDrop,
-  moveItemInArray,
-  DragDropModule,
-  CdkDragStart,
-  CdkDragEnd,
-} from '@angular/cdk/drag-drop';
+  IonReorderGroup,
+  IonReorder,
+  IonContent,
+  IonIcon,
+} from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { reorderThreeOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [IonIcon, IonReorderGroup, IonReorder, IonContent, CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
@@ -40,10 +41,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
   // Output để thông báo trạng thái drag cho parent component
   @Output() dragActive = new EventEmitter<boolean>();
-
-  allowDragIndexes = new Set<number>();
-  private longPressTimeout: any = null;
-  private readonly LONG_PRESS_DURATION = 500; // ms
 
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
@@ -102,11 +99,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         this.handlePlayerAction
       );
     }
+
+    addIcons({ reorderThreeOutline });
   }
-  ngOnInit() {
-    // No need to manually assign since we're using signals directly
-    // Signals will automatically update the UI when values change
-  }
+  ngOnInit() {}
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -137,17 +133,18 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   isCurrentSong(song: Song): boolean {
     return this.currentSong()?.id === song.id;
   }
+
   // Get CSS class for song item
   getSongItemClass(song: Song, index: number): string {
     const isActive = this.isCurrentSong(song);
-    const baseClass = 'transition-all duration-200';
-
     if (isActive) {
-      return `${baseClass} bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700`;
+      return `bg-purple-50 dark:bg-purple-900/20 border-purple-500 dark:border-purple-700`;
     }
 
-    return `${baseClass} hover:bg-gray-50 dark:hover:bg-gray-800`;
-  } // Play specific song
+    return `borderItemDarkLight`;
+  }
+
+  // Play specific song
   async playSong(song: Song, index: number) {
     try {
       await this.audioPlayerService.playSong(
@@ -270,24 +267,22 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
   }
-  // Handle CDK drag drop for reordering
-  onDrop(event: CdkDragDrop<Song[]>) {
-    if (event.previousIndex !== event.currentIndex) {
+
+  onImageError(event: any): void {
+    event.target.src = './assets/images/musical-note.webp';
+  }
+
+  onIonReorder(event: any) {
+    const from = event.detail.from;
+    const to = event.detail.to;
+    if (from !== to) {
       const playlist = [...this.currentPlaylist()];
-      moveItemInArray(playlist, event.previousIndex, event.currentIndex);
+      const [moved] = playlist.splice(from, 1);
+      playlist.splice(to, 0, moved);
 
-      // Lưu lại bài hát, thời gian và trạng thái playing
       const currentSong = this.currentSong();
-      const currentTime = this.currentTime();
-      const wasPlaying = this.isPlaying();
-      let newCurrentIndex = this.audioPlayerService.currentIndex();
+      let newCurrentIndex = playlist.findIndex((s) => s.id === currentSong?.id);
 
-      if (currentSong) {
-        newCurrentIndex = playlist.findIndex(
-          (song) => song.id === currentSong.id
-        );
-      }
-      // Nếu bài hát không đổi, chỉ reorder in place để không reset audio
       if (
         currentSong &&
         playlist[newCurrentIndex] &&
@@ -297,54 +292,21 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
           playlist,
           newCurrentIndex
         );
-        // KHÔNG gọi seek hoặc togglePlayPause nữa để đảm bảo hoàn toàn liền mạch
       } else {
-        // Nếu currentSong thay đổi (trường hợp hiếm), fallback về setPlaylist
         this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
-        setTimeout(() => {
-          if (this.currentSong()?.id === currentSong?.id) {
-            this.audioPlayerService.seek(currentTime);
-            if (wasPlaying && !this.isPlaying()) {
-              this.audioPlayerService.togglePlayPause();
-            }
-          }
-        }, 100);
       }
     }
+    event.detail.complete();
+    this.cdr.detectChanges();
   }
 
-  // Handle CDK drag start
-  onDragStart(event: CdkDragStart) {
-    this.dragActive.emit(true);
-  }
-
-  // Handle CDK drag end
-  onDragEnd(event: CdkDragEnd) {
-    this.dragActive.emit(false);
-  }
-
-  // Handle touch events for immediate visual feedback
-  onTouchStart(event: TouchEvent, index: number) {
-    this.longPressTimeout = setTimeout(() => {
-      this.allowDragIndexes.add(index);
-      // Kích hoạt lại detectChanges nếu đang dùng OnPush
-      this.cdr.detectChanges();
-    }, this.LONG_PRESS_DURATION);
-  }
-
-onTouchEnd(event: TouchEvent, index: number) {
-  clearTimeout(this.longPressTimeout);
-  this.longPressTimeout = null;
-  if (this.allowDragIndexes.has(index)) {
-    // Nếu đã activate drag, khi kết thúc sẽ tắt drag cho index này
-    setTimeout(() => {
-      this.allowDragIndexes.delete(index);
-      this.cdr.detectChanges();
-    }, 500); // Chờ một chút để drag kết thúc, có thể chỉnh lại
-  }
-}
-
-  onImageError(event: any): void {
-    event.target.src = './assets/images/musical-note.webp';
+  getThumbnailClass(song: Song): any {
+    const isCurrent = this.isCurrentSong(song);
+    return {
+      'spin-with-fill': isCurrent,
+      'spin-paused': !this.isPlaying() && isCurrent,
+      'border-purple-500 dark:border-purple-700': isCurrent,
+      borderItemDarkLight: !isCurrent,
+    };
   }
 }

@@ -1,4 +1,11 @@
-import { Component, effect, OnDestroy, inject, ViewChild, AfterViewInit, ChangeDetectorRef, ElementRef } from '@angular/core';
+import {
+  Component,
+  effect,
+  OnDestroy,
+  ViewChild,
+  AfterViewInit,
+  ElementRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { Song } from 'src/app/interfaces/song.interface';
@@ -15,8 +22,7 @@ import {
   IonModal,
   IonNav,
   IonRefresher,
-  IonRefresherContent,
-  IonLabel,
+  IonRefresherContent
 } from '@ionic/angular/standalone';
 import { SearchComponent } from 'src/app/components/search(trash)/search.component';
 import { Platform } from '@ionic/angular';
@@ -24,7 +30,7 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { BtnIconComponent } from "../../components/btn-icon/btn-icon.component";
+import { BtnIconComponent } from '../../components/btn-icon/btn-icon.component';
 
 @Component({
   selector: 'app-layout',
@@ -43,21 +49,14 @@ import { BtnIconComponent } from "../../components/btn-icon/btn-icon.component";
     IonNav,
     IonRefresherContent,
     CurrentPlaylistComponent,
-    BtnIconComponent
-],
+    BtnIconComponent,
+  ],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
 })
 export class LayoutComponent implements OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
-  private audioPlayerService = inject(AudioPlayerService);
-  private router = inject(Router);
-  private searchService = inject(SearchService);
-  private platform = inject(Platform);
-  private refreshService = inject(RefreshService);
-  private playlistModalService = inject(GlobalPlaylistModalService);
-
   showSearch = false;
   isVisible = false;
   searchQuery = '';
@@ -73,7 +72,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
 
   hTookbar: string =
-    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';  @ViewChild('navSearch') private navSearch!: IonNav;
+    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';
+  @ViewChild('navSearch') private navSearch!: IonNav;
   @ViewChild('navPlayer') private navPlayer!: IonNav;
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;
   @ViewChild('playerModal', { static: false }) playerModal!: IonModal;
@@ -81,9 +81,21 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   @ViewChild(IonRefresher) refresher!: IonRefresher;
   @ViewChild(IonContent, { read: ElementRef }) contentEl!: ElementRef;
 
-
   refresherEnabled = true;
   topRegionHeight = 100;
+
+  canDismiss = false;
+
+  constructor(
+    private audioPlayerService: AudioPlayerService,
+    private router: Router,
+    private searchService: SearchService,
+    private platform: Platform,
+    private refreshService: RefreshService,
+    private playlistModalService: GlobalPlaylistModalService
+  ) {
+    // Đơn giản hóa - không cần subscribe signals phức tạp nữa
+  }
 
   onWillPresentSearch() {
     this.navSearch.setRoot(SearchComponent);
@@ -99,7 +111,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
   openPlayerModal() {
     this.playerModal.present();
-  }  openPlaylistModal() {
+  }
+  openPlaylistModal() {
     this.playlistModal.present();
   }
 
@@ -138,20 +151,22 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     this.playlistModalService.setModal(this.playlistModal);
 
     // Lắng nghe touchstart trên vùng ion-content
-    this.contentEl.nativeElement.addEventListener('touchstart', (event: TouchEvent) => {
-      const startY = event.touches[0].clientY;
-      // Chỉ bật refresher nếu vuốt bắt đầu từ vùng top
-      if (this.refresher) {
-        this.refresher.disabled = startY > this.topRegionHeight;
+    this.contentEl.nativeElement.addEventListener(
+      'touchstart',
+      (event: TouchEvent) => {
+        const startY = event.touches[0].clientY;
+        // Chỉ bật refresher nếu vuốt bắt đầu từ vùng top
+        if (this.refresher) {
+          this.refresher.disabled = startY > this.topRegionHeight;
+        }
       }
-    });
+    );
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
 
   async togglePlayPause() {
     await this.audioPlayerService.togglePlayPause();
@@ -204,8 +219,5 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     await this.audioPlayerService.playSong(song);
     this.clearSearch();
     this.showSearch = false;
-  }
-  constructor() {
-    // Đơn giản hóa - không cần subscribe signals phức tạp nữa
   }
 }

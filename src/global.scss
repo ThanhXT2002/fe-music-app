@@ -388,6 +388,10 @@ ion-backdrop {
   .itemDarkLight {
     @apply bg-white dark:bg-gray-800;
   }
+
+  .borderItemDarkLight {
+    @apply border-gray-300 dark:border-gray-700;
+  }
 }
 
 

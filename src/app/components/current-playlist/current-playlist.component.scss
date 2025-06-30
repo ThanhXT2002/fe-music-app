@@ -1,29 +1,2 @@
-// Basic styles for song items and CDK drag & drop
-.song-item {
-  position: relative;
-  transition: background-color 0.3s ease;
-}
-
-// CDK Drag Drop styles
-.cdk-drag-preview {
-  @apply  box-border shadow-black/50 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border rounded-lg overflow-hidden border-purple-500;
-}
-
-
-.cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-}
-
-.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
-}
-
-.song-item:active,
-.song-item.touch-active {
-  border: 2px solid rgba(147, 51, 234, 0.7) !important;
-  background: rgba(147, 51, 234, 0.1) !important;
-  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.2);
-}
-
 
 

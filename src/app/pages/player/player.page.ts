@@ -156,20 +156,20 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   openPlaylist() {
-    // Check if we have modal context (when opened as modal from other pages)
+    // Kiểm tra xem có đang ở trong ngữ cảnh modal không (khi được mở dưới dạng modal từ trang khác)
     this.modalCtrl
       .getTop()
       .then((modal) => {
         if (modal) {
-          // We're in a modal context, use the global modal service
+          // Đang ở trong ngữ cảnh modal, sử dụng global modal service
           this.playlistModalService.open();
         } else {
-          // We're in direct navigation, create and present modal manually
+          // Đang ở trong điều hướng trực tiếp, tự tạo và hiển thị modal
           this.presentPlaylistModal();
         }
       })
       .catch(() => {
-        // Fallback: try direct modal creation
+        // Trường hợp dự phòng: thử tạo modal trực tiếp
         this.presentPlaylistModal();
       });
   }
@@ -186,6 +186,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
         initialBreakpoint: 0.6,
         handle: true,
         backdropDismiss: true,
+        mode: 'ios',
       });
 
       await modal.present();
