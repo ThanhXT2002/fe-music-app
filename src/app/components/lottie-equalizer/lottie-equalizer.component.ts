@@ -24,7 +24,8 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
 
     ::ng-deep ng-lottie svg {
       /* Màu tím (purple-500) cho icon mặc định */
-      filter: brightness(0) saturate(100%) invert(27%) sepia(98%) saturate(7458%) hue-rotate(243deg) brightness(105%) contrast(92%);
+      filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
+      animation: equalizer-pulse 0.8s ease-in-out infinite;
     }
 
     .playing ::ng-deep ng-lottie svg {

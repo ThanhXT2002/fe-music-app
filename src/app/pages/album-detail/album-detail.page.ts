@@ -6,7 +6,7 @@ import { Album, Song } from '../../interfaces/song.interface';
 import { DatabaseService } from '../../services/database.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { AlbumService } from '../../services/album.service'; // ✨ Add AlbumService
-import { SongItemComponent } from '../../components/song-item.component';
+import { SongItemComponent } from '../../components/song-item/song-item.component';
 
 @Component({
   selector: 'app-album-detail',

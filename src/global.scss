@@ -397,7 +397,7 @@ ion-backdrop {
 
 // Panel kính mờ Liquid Glass
 .liquid-glass-panel {
-  @apply rounded-xl shadow-xl mb-4 border border-gray-300 dark:border-gray-200 relative overflow-hidden ;
+  @apply rounded-xl shadow-xl border border-gray-300 dark:border-gray-200 relative overflow-hidden ;
 }
 
 // Overlay nền glass cho panel

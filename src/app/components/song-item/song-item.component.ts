@@ -10,13 +10,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Song } from '../interfaces/song.interface';
+import { Song } from '../../interfaces/song.interface';
 import { IonIcon } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
 import { apps } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { LottieEqualizerComponent } from './lottie-equalizer/lottie-equalizer.component';
+import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
 
 @Component({
   selector: 'app-song-item',
@@ -24,18 +24,20 @@ import { LottieEqualizerComponent } from './lottie-equalizer/lottie-equalizer.co
     <div
       (click)="onPlay()"
       (contextmenu)="onShowMenu($event)"
-      class="bg-white dark:bg-gray-800 rounded-lg px-3 py-2 shadow-sm border border-gray-200 dark:border-gray-700 mb-2 transition-all duration-300 cursor-pointer"
+      class="rounded-lg px-3 py-2 shadow-sm border border-gray-300 dark:border-gray-400 mb-2 transition-all duration-300 cursor-pointer  relative"
       [ngClass]="{
-        'bg-blue-50 dark:bg-violet-900/40 bg-opacity-60 backdrop-blur-lg border-2 border-pink-300 dark:border-purple-500':
+        'bg-pink-100/40 dark:bg-violet-900/40 bg-opacity-60  border-2 border-pink-300 dark:border-purple-500':
           isCurrentSong,
-
-        'scale-[0.98]': isCurrentSong && isThisSongPlaying,
+        'scale-[0.99]': isCurrentSong && isThisSongPlaying,
         'hover:shadow-md': !isCurrentSong,
-
       }"
-      [title]="isCurrentSong ? 'Click to open player' : 'Click to play'"
     >
-      <div class="flex items-center space-x-3">
+      <div class="liquid-glass-bg !rounded-lg">
+        <div class="liquid-glass-blur !rounded-lg"></div>
+        <div class="liquid-glass-highlight !rounded-lg"></div>
+      </div>
+
+      <div class="flex items-center space-x-3  relative z-10  rounded-lg">
         <!-- Thumbnail -->
         <img
           [src]="song.thumbnail || 'assets/images/musical-note.webp'"
@@ -79,7 +81,7 @@ import { LottieEqualizerComponent } from './lottie-equalizer/lottie-equalizer.co
           </p>
         </div>
         <!-- Action Buttons -->
-        <div class="flex-shrink-0 flex items-center space-x-2">
+        <div class="flex-shrink-0 flex justify-end items-center space-x-2">
           <!-- ✨ Remove Button (for user albums) -->
           <button
             *ngIf="showRemoveButton"
