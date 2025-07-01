@@ -1,0 +1,72 @@
+<div
+  (click)="onItemClick()"
+  class="liquid-glass-panel transition-all cursor-pointer"
+  [ngClass]="{
+    'liquid-glass-panel-active': isActive
+  }"
+>
+  <div class="liquid-glass-bg">
+    <div class="liquid-glass-blur"></div>
+    <div class="liquid-glass-highlight"></div>
+  </div>
+
+  <div class="liquid-glass-content">
+
+    <!-- Media Image - Unified Circle Design -->
+    <div class="relative mb-3">
+         <!-- Menu Button for user-created items -->
+    <div *ngIf="showMenu && item.isUserCreated" class="absolute -top-3 -right-3 z-10">
+      <button
+        (click)="onMenuClick($event)"
+        class="w-8 h-8 bg-black bg-opacity-20 hover:bg-opacity-40 rounded-full flex items-center justify-center text-white transition-all"
+      >
+        <i class="fas fa-ellipsis-v text-sm"></i>
+      </button>
+    </div>
+      <!-- Circle Image for Both Artist and Album -->
+      <div class="w-24 h-24 border-2 rounded-full flex items-center justify-center mx-auto relative overflow-hidden"
+           [ngClass]="{
+             'border-green-500': isActive,
+             'border-purple-500': !isActive
+           }">
+        <img
+          [src]="getImageSrc()"
+          class="h-full w-full rounded-full object-cover"
+          (error)="onImageError($event)"
+          [alt]="displayName"
+        >
+
+        <!-- Playing Overlay (for active state) -->
+        <div
+          *ngIf="isActive"
+          class="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full"
+        >
+          <div class="animate-pulse">
+            <i class="fas fa-music text-white text-lg"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Info -->
+    <div class="text-center">
+      <h3
+        class="liquid-glass-subtitle text-center truncate transition-colors mb-1"
+        [ngClass]="{
+          'text-purple-400 font-semibold': isActive
+        }"
+      >
+        {{ displayName }}
+      </h3>
+
+      <p
+        class="liquid-glass-description text-sm text-center transition-colors"
+        [ngClass]="{
+          'text-purple-300': isActive
+        }"
+      >
+        {{ displayInfo }}
+      </p>
+    </div>
+  </div>
+</div>

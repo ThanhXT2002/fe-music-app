@@ -68,63 +68,13 @@
         <!-- Artists -->
         <div *ngIf="activeTab === 'artists'">
           <div class="grid grid-cols-2 gap-4 mt-1">
-            <div
+            <app-media-card
               *ngFor="let artist of artists"
-              (click)="onPlayArtist(artist)"
-              class="liquid-glass-panel transition-all cursor-pointer"
-              [ngClass]="{
-                'liquid-glass-panel-active': isArtistActive(artist.name)
-              }"
-            >
-              <div class="liquid-glass-bg">
-                <div class="liquid-glass-blur"></div>
-                <div class="liquid-glass-highlight"></div>
-              </div>
-
-              <div class="liquid-glass-content">
-                <!-- ✅ Artist Thumbnail with Overlay -->
-                <div class="w-24 h-24 border-2 rounded-full flex items-center justify-center mx-auto mb-3 relative overflow-hidden"
-                     [ngClass]="{
-                       'border-green-500': isArtistActive(artist.name),
-                       'border-purple-500': !isArtistActive(artist.name)
-                     }">
-                  <img
-                    [src]="artist.thumbnail || 'assets/images/musical-note.webp'"
-                    class="h-full w-full rounded-full object-cover"
-                    alt=""
-                  >
-
-                  <!-- ✅ Playing Overlay -->
-                  <div
-                    *ngIf="isArtistActive(artist.name)"
-                    class="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full"
-                  >
-                    <div class="animate-pulse">
-                      <i class="fas fa-music text-white text-lg"></i>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- ✅ Artist Info with Active Styling -->
-                <h3
-                  class="liquid-glass-subtitle text-center truncate transition-colors"
-                  [ngClass]="{
-                    'text-purple-400 font-semibold': isArtistActive(artist.name)
-                  }"
-                >
-                  {{ artist.name }}
-                </h3>
-
-                <p
-                  class="liquid-glass-description text-sm text-center transition-colors"
-                  [ngClass]="{
-                    'text-purple-300': isArtistActive(artist.name)
-                  }"
-                >
-                  {{ artist.songCount }} bài - {{ artist.totalDurationFormatted }}
-                </p>
-              </div>
-            </div>
+              [item]="artist"
+              [isActive]="isArtistActive(artist.name)"
+              [type]="'artist'"
+              (itemClick)="onPlayArtist($event)"
+            ></app-media-card>
           </div>
           <div *ngIf="artists.length === 0" class="text-center py-12">
             <i

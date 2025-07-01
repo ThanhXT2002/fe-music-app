@@ -1,0 +1,37 @@
+/* Media Card unified styling */
+.liquid-glass-panel {
+  min-height: 160px; /* Consistent height for both artist and album cards */
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Hover effect for images */
+.liquid-glass-panel img {
+  transition: transform 0.3s ease;
+}
+
+.liquid-glass-panel:hover img {
+  transform: scale(1.02);
+}
+
+/* Active state for panels */
+.liquid-glass-panel-active {
+  background: rgba(76, 29, 149, 0.3) !important; /* bg-purple-900/30 */
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; /* shadow-lg */
+
+  .liquid-glass-bg {
+    opacity: 1 !important;
+  }
+
+  /* Disable hover effects when active */
+  &:hover {
+    transform: none !important;
+  }
+
+  &:hover img {
+    transform: none !important;
+  }
+}

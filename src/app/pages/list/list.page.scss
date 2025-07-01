@@ -5,19 +5,3 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-/* Custom active state for artist items */
-.liquid-glass-panel-active {
-  border-color: rgb(168 85 247) !important; /* purple border when active */
-  background: rgba(76, 29, 149, 0.3) !important; /* bg-purple-900/30 */
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) !important; /* shadow-lg */
-
-  .liquid-glass-bg {
-    opacity: 1 !important;
-  }
-}
-
-/* Artist item specific styling */
-.liquid-glass-panel {
-  min-height: 160px; /* ensure consistent height for artist cards */
-}

@@ -4,6 +4,8 @@ import {
   OnDestroy,
   ViewChild,
   ElementRef,
+  signal,
+  effect, // Add effect import
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -16,30 +18,24 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
 import { FormsModule } from '@angular/forms';
 import { routeAnimation } from 'src/app/shared/route-animation';
+import { MediaCardComponent } from "../../components/media-card/media-card.component";
 
 
 @Component({
   selector: 'app-albums',
   templateUrl: './albums.page.html',
-  styles: [
-    `
-      .album-card:active {
-        transform: scale(0.98);
-      }
-
-      .album-card:hover {
-        transform: translateY(-2px);
-      }
-    `,
-  ],
-  imports: [CommonModule, RouterLink, FormsModule],
-  animations: [routeAnimation],
+  styleUrls: ['./albums.page.scss'],
   standalone: true,
+  imports: [CommonModule, RouterLink, FormsModule, MediaCardComponent],
+  animations: [routeAnimation],
 })
 export class AlbumsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
   @ViewChild('albumNameInput') albumNameInput!: ElementRef<HTMLInputElement>;
+
+  // Track active album
+  activeAlbum = signal<string | null>(null);
 
   constructor(
     private audioPlayerService: AudioPlayerService,
@@ -47,7 +43,10 @@ export class AlbumsPage implements OnInit, OnDestroy {
     private refreshService: RefreshService,
     private albumService: AlbumService, // ✨ Inject AlbumService
     private alertController: AlertController // ✨ Inject AlertController
-  ) {}
+  ) {
+    // Setup effect to watch current song changes
+    this.setupCurrentSongWatcher();
+  }
 
   async ngOnInit() {
     // Restore scroll position if available
@@ -101,6 +100,19 @@ export class AlbumsPage implements OnInit, OnDestroy {
   openAlbum(album: Album) {
     // TODO: Navigate to album detail page
     console.log('Open album:', album.name);
+  }
+
+  // Wrapper methods for MediaCardComponent events
+  async onAlbumClick(item: any) {
+    const album = item as Album;
+    // Play album directly when clicked
+    if (album.songs.length > 0) {
+      await this.audioPlayerService.setPlaylist(album.songs, 0);
+    }
+  }
+
+  onAlbumMenuClick(event: {item: any, event: Event}) {
+    this.showAlbumContextMenu(event.item as Album, event.event);
   }
 
   formatDuration(seconds: number): string {
@@ -385,5 +397,27 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
   onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
+  }
+
+  // ✅ Setup effect to watch current song changes
+  private setupCurrentSongWatcher() {
+    effect(() => {
+      const currentSong = this.audioPlayerService.currentSong();
+      if (currentSong) {
+        // Find which album contains the current song
+        const currentAlbum = this.albumsState.albums.find(album =>
+          album.songs.some(song => song.id === currentSong.id)
+        );
+        this.activeAlbum.set(currentAlbum ? currentAlbum.name : null);
+      } else {
+        this.activeAlbum.set(null);
+      }
+    });
+  }
+
+  // ✨ Check if album is active
+  isAlbumActive(album: Album): boolean {
+    const active = this.activeAlbum();
+    return active === album.name;
   }
 }

@@ -31,3 +31,10 @@
 //   }
 // }
 
+
+
+::ng-deep ion-modal::part(handle) {
+  background-color: white !important;
+}
+
+

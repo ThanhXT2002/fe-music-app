@@ -20,13 +20,14 @@ import { Subject, takeUntil } from 'rxjs';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { BtnCustomComponent } from "../../components/btn-custom/btn-custom.component";
+import { MediaCardComponent } from "../../components/media-card/media-card.component";
 
 @Component({
   selector: 'app-list',
   templateUrl: './list.page.html',
   styleUrls: ['./list.page.scss'],
   standalone: true,
-  imports: [CommonModule, SongItemComponent, BtnCustomComponent],
+  imports: [CommonModule, SongItemComponent, BtnCustomComponent, MediaCardComponent],
   providers: [ModalController],
   animations: [routeAnimation]
 })
