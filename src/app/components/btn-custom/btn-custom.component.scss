@@ -1,0 +1,12 @@
+.liquid-glass-btn {
+  @apply relative flex items-center justify-center  shadow-xl overflow-hidden transition-all duration-200
+    bg-white/25 backdrop-blur-md saturate-150 hover:bg-white/40 active:bg-white/50 disabled:opacity-60;
+
+  // Dark mode Tailwind support
+  @apply dark:bg-white/10 dark:shadow-black/30 dark:hover:bg-white/20;
+}
+
+.liquid-glass-btn ion-icon,
+.liquid-glass-btn i {
+  @apply z-10 text-xl;
+}

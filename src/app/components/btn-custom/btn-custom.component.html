@@ -1,0 +1,11 @@
+<div  [ngClass]="rounded + ' ' + borderClass">
+  <button
+    (click)="onClick()"
+    [ngClass]="cssClass + ' ' + rounded"
+    [ngStyle]="{ height: height, width: width }"
+    [disabled]="disabled"
+  >
+    <i [ngClass]="icon" *ngIf="icon"></i>
+    <ng-content>{{text}}</ng-content>
+  </button>
+</div>

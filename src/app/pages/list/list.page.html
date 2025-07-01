@@ -3,28 +3,28 @@
   <div
     class=""
   >
-    <div class="flex overflow-x-auto scrollbar-hide">
-      <button
-        *ngFor="let tab of tabs"
-        (click)="onTabChange(tab)"
-        [class]="getTabClass(tab.id)"
-        class="flex-shrink-0 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap"
-      >
-        {{ tab.label }}
-      </button>
+    <div class="flex items-center justify-around scrollbar-hide mb-2">
+      @for (tab of tabs; track tab.id) {
+        <app-btn-custom
+          (click)="onTabChange(tab)"
+          [text]="tab.label"
+          [height]="'auto'"
+          [width]="'90px'"
+          [rounded]="'rounded-md'"
+          [borderClass]="'border border-gray-300 dark:border-gray-500 dark:border-opacity-70'"
+          [cssClass]="getTabClass(tab.id)"
+        >
+
+        </app-btn-custom>
+      }
     </div>
   </div>
   <!-- Content -->
   <div class="flex-1 h-full">
-    <div class="p-4">
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-        {{tabTitle}} @if(activeTab == 'all'){ ({{ allSongs.length }}) }
-      </h2>
-    </div>
     <div class="overflow-y-auto h-full" #scrollContainer>
       <div class="px-4">
         <!-- All Songs -->
-        <div *ngIf="activeTab === 'all'" class="mt-1">
+        <div *ngIf="activeTab === 'all'">
           <div class="space-y-2">
             <app-song-item
               *ngFor="let song of allSongs; let i = index; trackBy: trackBySongId"
@@ -41,7 +41,7 @@
         </div>
 
         <!-- Recently Played -->
-        <div *ngIf="activeTab === 'recent'">
+        <div *ngIf="activeTab === 'recent'" >
           <div class="space-y-2">
             <app-song-item
               *ngFor="let song of recentSongs; let i = index; trackBy: trackBySongId"
@@ -67,7 +67,7 @@
           </div>
         </div>        <!-- Artists -->
         <div *ngIf="activeTab === 'artists'">
-          <div class="grid grid-cols-2 gap-4 mt-1">
+          <div class="grid grid-cols-2 gap-4">
             <div
               *ngFor="let artist of artists"
               (click)="onPlayArtist(artist)"

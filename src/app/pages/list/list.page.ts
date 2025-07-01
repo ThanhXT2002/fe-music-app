@@ -19,13 +19,14 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { Subject, takeUntil } from 'rxjs';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 import { routeAnimation } from 'src/app/shared/route-animation';
+import { BtnCustomComponent } from "../../components/btn-custom/btn-custom.component";
 
 @Component({
   selector: 'app-list',
   templateUrl: './list.page.html',
   styleUrls: ['./list.page.scss'],
   standalone: true,
-  imports: [CommonModule, SongItemComponent],
+  imports: [CommonModule, SongItemComponent, BtnCustomComponent],
   providers: [ModalController],
   animations: [routeAnimation]
 })
@@ -246,18 +247,18 @@ export class ListPage implements OnInit, OnDestroy {
 
   getTabClass(tabId: string): string {
     const baseClasses =
-      'flex-shrink-0 px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap';
+      ' flex-shrink-0 px-2 py-1.5 text-sm font-medium transition-colors whitespace-nowrap dark:text-white';
 
     if (this.activeTab === tabId) {
       return (
         baseClasses +
-        ' text-purple-600 dark:text-purple-400 border-purple-600 dark:border-purple-400'
+        ' bg-pink-500/30 dark:bg-purple-500/50'
       );
     }
 
     return (
       baseClasses +
-      ' text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+      ' bg-white bg-opacity-20 text-black dark:text-white border-transparent'
     );
   }
 
