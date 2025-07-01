@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Platform } from '@ionic/angular';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-footer',
@@ -11,8 +13,16 @@ import { RouterModule } from '@angular/router';
 })
 export class FooterComponent implements OnInit {
 
-  constructor() { }
+  isShowingFooter: boolean = true;
 
-  ngOnInit() {}
+  constructor(private platform: Platform) {
+    if(Capacitor.isNativePlatform() || this.platform.is('pwa')) {
+      this.isShowingFooter = false
+    }
+   }
+
+  ngOnInit() {
+
+  }
 
 }

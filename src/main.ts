@@ -31,6 +31,7 @@ import { APP_INITIALIZER } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
+import { register as registerSwiperElements } from 'swiper/element/bundle';
 
 function initializeFirebaseAuth() {
   return async () => {
@@ -40,8 +41,9 @@ function initializeFirebaseAuth() {
     }
   };
 }
-
+registerSwiperElements()
 bootstrapApplication(AppComponent, {
+
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
@@ -69,6 +71,7 @@ bootstrapApplication(AppComponent, {
     provideLottieOptions({
       player: () => player,
     }),
+
   ],
 }).catch((error) => {
   console.error('Error initializing app:', error);
