@@ -1,19 +1,18 @@
 <div
   (click)="onPlay()"
   (contextmenu)="onShowMenu($event)"
-  class="rounded-lg px-3 py-2 shadow-sm border-2 border-gray-400 mb-2 transition-all duration-300 cursor-pointer relative"
+  class="song-item-container mb-2 transition-all duration-300 cursor-pointer relative"
   [ngClass]="{
-        'bg-violet-900/40 bg-opacity-60 border-purple-500':
-          isCurrentSong,
-        'hover:shadow-md': !isCurrentSong,
+        'song-item-active': isCurrentSong,
+        'song-item-hover': !isCurrentSong
       }"
 >
-  <div class="liquid-glass-bg !rounded-lg">
-    <div class="liquid-glass-blur !rounded-lg"></div>
-    <div class="liquid-glass-highlight !rounded-lg"></div>
+  <div class="song-item-glass-bg">
+    <div class="song-item-glass-blur"></div>
+    <div class="song-item-glass-highlight"></div>
   </div>
 
-  <div class="flex items-center space-x-3 relative z-10 rounded-lg">
+  <div class="flex items-center space-x-3 relative z-20 px-3 py-2">
     <!-- Thumbnail -->
     <img
       [src]="

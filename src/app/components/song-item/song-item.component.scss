@@ -16,3 +16,68 @@
 .playing-indicator {
   animation: pulse 1.5s ease-in-out infinite;
 }
+
+/* Song Item Liquid Glass Effect */
+.song-item-container {
+  position: relative;
+  border-radius: 0.5rem;
+  border: 2px solid rgb(156 163 175); /* border-gray-400 */
+  background: transparent;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  overflow: hidden;
+
+  &:hover:not(.song-item-active) {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+}
+
+.song-item-active {
+  border-color: rgb(168 85 247) !important; /* border-purple-500 */
+  background: rgba(76, 29, 149, 0.4) !important; /* bg-violet-900/40 - đúng màu violet */
+}
+
+.song-item-glass-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.song-item-active .song-item-glass-bg {
+  opacity: 1;
+}
+
+.song-item-glass-blur {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 0.5rem;
+}
+
+.song-item-glass-highlight {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.1) 30%,
+    rgba(255, 255, 255, 0.05) 70%,
+    transparent 100%
+  );
+  border-radius: 0.5rem 0.5rem 0 0;
+}
+
+

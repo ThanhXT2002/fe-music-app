@@ -1,6 +1,6 @@
 <div class="current-playlist-container h-full flex flex-col bg-black">
   <!-- Header -->
-  <div class="border-b h-[25%] relative bg-black">
+  <div class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600">
     <div class="absolute inset-0 opacity-50">
       @if (currentSong()?.thumbnail) {
       <img
@@ -85,7 +85,7 @@
           <span title="Thời gian còn lại">{{ durationTime() }}</span>
         </div>
         <!-- Progress Bar -->
-        <div class="w-full bg-gray-200 rounded-full h-1">
+        <div class="w-full bg-gray-300 rounded-full h-1">
           <div
             class="bg-purple-500 h-1 rounded-full transition-all duration-300"
             [style.width.%]="progressPercentage()"
