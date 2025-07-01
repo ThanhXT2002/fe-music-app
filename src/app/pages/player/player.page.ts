@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DatabaseService } from '../../services/database.service';
 import {
@@ -34,6 +35,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private audioPlayerService = inject(AudioPlayerService);
   private databaseService = inject(DatabaseService);
   private router = inject(Router);
+  private location = inject(Location);
   private modalCtrl = inject(ModalController);
   private themeService = inject(ThemeService);
   private gestureCtrl = inject(GestureController);
@@ -97,6 +99,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       this.swipeGesture.destroy();
     }
   }
+
+
   private createSwipeGesture() {
     if (!this.modalContent?.nativeElement) {
       return;
@@ -117,33 +121,24 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       console.error('Error creating swipe gesture:', error);
     }
   }
+
+
   private onSwipeMove(ev: any) {
-    // Chỉ cho phép vuốt xuống từ đầu trang (deltaY > 0 và startY gần top)
+    // Chỉ theo dõi khoảng cách kéo, không có hiệu ứng visual
     if (ev.deltaY > 0 && ev.startY < 100) {
-      const translateY = Math.min(ev.deltaY, 300); // Giới hạn khoảng cách tối đa
-      this.modalContent.nativeElement.style.transform = `translateY(${translateY}px)`;
-      this.modalContent.nativeElement.style.transition = 'none';
+      // Không làm gì cả, chỉ cho phép gesture tiếp tục
+      // Loại bỏ mọi hiệu ứng transform và opacity
     }
   }
+
   private onSwipeEnd(ev: any) {
     const threshold = 80; // Khoảng cách vuốt tối thiểu để đóng modal
 
     if (ev.deltaY > threshold && ev.startY < 100) {
-      // Đóng modal nếu vuốt đủ xa từ đầu trang
-      this.modalContent.nativeElement.style.transition = 'transform 0.3s ease';
-      this.modalContent.nativeElement.style.transform = 'translateY(100%)';
-      setTimeout(() => {
-        this.closeModal();
-      }, 300);
-    } else {
-      // Trở về vị trí ban đầu nếu không đủ xa
-      this.modalContent.nativeElement.style.transition = 'transform 0.3s ease';
-      this.modalContent.nativeElement.style.transform = 'translateY(0px)';
-
-      setTimeout(() => {
-        this.modalContent.nativeElement.style.transition = '';
-      }, 300);
+      // Đóng modal ngay lập tức không có animation
+      this.closeModal();
     }
+    // Không cần else case vì không có animation để reset
   }
 
   private setupBufferTracking() {
@@ -204,15 +199,31 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
           // We're in a modal, dismiss it
           this.modalCtrl.dismiss();
         } else {
-          // We're in a direct navigation, go back using router
-          this.router.navigate(['/tabs'], { replaceUrl: true });
+          // We're in a direct navigation, go back to previous page
+          // Check if there's a history to go back to
+          if (window.history.length > 1) {
+            this.location.back();
+          } else {
+            // Fallback to home if no history (e.g., direct URL access)
+            this.router.navigate(['/tabs/home'], { replaceUrl: true });
+          }
         }
       })
       .catch(() => {
-        // Fallback to router navigation if modalCtrl fails
-        this.router.navigate(['/tabs'], { replaceUrl: true });
+        // Fallback: try going back first, then to home if that fails
+        try {
+          if (window.history.length > 1) {
+            this.location.back();
+          } else {
+            this.router.navigate(['/tabs/home'], { replaceUrl: true });
+          }
+        } catch (error) {
+          console.error('Navigation error:', error);
+          this.router.navigate(['/tabs/home'], { replaceUrl: true });
+        }
       });
   }
+
   togglePlayPause() {
     this.audioPlayerService.togglePlayPause();
     // Force a manual trigger for change detection

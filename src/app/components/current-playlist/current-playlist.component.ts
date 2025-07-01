@@ -31,7 +31,7 @@ import { SongItemComponent } from "../song-item/song-item.component";
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [IonIcon, IonReorderGroup, IonReorder, IonContent, CommonModule, SongItemComponent],
+  imports: [ IonReorderGroup, IonContent, CommonModule, SongItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {

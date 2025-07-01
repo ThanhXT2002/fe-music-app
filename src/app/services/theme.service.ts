@@ -70,7 +70,7 @@ export class ThemeService {
 
   //header theme color
   public updateHeaderThemeColor(isDark: boolean) {
-    const themeColor = isDark ? '#1f2937' : '#ffffff';
+    const themeColor = isDark ? '#000000' : '#ffffff';
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
       metaTheme.setAttribute('content', themeColor);

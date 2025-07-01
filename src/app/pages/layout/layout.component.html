@@ -19,7 +19,6 @@
     </div>
 
     <!-- Search Button -->
-     <!-- <i class="fa-solid fa-magnifying-glass"></i> -->
     <app-btn-icon
       id="openSearchModal"
       icon="fa-solid fa-magnifying-glass"
@@ -27,12 +26,6 @@
       cssClass="text-gray-600 dark:text-white"
 
     ></app-btn-icon>
-    <!-- <button
-      id="openSearchModal"
-      class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-    >
-      <i class="fas fa-search text-gray-600 dark:text-gray-300"></i>
-    </button> -->
   </div>
 </ion-header>
 <ion-content>
@@ -129,47 +122,7 @@
 </div>
 }
 
-<ion-footer mode="md" class="footer-layout">
-  <ion-toolbar [ngClass]="hTookbar">
-    <div class="bottom-tabs modeDarkLight h__bottom__tabs w-full">
-      <div class="flex justify-between items-center h-full !w-full py-1 px-2">
-        <a
-          routerLink="/tabs/list"
-          routerLinkActive="active"
-          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-        >
-          <i class="fas fa-list text-xl mb-1"></i>
-          <span class="text-xs font-medium">Danh sách</span>
-        </a>
-        <a
-          routerLink="/tabs/albums"
-          routerLinkActive="active"
-          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-        >
-          <i class="fas fa-compact-disc text-xl mb-1"></i>
-          <span class="text-xs font-medium">Album</span>
-        </a>
-        <a
-          routerLink="/tabs/downloads"
-          routerLinkActive="active"
-          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-        >
-          <i class="fas fa-download text-xl mb-1"></i>
-          <span class="text-xs font-medium">Tải về</span>
-        </a>
-        <a
-          routerLink="/tabs/settings"
-          routerLinkActive="active"
-          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-        >
-          <i class="fas fa-cog text-xl mb-1"></i>
-          <span class="text-xs font-medium">Cài đặt</span>
-        </a>
-      </div>
-    </div>
-  </ion-toolbar>
-</ion-footer>
-
+<app-navbar-bottom></app-navbar-bottom>
 <ion-modal
   #searchModal
   trigger="openSearchModal"

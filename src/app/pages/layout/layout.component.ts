@@ -17,8 +17,6 @@ import {
   IonHeader,
   IonContent,
   IonRouterOutlet,
-  IonToolbar,
-  IonFooter,
   IonModal,
   IonNav,
   IonRefresher,
@@ -31,26 +29,25 @@ import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 import { BtnIconComponent } from '../../components/btn-icon/btn-icon.component';
+import { NavbarBottomComponent } from "../../components/navbar-bottom/navbar-bottom.component";
 
 @Component({
   selector: 'app-layout',
   imports: [
     IonRefresher,
-    IonFooter,
-    IonToolbar,
     IonRouterOutlet,
     IonContent,
     IonHeader,
     CommonModule,
     RouterLink,
-    RouterLinkActive,
     FormsModule,
     IonModal,
     IonNav,
     IonRefresherContent,
     CurrentPlaylistComponent,
     BtnIconComponent,
-  ],
+    NavbarBottomComponent
+],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
@@ -70,9 +67,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     this.platform.is('ios') && this.platform.is('pwa')
       ? 'bottom-[75px]'
       : 'bottom-[--h-bottom-tabs]'; // Đặt vị trí footer cho Android
-
-  hTookbar: string =
-    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';
   @ViewChild('navSearch') private navSearch!: IonNav;
   @ViewChild('navPlayer') private navPlayer!: IonNav;
   @ViewChild('searchModal', { static: false }) searchModal!: IonModal;

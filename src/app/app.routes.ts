@@ -12,8 +12,12 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'list',
+        redirectTo: 'home',
         pathMatch: 'full',
+      },
+      {
+        path: 'home',
+        loadComponent: () => import('./pages/home/home.page').then(m => m.HomePage),
       },
       {
         path: 'list',
@@ -55,5 +59,15 @@ export const routes: Routes = [
   {
     path: 'database-test',
     loadComponent: () => import('./pages/database-test/database-test.page').then(m => m.DatabaseTestPage),
+  },
+  {
+    path: 'privacy-policy',
+    loadComponent: () => import('./pages/privacy-policy/privacy-policy.page').then( m => m.PrivacyPolicyPage)
+  },
+  {
+    path: 'terms-of-service',
+    loadComponent: () => import('./pages/terms-of-service/terms-of-service.page').then( m => m.TermsOfServicePage)
   }
+
+
 ];

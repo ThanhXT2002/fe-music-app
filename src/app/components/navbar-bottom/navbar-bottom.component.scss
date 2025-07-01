@@ -1,0 +1,32 @@
+.tab-item {
+  @apply text-gray-500 dark:text-gray-400;
+  min-width: 70px;
+}
+
+.tab-item.active {
+  @apply text-purple-500 bg-purple-50 dark:bg-purple-900/20;
+}
+
+.tab-item:hover {
+  @apply text-purple-400 bg-gray-50 dark:bg-gray-700;
+}
+
+// .bottom-tabs {
+//   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+// }
+
+.h__bottom__tabs {
+  height: var(--h-bottom-tabs);
+}
+
+ion-toolbar .footer-layout {
+  --background: var(--white-mode);
+  --tw-border-opacity: 0;
+}
+
+::ng-deep .dark .footer-layout {
+  ion-toolbar {
+    --background: var(--black-mode);
+    --tw-border-opacity: 0;
+  }
+}

@@ -1,0 +1,27 @@
+// Footer component styles
+// Using Tailwind CSS classes - minimal custom styles needed
+
+footer {
+  // Ensure footer sticks to bottom when content is short
+  flex-shrink: 0;
+}
+
+// Custom animations for hover effects
+.footer-link {
+  transition: all 0.3s ease-in-out;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+// Responsive adjustments for very small screens
+@media (max-width: 320px) {
+  .footer-brand {
+    text-align: center;
+  }
+
+  .footer-links {
+    grid-template-columns: 1fr;
+  }
+}

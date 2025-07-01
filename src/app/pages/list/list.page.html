@@ -21,7 +21,7 @@
   </div>
   <!-- Content -->
   <div class="flex-1 h-full">
-    <div class="overflow-y-auto h-full" #scrollContainer>
+    <div class="overflow-y-auto h-full scrollbar-hide md:scrollbar-default" #scrollContainer>
       <div class="px-4">
         <!-- All Songs -->
         <div *ngIf="activeTab === 'all'">
@@ -67,7 +67,7 @@
           </div>
         </div>        <!-- Artists -->
         <div *ngIf="activeTab === 'artists'">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-2 gap-4 mt-1">
             <div
               *ngFor="let artist of artists"
               (click)="onPlayArtist(artist)"

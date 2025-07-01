@@ -23,14 +23,13 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
     }
 
     ::ng-deep ng-lottie svg {
-      /* Màu tím (purple-500) cho icon mặc định */
-      filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
-      animation: equalizer-pulse 0.8s ease-in-out infinite;
+      /* Màu tím (purple) cho icon mặc định */
+      filter: brightness(10) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(243deg) brightness(104%) contrast(97%);
     }
 
     .playing ::ng-deep ng-lottie svg {
-      /* Màu hồng (pink-500) khi đang phát nhạc */
-      filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%);
+      /* Màu tím (purple) khi đang phát nhạc */
+      filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(243deg) brightness(104%) contrast(97%);
       animation: equalizer-pulse 0.8s ease-in-out infinite;
     }
 
@@ -40,8 +39,8 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
     }
 
     .dark.playing ::ng-deep ng-lottie svg {
-      /* Màu hồng sáng hơn cho dark mode khi phát */
-      filter: brightness(0) saturate(100%) invert(84%) sepia(29%) saturate(1439%) hue-rotate(313deg) brightness(104%) contrast(97%);
+      /* Màu tím sáng hơn cho dark mode khi phát */
+      filter: brightness(0) saturate(100%) invert(84%) sepia(58%) saturate(2476%) hue-rotate(243deg) brightness(105%) contrast(92%);
     }
 
     @keyframes equalizer-pulse {

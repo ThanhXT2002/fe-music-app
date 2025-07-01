@@ -1,0 +1,46 @@
+import { Component, OnInit } from '@angular/core';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+import { IonFooter, IonToolbar } from '@ionic/angular/standalone';
+import { Platform } from '@ionic/angular';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-navbar-bottom',
+  imports: [IonFooter, IonToolbar, RouterLinkActive, CommonModule, RouterLink],
+  templateUrl: './navbar-bottom.component.html',
+  styleUrls: ['./navbar-bottom.component.scss'],
+})
+export class NavbarBottomComponent {
+  hTookbar: string =
+    this.platform.is('ios') && this.platform.is('pwa') ? 'h-[75px]' : '';
+
+  tabs = [
+    {
+      link: '/tabs/home',
+      icon: 'fa-house',
+      label: 'Trang chủ',
+    },
+    {
+      link: '/tabs/list',
+      icon: 'fa-list',
+      label: 'Danh sách',
+    },
+    {
+      link: '/tabs/albums',
+      icon: 'fa-compact-disc',
+      label: 'Album',
+    },
+    {
+      link: '/tabs/downloads',
+      icon: 'fa-download',
+      label: 'Tải xuống',
+    },
+    {
+      link: '/tabs/settings',
+      icon: 'fa-user-gear',
+      label: 'Cài đặt',
+    },
+  ];
+
+  constructor(private platform: Platform) {}
+}
