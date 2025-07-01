@@ -7,7 +7,7 @@
     <!-- App Logo & Name -->
     <div class="flex items-center space-x-3 cursor-pointer" routerLink="/">
       <div
-        class="w-9 h-9 flex items-center justify-center rounded-full border-2 border-purple-500 hover:scale-110 transition-colors"
+        class="w-9 h-9 flex items-center justify-center rounded-full border-2 border-purple-500 hover:scale-110 transition-colors "
       >
         <img src="assets/icon/icon-app.png" alt="" />
       </div>
@@ -19,13 +19,11 @@
     </div>
 
     <!-- Search Button -->
-    <app-btn-icon
-      id="openSearchModal"
-      icon="fa-solid fa-magnifying-glass"
-      borderClass="border border-gray-200"
-      cssClass="text-white"
+     <button
+     id="openSearchModal"class="block h-10 w-10 rounded-full hover:bg-gray-600 flex__middle">
+      <i class="fa-solid fa-magnifying-glass text-lg "></i>
+     </button>
 
-    ></app-btn-icon>
   </div>
 </ion-header>
 <ion-content>

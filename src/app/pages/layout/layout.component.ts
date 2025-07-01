@@ -28,7 +28,6 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { BtnIconComponent } from '../../components/btn-icon/btn-icon.component';
 import { NavbarBottomComponent } from "../../components/navbar-bottom/navbar-bottom.component";
 
 @Component({
@@ -45,7 +44,6 @@ import { NavbarBottomComponent } from "../../components/navbar-bottom/navbar-bot
     IonNav,
     IonRefresherContent,
     CurrentPlaylistComponent,
-    BtnIconComponent,
     NavbarBottomComponent
 ],
   standalone: true,

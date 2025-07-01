@@ -44,7 +44,7 @@
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       sans-serif;
     background: url('/assets/images/hoa-anh-dao.png') no-repeat center center;
-    @apply bg-gray-900 text-white;
+    @apply bg-black text-white;
   }
 
   :root {
@@ -56,7 +56,8 @@
     --error: #ef4444;
     --surface: #1e293b;
     --on-surface: #f8fafc;
-    --background: #030712;
+    --background: #000000;
+    --white:#ffffff;
     --h-header: 55px;
     --h-bottom-tabs: 55px; /* Header height */
   }
@@ -364,16 +365,19 @@ ion-backdrop {
 }
 
 @layer utilities {
-  .modeDarkLight {
-    @apply bg-gray-950 text-white;
+
+  .containerDark{
+    background-color: var(--background);
+    color: var(--white)
   }
 
-  .itemDarkLight {
-    @apply bg-gray-800;
+  .containerDark{
+    background-color: var(--surface);
+    color: var(--on-surface);
   }
 
-  .borderItemDarkLight {
-    @apply border-gray-700;
+  .flex__middle{
+    @apply flex items-center justify-center;
   }
 }
 
@@ -417,8 +421,9 @@ ion-backdrop {
   @apply font-medium text-white;
 }
 .liquid-glass-description {
-  @apply text-sm text-gray-400;
+  @apply text-sm text-gray-200;
 }
+
 .liquid-glass-description-strong {
   @apply text-sm text-gray-100;
 }

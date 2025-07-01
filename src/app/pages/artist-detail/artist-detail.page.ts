@@ -10,7 +10,7 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 @Component({
   selector: 'app-artist-detail',
   template: `
-    <div class="artist-detail-page h-full flex flex-col bg-gray-900">
+    <div class="artist-detail-page h-full flex flex-col bg-black">
       <!-- Header -->
       <div class="bg-gray-800 border-b border-gray-700 p-4">
         <div class="flex items-center space-x-3">

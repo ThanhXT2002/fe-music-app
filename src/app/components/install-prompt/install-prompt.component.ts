@@ -7,19 +7,30 @@ import { InstallService } from '../../services/install.service';
 @Component({
   selector: 'app-install-prompt',
   template: `
-    <div  *ngIf="shouldShowInstallPrompt()">
-      <!-- Install Prompt -->
-      <div class="liquid-glass-row-between ">
+    <div class="liquid-glass-panel" *ngIf="shouldShowInstallPrompt()">
+      <div class="liquid-glass-bg">
+        <div class="liquid-glass-blur"></div>
+        <div class="liquid-glass-highlight"></div>
+      </div>
+      <div class="liquid-glass-header">
+        <h2 class="liquid-glass-title">Appearance</h2>
+      </div>
+
+      <div class="liquid-glass-content">
+        <div class="liquid-glass-row-between ">
         <div>
           <h3 class="liquid-glass-subtitle">Cài đặt</h3>
           <p class="liquid-glass-description-strong">
             Cài đặt app để có trải nghiệm tốt nhất với XTMusic.
           </p>
         </div>
-        <button class="text-white p-3 bg-purple-600 rounded-full hover:bg-indigo-400 flex justify-center items-center"
-                (click)="installApp()">
+        <button
+          class="text-white p-3 bg-purple-600 rounded-full hover:bg-indigo-400 flex justify-center items-center"
+          (click)="installApp()"
+        >
           <i class="fa-solid fa-download"></i>
         </button>
+      </div>
       </div>
     </div>
   `,
@@ -29,7 +40,10 @@ import { InstallService } from '../../services/install.service';
 export class InstallPromptComponent implements OnInit {
   private showPrompt = false;
 
-  constructor(private platform: Platform, private installService: InstallService) {}
+  constructor(
+    private platform: Platform,
+    private installService: InstallService
+  ) {}
 
   ngOnInit() {
     // Không hiển thị ngay nữa, chờ service xác nhận
@@ -37,14 +51,16 @@ export class InstallPromptComponent implements OnInit {
     //   this.showPrompt = true;
     // }
 
-
     // Kiểm tra định kỳ xem đã có thể install chưa
     this.checkInstallAvailability();
   }
 
   private checkInstallAvailability() {
     const checkInterval = setInterval(() => {
-      if (this.installService.canInstall() && !this.installService.isRunningStandalone()) {
+      if (
+        this.installService.canInstall() &&
+        !this.installService.isRunningStandalone()
+      ) {
         this.showPrompt = true;
         clearInterval(checkInterval);
       }
@@ -58,7 +74,11 @@ export class InstallPromptComponent implements OnInit {
 
   shouldShowInstallPrompt(): boolean {
     // Chỉ hiển thị khi service xác nhận có thể install
-    return this.showPrompt && this.installService.canInstall() && !this.installService.isRunningStandalone();
+    return (
+      this.showPrompt &&
+      this.installService.canInstall() &&
+      !this.installService.isRunningStandalone()
+    );
   }
 
   async installApp() {
@@ -80,11 +100,14 @@ export class InstallPromptComponent implements OnInit {
     let message = 'Để cài đặt ứng dụng:\n';
 
     if (this.platform.is('ios')) {
-      message += '1. Nhấn vào nút Share (chia sẻ)\n2. Chọn "Add to Home Screen"';
+      message +=
+        '1. Nhấn vào nút Share (chia sẻ)\n2. Chọn "Add to Home Screen"';
     } else if (this.platform.is('android')) {
-      message += '1. Nhấn vào menu trình duyệt (3 chấm)\n2. Chọn "Add to Home screen" hoặc "Install app"';
+      message +=
+        '1. Nhấn vào menu trình duyệt (3 chấm)\n2. Chọn "Add to Home screen" hoặc "Install app"';
     } else {
-      message += '1. Nhấn vào menu trình duyệt\n2. Chọn "Install" hoặc "Add to Home screen"';
+      message +=
+        '1. Nhấn vào menu trình duyệt\n2. Chọn "Install" hoặc "Add to Home screen"';
     }
 
     alert(message);
