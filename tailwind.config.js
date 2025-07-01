@@ -6,6 +6,6 @@ module.exports = {
   theme: {
     extend: {},
   },
-  darkMode: ["selector", '[class~="dark"]'],
-plugins: [require("tailwind-scrollbar")({ nocompatible: true })],
+  // Dark mode is always enabled, no need for selector
+  plugins: [require("tailwind-scrollbar")({ nocompatible: true })],
 }

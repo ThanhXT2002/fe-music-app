@@ -11,18 +11,18 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 @Component({
   selector: 'app-album-detail',
   template: `
-    <div class="album-detail-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div class="album-detail-page h-full flex flex-col bg-gray-900">
       <!-- Header -->
-      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div class="bg-gray-800 border-b border-gray-700 p-4">
         <div class="flex items-center space-x-3">
           <button
             (click)="goBack()"
-            class="btn-icon text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            class="btn-icon text-gray-400 hover:text-gray-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ album?.name || 'Album' }}</h1>
+          <h1 class="text-xl font-bold text-gray-900 text-white">{{ album?.name || 'Album' }}</h1>
         </div>
       </div>
 
@@ -47,10 +47,10 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 
             <!-- Album Info -->
             <div class="flex-1 text-center md:text-left">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ album.name }}</h1>
-              <p class="text-xl text-gray-600 dark:text-gray-300 mb-2">{{ album.artist }}</p>
+              <h1 class="text-3xl font-bold text-gray-900 text-white mb-2">{{ album.name }}</h1>
+              <p class="text-xl text-gray-300 mb-2">{{ album.artist }}</p>
 
-              <div class="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <div class="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-400 mb-4">
                 <span *ngIf="album.year">{{ album.year }}</span>
                 <span *ngIf="album.genre">{{ album.genre }}</span>
                 <span>{{ songs.length }} songs</span>
@@ -90,17 +90,17 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
           </div>
 
           <!-- Songs List -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Songs</h2>
+          <div class="bg-gray-800 rounded-lg shadow-sm">
+            <div class="p-4 border-b border-gray-700">
+              <h2 class="text-lg font-semibold text-gray-900 text-white">Songs</h2>
             </div>
 
             <div *ngIf="songs.length === 0" class="p-8 text-center">
               <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
               </svg>
-              <p class="text-gray-500 dark:text-gray-400">No songs found in this album</p>
-            </div>            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+              <p class="text-gray-400">No songs found in this album</p>
+            </div>            <div *ngFor="let song of songs; let i = index" class="border-b border-gray-700 last:border-b-0">
               <app-song-item
                 [song]="song"
                 [showAlbum]="false"
@@ -120,8 +120,8 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
           <svg class="w-24 h-24 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
           </svg>
-          <h2 class="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">Album Not Found</h2>
-          <p class="text-gray-500 dark:text-gray-400 text-center px-4">
+          <h2 class="text-xl font-semibold text-gray-300 mb-2">Album Not Found</h2>
+          <p class="text-gray-400 text-center px-4">
             The album you're looking for doesn't exist or has been removed.
           </p>
           <button (click)="goBack()" class="btn btn-secondary mt-4">

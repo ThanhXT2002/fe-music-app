@@ -8,7 +8,6 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
-import { ThemeService } from './services/theme.service';
 
 
 @Component({
@@ -24,8 +23,7 @@ export class AppComponent implements OnInit {
     private safeAreaService: SafeAreaService,
     private platform: Platform,
     private dbService: DatabaseService,
-    private permissionService: PermissionService,
-    public themeService: ThemeService
+    private permissionService: PermissionService
   ) { }
 
 

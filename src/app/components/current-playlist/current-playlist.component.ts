@@ -139,10 +139,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   getSongItemClass(song: Song, index: number): string {
     const isActive = this.isCurrentSong(song);
     if (isActive) {
-      return `bg-purple-50 dark:bg-purple-900/20 border-purple-500 dark:border-purple-700`;
+      return `bg-purple-900/20 border-purple-700`;
     }
 
-    return `border-gray-300 dark:border-gray-400`;
+    return `border-gray-400`;
   }
 
   // Play specific song
@@ -306,7 +306,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     return {
       'spin-with-fill': isCurrent,
       'spin-paused': !this.isPlaying() && isCurrent,
-      'border-purple-500 dark:border-purple-700': isCurrent,
+      'border-purple-700': isCurrent,
       borderItemDarkLight: !isCurrent,
     };
   }

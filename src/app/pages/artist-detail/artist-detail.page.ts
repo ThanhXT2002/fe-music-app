@@ -10,18 +10,18 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 @Component({
   selector: 'app-artist-detail',
   template: `
-    <div class="artist-detail-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div class="artist-detail-page h-full flex flex-col bg-gray-900">
       <!-- Header -->
-      <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+      <div class="bg-gray-800 border-b border-gray-700 p-4">
         <div class="flex items-center space-x-3">
           <button
             (click)="goBack()"
-            class="btn-icon text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            class="btn-icon text-gray-400 hover:text-gray-200">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
             </svg>
           </button>
-          <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ artist?.name || 'Artist' }}</h1>
+          <h1 class="text-xl font-bold  text-white">{{ artist?.name || 'Artist' }}</h1>
         </div>
       </div>
 
@@ -47,8 +47,8 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 
             <!-- Artist Info -->
             <div class="flex-1 text-center md:text-left">
-              <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ artist.name }}</h1>
-              <p class="text-lg text-gray-600 dark:text-gray-300 mb-4">{{ artist.bio }}</p>
+              <h1 class="text-3xl font-bold text-gray-900 text-white mb-2">{{ artist.name }}</h1>
+              <p class="text-lg text-gray-300 mb-4">{{ artist.bio }}</p>
 
               <!-- Action Buttons -->
               <div class="flex gap-3 justify-center md:justify-start">
@@ -74,8 +74,8 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
           </div>
 
           <!-- Tabs -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-4">
-            <div class="flex border-b border-gray-200 dark:border-gray-700">
+          <div class="bg-gray-800 rounded-lg shadow-sm mb-4">
+            <div class="flex border-b border-gray-700">
               <button
                 (click)="setTab('songs')"
                 [class]="selectedTab === 'songs' ? 'tab-button active' : 'tab-button'"
@@ -93,15 +93,15 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 
           <!-- Songs Tab -->
           <div *ngIf="selectedTab === 'songs'">
-            <div *ngIf="songs.length === 0" class="p-8 text-center bg-white dark:bg-gray-800 rounded-lg">
+            <div *ngIf="songs.length === 0" class="p-8 text-center bg-gray-800 rounded-lg">
               <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
               </svg>
-              <p class="text-gray-500 dark:text-gray-400">No songs found for this artist</p>
+              <p class="text-gray-400">No songs found for this artist</p>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-              <div *ngFor="let song of songs; let i = index" class="border-b border-gray-100 dark:border-gray-700 last:border-b-0">                <app-song-item
+            <div class="bg-gray-800 rounded-lg shadow-sm">
+              <div *ngFor="let song of songs; let i = index" class="border-b border-gray-700 last:border-b-0">                <app-song-item
                   [song]="song"
                   [showArtist]="false"
                   [playlist]="songs"
@@ -115,18 +115,18 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 
           <!-- Albums Tab -->
           <div *ngIf="selectedTab === 'albums'">
-            <div *ngIf="albums.length === 0" class="p-8 text-center bg-white dark:bg-gray-800 rounded-lg">
+            <div *ngIf="albums.length === 0" class="p-8 text-center bg-gray-800 rounded-lg">
               <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM21 17a2 2 0 11-4 0 2 2 0 014 0z M7 17h3m0 0a3 3 0 006 0m0 0h3"></path>
               </svg>
-              <p class="text-gray-500 dark:text-gray-400">No albums found for this artist</p>
+              <p class="text-gray-400">No albums found for this artist</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div
                 *ngFor="let album of albums"
                 (click)="goToAlbum(album)"
-                class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer">
+                class="bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer">
 
                 <!-- Album Cover -->
                 <div class="relative mb-3">
@@ -149,8 +149,8 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
 
                 <!-- Album Info -->
                 <div class="text-center">
-                  <h3 class="font-medium text-gray-900 dark:text-white truncate mb-1">{{ album.name }}</h3>
-                  <div class="flex items-center justify-center space-x-2 text-xs text-gray-400 dark:text-gray-500">
+                  <h3 class="font-medium text-gray-900 text-white truncate mb-1">{{ album.name }}</h3>
+                  <div class="flex items-center justify-center space-x-2 text-xs text-gray-500">
                     <span>{{ album.songs.length }} songs</span>
                     <span>•</span>
                     <span>{{ formatDuration(album.totalDuration) }}</span>
@@ -166,8 +166,8 @@ import { SongItemComponent } from '../../components/song-item/song-item.componen
           <svg class="w-24 h-24 text-gray-400 mb-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
-          <h2 class="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">Artist Not Found</h2>
-          <p class="text-gray-500 dark:text-gray-400 text-center px-4">
+          <h2 class="text-xl font-semibold text-gray-300 mb-2">Artist Not Found</h2>
+          <p class="text-gray-400 text-center px-4">
             The artist you're looking for doesn't exist or has been removed.
           </p>
           <button (click)="goBack()" class="btn btn-secondary mt-4">

@@ -93,7 +93,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.themeService.updateHeaderThemeColor(this.themeService.isDarkMode());
+    this.themeService.setHeaderThemeColor('#000000');
     this.cleanupGlobalListeners();
     if (this.swipeGesture) {
       this.swipeGesture.destroy();
@@ -147,7 +147,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private setPlayerThemeColor() {
-    this.themeService.setPageHeaderThemeColor('#312e81');
+    this.themeService.setHeaderThemeColor('#312e81');
   }
 
   openPlaylist() {

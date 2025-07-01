@@ -16,7 +16,7 @@
           (input)="onSearchInput($event)"
           (paste)="onPaste($event)"
           placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
-          class="input w-full pl-10 pr-10 bg-gray-100 dark:bg-gray-700"
+          class="input w-full pl-10 pr-10 bg-gray-700"
         />
 
         @if(searchQuery().length > 0) {
@@ -70,13 +70,13 @@
       @if(isSearching()){
       <div class="space-y-3">
         <h3
-          class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 animate-pulse"
+          class="text-lg font-semibold text-gray-200 mb-3 animate-pulse"
         >
           Đang tìm kiếm ...
         </h3>
 
         <div
-          class="animate-pulse bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
+          class="animate-pulse bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-700"
         >
           <div class="flex items-center space-x-3">
             <div class="rounded-full bg-slate-700 h-12 w-12"></div>
@@ -96,7 +96,7 @@
       <!-- Search Results -->
       @if(searchResults().length > 0 && !isSearching()) {
       <div class="space-y-3">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+        <h3 class="text-lg font-semibold text-gray-200 mb-3">
           Thông tin tìm kiếm
         </h3>
 
@@ -118,8 +118,8 @@
       !isSearching() && downloadService.validateYoutubeUrl(searchQuery())) {
       <div class="text-center">
         <i class="fa-solid fa-magnifying-glass text-gray-300 text-6xl my-5"></i>
-        <p class="text-gray-600 dark:text-gray-400">Tìm kiếm ngay</p>
-        <p class="text-sm text-gray-500 dark:text-gray-500">
+        <p class="text-gray-400">Tìm kiếm ngay</p>
+        <p class="text-sm text-gray-500">
           Nhấn nút tìm kiếm để tải video YouTube
         </p>
       </div>
@@ -133,10 +133,10 @@
       <i
         class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5"
       ></i>
-      <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+      <h3 class="text-lg font-semibold text-gray-300 mb-2">
         Download Music
       </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm">
+      <p class="text-gray-400 text-sm">
         Dán link YouTube để tải nhạc mới hoặc gõ tên bài hát để tìm trong lịch
         sử
       </p>
@@ -148,34 +148,34 @@
   <div class=" flex flex-col items-start justify-center px-4">
     <div class="text-center">
       <i
-        class="fa-solid fa-search text-6xl text-gray-300 dark:text-gray-600 mb-4"
+        class="fa-solid fa-search text-6xl text-gray-600 mb-4"
       ></i>
-      <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+      <h3 class="text-lg font-semibold text-gray-300 mb-2">
         Không tìm thấy kết quả
       </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm mb-1">
+      <p class="text-gray-400 text-sm mb-1">
         Không có bài hát nào phù hợp với "{{ searchQuery() }}"
       </p>
-      <p class="text-gray-500 dark:text-gray-500 text-xs">
+      <p class="text-gray-500 text-xs">
         Thử tìm kiếm với từ khóa khác hoặc dán link YouTube để tải nhạc mới
       </p>
 
       <!-- Suggestions -->
       <div class="mt-4 space-y-2">
-        <p class="text-xs text-gray-500 dark:text-gray-500 font-medium">
+        <p class="text-xs text-gray-500 font-medium">
           Gợi ý:
         </p>
         <div class="flex flex-wrap gap-2 justify-center">
           <button
             (click)="clearSearch()"
-            class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full text-xs hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-3 py-1 bg-gray-700 text-gray-400 rounded-full text-xs hover:bg-gray-600 transition-colors"
           >
             <i class="fa-solid fa-history mr-1"></i>
             Xem tất cả lịch sử
           </button>
           <button
             (click)="focusSearchInput()"
-            class="px-3 py-1 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-full text-xs hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+            class="px-3 py-1 bg-purple-900 text-purple-400 rounded-full text-xs hover:bg-purple-800 transition-colors"
           >
             <i class="fa-solid fa-edit mr-1"></i>
             Sửa từ khóa
@@ -193,14 +193,14 @@
       @if(searchQuery().length >= 2 &&
       !downloadService.validateYoutubeUrl(searchQuery())) {
       <h3
-        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
+        class="text-lg font-semibold text-gray-200 mb-3 px-4"
       >
         <i class="fa-solid fa-filter mr-2"></i> Kết quả tìm kiếm "{{
         searchQuery() }}"
       </h3>
       } @else {
       <h3
-        class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 px-4"
+        class="text-lg font-semibold text-gray-200 mb-3 px-4"
       >
         <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
       </h3>

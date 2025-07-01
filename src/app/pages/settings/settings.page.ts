@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { ThemeService } from '../../services/theme.service';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { User } from '@angular/fire/auth';
 import { routeAnimation } from 'src/app/shared/route-animation';
@@ -17,13 +16,9 @@ import { routeAnimation } from 'src/app/shared/route-animation';
 })
 export class SettingsPage implements OnInit {
   private authService = inject(AuthService);
-  private themeService = inject(ThemeService);
   private router = inject(Router);
   // Sử dụng signal để track user state
   user = signal<User | null>(null);
-
-  // Sử dụng ThemeService chỉ cho dark mode
-  isDarkMode = this.themeService.isDarkMode;
 
   ngOnInit() {
     // Subscribe to user changes
@@ -31,9 +26,6 @@ export class SettingsPage implements OnInit {
       console.log('User updated in settings:', user);
       this.user.set(user);
     });
-  }
-  toggleDarkMode() {
-    this.themeService.toggleDarkMode();
   }
   async logout() {
     try {

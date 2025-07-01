@@ -1,4 +1,4 @@
-<div class="search-page h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+<div class="search-page h-full flex flex-col bg-gray-900">
   <!-- Content -->
   <div class="flex-1 overflow-y-auto">
     <!-- Search Section -->
@@ -12,7 +12,7 @@
     [value]="searchQuery()"
     (input)="onSearchInput($event)"
     placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
-    class="input w-full pl-10 pr-10 bg-gray-100 dark:bg-gray-700"
+    class="input w-full pl-10 pr-10 bg-gray-700"
   />
 
   @if(searchQuery().length > 0) {
@@ -56,7 +56,7 @@
       <!-- Loading State -->
       <div *ngIf="isSearching()" class="text-center py-8">
         <div class="spinner mx-auto"></div>
-        <p class="text-gray-600 dark:text-gray-400 mt-2">Searching...</p>
+        <p class="text-gray-400 mt-2">Searching...</p>
       </div>
 
       <!-- Search Results -->
@@ -64,13 +64,13 @@
         *ngIf="searchResults().length > 0 && !isSearching()"
         class="space-y-3"
       >
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+        <h3 class="text-lg font-semibold text-gray-200 mb-3">
           Thông tin tìm kiếm
         </h3>
 
         <div
           *ngFor="let result of searchResults()"
-          class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
+          class="bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-700"
         >
           <div class="flex items-center space-x-3">
             <!-- Thumbnail -->
@@ -82,13 +82,13 @@
 
             <!-- Song Info -->
             <div class="flex-1 min-w-0">
-              <h4 class="font-medium text-gray-900 dark:text-gray-100 truncate">
+              <h4 class="font-medium text-gray-100 truncate">
                 {{ result.title }}
               </h4>
-              <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+              <p class="text-sm text-gray-400 truncate">
                 {{ result.artist }}
               </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
+              <p class="text-xs text-gray-400">
                 {{ result.duration_formatted }}
               </p>
             </div>
@@ -117,7 +117,7 @@
               <!-- Download Progress -->
               <!-- <div *ngIf="result.isDownloading" class="text-center">
                 <div class="spinner mx-auto w-6 h-6"></div>
-                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-400 mt-1">
                   {{ result.downloadProgress }}%
                 </p>
               </div> -->
@@ -144,13 +144,13 @@
         </svg>
 
         @if(downloadService.validateYoutubeUrl(searchQuery())) {
-          <p class="text-gray-600 dark:text-gray-400">Tìm kiếm ngay</p>
-          <p class="text-sm text-gray-500 dark:text-gray-500">
+          <p class="text-gray-400">Tìm kiếm ngay</p>
+          <p class="text-sm text-gray-500">
             Nhấn nút tìm kiếm để tải video YouTube
           </p>
         } @else {
-          <p class="text-gray-600 dark:text-gray-400">No results found</p>
-          <p class="text-sm text-gray-500 dark:text-gray-500">
+          <p class="text-gray-400">No results found</p>
+          <p class="text-sm text-gray-500">
             Try different keywords
           </p>
         }
@@ -159,15 +159,15 @@
 
     <!-- Download History Section -->
     <div *ngIf="downloadHistory().length > 0" class="px-4 pb-4">
-      <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
+      <div class="border-t border-gray-700 pt-4">
+        <h3 class="text-lg font-semibold text-gray-200 mb-3">
           Downloaded Songs
         </h3>
 
         <div class="space-y-2">
           <div
             *ngFor="let song of searchResults()"
-            class="bg-white dark:bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-200 dark:border-gray-700"
+            class="bg-gray-800 rounded-lg p-3 shadow-sm border border-gray-700"
           >
             <div class="flex items-center space-x-3">
               <!-- Thumbnail -->
@@ -180,14 +180,14 @@
               <!-- Song Info -->
               <div class="flex-1 min-w-0">
                 <h4
-                  class="font-medium text-gray-900 dark:text-gray-100 truncate"
+                  class="font-medium text-gray-100 truncate"
                 >
                   {{ song.title }}
                 </h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400 truncate">
+                <p class="text-sm text-gray-400 truncate">
                   {{ song.artist }}
                 </p>
-                <p class="text-xs text-gray-600 dark:text-gray-400">
+                <p class="text-xs text-gray-400">
                   {{ song.duration_formatted }}
                 </p>
               </div>
@@ -215,10 +215,10 @@
           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
         ></path>
       </svg>
-      <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+      <h3 class="text-lg font-semibold text-gray-300 mb-2">
         Search & Download Music
       </h3>
-      <p class="text-gray-600 dark:text-gray-400 text-sm">
+      <p class="text-gray-400 text-sm">
         Search for your favorite songs on YouTube and download them to your
         device
       </p>

@@ -5,13 +5,13 @@
   >
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-xl font-bold text-gray-900 dark:text-white">Albums</h1>
+        <h1 class="text-xl font-bold text-white">Albums</h1>
       </div>
       <!-- ✨ Create Album Button -->
 
       <button
         (click)="showCreateAlbumModal()"
-        class="h-10 w-10 text-gray-900 dark:text-white rounded-full hover:bg-slate-400 hover:bg-opacity-20 flex items-center justify-center transition-colors"
+        class="h-10 w-10 text-white rounded-full hover:bg-slate-400 hover:bg-opacity-20 flex items-center justify-center transition-colors"
       >
         <i class="fas fa-plus text-lg"></i>
       </button>
@@ -27,7 +27,7 @@
       <div
         *ngFor="let album of albumsState.albums; trackBy: trackByAlbumId"
         (click)="openAlbum(album)"
-        class="album-card bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative"
+        class="album-card bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer relative"
       >
         <!-- ✨ User Album Menu for editable albums -->
         <div *ngIf="album.isUserCreated" class="absolute top-2 right-2 z-10">
@@ -63,7 +63,7 @@
 
         <!-- Album Info -->
         <div class="text-center">
-          <h3 class="font-medium text-gray-900 dark:text-white truncate mb-1">
+          <h3 class="font-medium text-white truncate mb-1">
             {{ album.name }}
             <!-- ✨ User-created indicator -->
             <i
@@ -73,7 +73,7 @@
             ></i>
           </h3>
           <div
-            class="flex items-center justify-center space-x-2 text-xs text-gray-400 dark:text-gray-500"
+            class="flex items-center justify-center space-x-2 text-xs text-gray-500"
           >
             <span>{{ album.songs.length }} bài</span>
             <span>•</span>
@@ -87,10 +87,10 @@
       <i
         class="fas fa-compact-disc text-6xl bg-gradient-to-r from-purple-500 to-pink-500  bg-clip-text text-transparent  mb-6 rounded-full"
       ></i>
-      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+      <h3 class="text-lg font-medium text-white mb-2">
         Chưa có album nào
       </h3>
-      <p class="text-gray-500 dark:text-gray-400 mb-6">
+      <p class="text-gray-400 mb-6">
         Tải nhạc từ YouTube để tạo albums tự động
       </p>
       <button

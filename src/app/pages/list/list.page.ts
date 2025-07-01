@@ -247,18 +247,18 @@ export class ListPage implements OnInit, OnDestroy {
 
   getTabClass(tabId: string): string {
     const baseClasses =
-      ' flex-shrink-0 px-2 py-1.5 text-sm font-medium transition-colors whitespace-nowrap dark:text-white';
+      ' flex-shrink-0 px-2 py-1.5 text-sm font-medium transition-colors whitespace-nowrap text-white';
 
     if (this.activeTab === tabId) {
       return (
         baseClasses +
-        ' bg-pink-500/30 dark:bg-purple-500/50'
+        ' bg-pink-500/30 bg-purple-500/50'
       );
     }
 
     return (
       baseClasses +
-      ' bg-white bg-opacity-20 text-black dark:text-white border-transparent'
+      ' bg-white bg-opacity-20 text-black text-white border-transparent'
     );
   }
 

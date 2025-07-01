@@ -46,6 +46,12 @@
           },
           "configurations": {
             "production": {
+              "optimization": {
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                }
+              },
               "budgets": [
                 {
                   "type": "initial",
@@ -87,9 +93,6 @@
             },
             "development": {
               "buildTarget": "app:build:development"
-            },
-            "ci": {
-              "progress": false
             }
           },
           "defaultConfiguration": "development"

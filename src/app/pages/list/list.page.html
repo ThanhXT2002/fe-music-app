@@ -11,7 +11,7 @@
           [height]="'auto'"
           [width]="'90px'"
           [rounded]="'rounded-md'"
-          [borderClass]="'border border-gray-300 dark:border-gray-500 dark:border-opacity-70'"
+          [borderClass]="'border border-gray-500 border-opacity-70'"
           [cssClass]="getTabClass(tab.id)"
         >
 
@@ -59,9 +59,9 @@
           </div>
           <div *ngIf="recentSongs.length === 0" class="text-center py-12">
             <i
-              class="fas fa-history text-4xl text-gray-300 dark:text-gray-600 mb-4"
+              class="fas fa-history text-4xl text-gray-600 mb-4"
             ></i>
-            <p class="text-gray-500 dark:text-gray-400">
+            <p class="text-gray-400">
               Chưa có bài hát nào được nghe gần đây
             </p>
           </div>
@@ -71,9 +71,9 @@
             <div
               *ngFor="let artist of artists"
               (click)="onPlayArtist(artist)"
-              class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer relative"
+              class="bg-gray-800 rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer relative"
               [ngClass]="{
-                'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/30 shadow-lg': isArtistActive(artist.name),
+                'ring-2 ring-purple-500 bg-purple-900/30 shadow-lg': isArtistActive(artist.name),
                 'transform': isArtistActive(artist.name)
               }"
             >
@@ -101,8 +101,8 @@
               <h3
                 class="font-medium text-center truncate transition-colors"
                 [ngClass]="{
-                  'text-purple-600 dark:text-purple-400 font-semibold': isArtistActive(artist.name),
-                  'text-gray-900 dark:text-white': !isArtistActive(artist.name)
+                  'text-purple-400 font-semibold': isArtistActive(artist.name),
+                  'text-white': !isArtistActive(artist.name)
                 }"
               >
                 {{ artist.name }}
@@ -111,8 +111,8 @@
               <p
                 class="text-sm text-center transition-colors"
                 [ngClass]="{
-                  'text-purple-500 dark:text-purple-300': isArtistActive(artist.name),
-                  'text-gray-500 dark:text-gray-400': !isArtistActive(artist.name)
+                  'text-purple-300': isArtistActive(artist.name),
+                  'text-gray-400': !isArtistActive(artist.name)
                 }"
               >
                 {{ artist.songCount }} bài - {{ artist.totalDurationFormatted }}
@@ -121,9 +121,9 @@
           </div>
           <div *ngIf="artists.length === 0" class="text-center py-12">
             <i
-              class="fas fa-microphone text-4xl text-gray-300 dark:text-gray-600 mb-4"
+              class="fas fa-microphone text-4xl text-gray-600 mb-4"
             ></i>
-            <p class="text-gray-500 dark:text-gray-400">Chưa có nghệ sĩ nào</p>
+            <p class="text-gray-400">Chưa có nghệ sĩ nào</p>
           </div>
         </div>
 
@@ -144,9 +144,9 @@
           </div>
           <div *ngIf="favoriteSongs.length === 0" class="text-center py-12">
             <i
-              class="fas fa-heart text-4xl text-gray-300 dark:text-gray-600 mb-4"
+              class="fas fa-heart text-4xl text-gray-600 mb-4"
             ></i>
-            <p class="text-gray-500 dark:text-gray-400">
+            <p class="text-gray-400">
               Chưa có bài hát yêu thích nào
             </p>
           </div>
