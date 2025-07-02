@@ -18,9 +18,8 @@ import { DatabaseService } from 'src/app/services/database.service';
 
 import {
   IonReorderGroup,
-  IonReorder,
   IonContent,
-  IonIcon,
+   ItemReorderEventDetail,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { reorderThreeOutline } from 'ionicons/icons';
@@ -273,7 +272,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     event.target.src = './assets/images/musical-note.webp';
   }
 
-  onIonReorder(event: any) {
+  onIonReorder(event: CustomEvent<ItemReorderEventDetail>) {
     const from = event.detail.from;
     const to = event.detail.to;
     if (from !== to) {
@@ -306,8 +305,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     return {
       'spin-with-fill': isCurrent,
       'spin-paused': !this.isPlaying() && isCurrent,
-      'border-purple-700': isCurrent,
-      borderItemDarkLight: !isCurrent,
+      'border-purple-700': isCurrent
     };
   }
 }

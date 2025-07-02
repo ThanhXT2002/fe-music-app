@@ -19,8 +19,7 @@
       class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 shadow-2xl shadow-rose-500"
       [ngClass]="{
         'spin-with-fill border-lime-500': isThisSongPlaying,
-        'spin-paused border-purple-500': !isThisSongPlaying,
-        'border-blue-500': isCurrentSong && !isThisSongPlaying
+        'spin-paused border-purple-500': !isThisSongPlaying
       }"
     />
     <!-- Song Info -->
@@ -38,7 +37,7 @@
         class="text-sm truncate transition-colors duration-300"
         [ngClass]="{
           'text-pink-100': isCurrentSong,
-          'text-gray-400': !isCurrentSong
+          'text-gray-300': !isCurrentSong
         }"
       >
         {{ song.artist }}
@@ -48,7 +47,7 @@
         class="text-xs"
         [ngClass]="{
           'text-pink-100': isCurrentSong,
-          'text-gray-400': !isCurrentSong
+          'text-gray-300': !isCurrentSong
         }"
       >
         {{ song.duration_formatted }}

@@ -113,6 +113,7 @@
       <div *ngIf="currentPlaylist().length > 0" class="space-y-1">
         <ion-reorder-group
           [disabled]="false"
+            mode="md"
           (ionItemReorder)="onIonReorder($event)"
         >
           <app-song-item
