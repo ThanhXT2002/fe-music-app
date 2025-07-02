@@ -57,6 +57,7 @@ export class DownloadService {
   ) {
     this.initializeDownloads();
   }
+  
   private async initializeDownloads() {
     try {
       console.log('🔄 Initializing DownloadService...');

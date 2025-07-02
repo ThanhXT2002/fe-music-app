@@ -127,6 +127,8 @@ export interface DataSong {
   thumbnail_url: string;
   audio_url: string;
   keywords?: string[];
+  original_url?: string;
+  created_at?:string;
 }
 
 export interface SearchHistoryItem {
