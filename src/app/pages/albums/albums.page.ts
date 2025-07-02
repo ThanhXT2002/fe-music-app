@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Album } from '../../interfaces/song.interface';
+import { Album, Song } from '../../interfaces/song.interface';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { AlbumsPageStateService } from '../../services/albums-page-state.service';
 import { AlbumService } from '../../services/album.service'; // ✨ New import
@@ -36,6 +36,8 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
   // Track active album
   activeAlbum = signal<string | null>(null);
+
+  currentSong: Song | null = null;
 
   constructor(
     private audioPlayerService: AudioPlayerService,
@@ -402,11 +404,11 @@ export class AlbumsPage implements OnInit, OnDestroy {
   // ✅ Setup effect to watch current song changes
   private setupCurrentSongWatcher() {
     effect(() => {
-      const currentSong = this.audioPlayerService.currentSong();
-      if (currentSong) {
+      this.currentSong = this.audioPlayerService.currentSong();
+      if (this.currentSong) {
         // Find which album contains the current song
         const currentAlbum = this.albumsState.albums.find(album =>
-          album.songs.some(song => song.id === currentSong.id)
+          album.songs.some(song => song.id === this.currentSong?.id)
         );
         this.activeAlbum.set(currentAlbum ? currentAlbum.name : null);
       } else {
