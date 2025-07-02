@@ -114,16 +114,26 @@
         <ion-reorder-group
           [disabled]="false"
           (ionItemReorder)="onIonReorder($any($event))"
+          class="ios-reorder-fix"
         >
-          <app-song-item
-          *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"
-          [song]="song"
-          [playlist]="currentPlaylist()"
-          [index]="i"
-          (play)="playSong($event.song, $event.index)"
-          [modePage]="'current-play'"
-        >
-        </app-song-item>
+          <ion-item
+            *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"
+            class="reorder-item-wrapper"
+            lines="none"
+          >
+            <app-song-item
+              [song]="song"
+              [playlist]="currentPlaylist()"
+              [index]="i"
+              (play)="playSong($event.song, $event.index)"
+              [modePage]="'current-play'"
+              class="w-full"
+            >
+            </app-song-item>
+            <ion-reorder slot="end" class="reorder-handle-custom">
+              <ion-icon name="reorder-three-outline" class="reorder-icon"></ion-icon>
+            </ion-reorder>
+          </ion-item>
         </ion-reorder-group>
       </div>
     </div>
