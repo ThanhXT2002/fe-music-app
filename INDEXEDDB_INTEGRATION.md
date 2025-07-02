@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Dự án **TXT Music** đã được nâng cấp thành công để hỗ trợ cả hai nền tảng:
+Dự án **XTMusic** đã được nâng cấp thành công để hỗ trợ cả hai nền tảng:
 - **Web Browser**: Sử dụng IndexedDB cho việc lưu trữ dữ liệu
 - **Native (Android/iOS)**: Sử dụng SQLite thông qua Capacitor
 
@@ -304,7 +304,7 @@ src/app/interfaces/
 
 ## Kết luận
 
-Việc tích hợp IndexedDB đã thành công tạo ra một giải pháp database hybrid mạnh mẽ cho TXT Music:
+Việc tích hợp IndexedDB đã thành công tạo ra một giải pháp database hybrid mạnh mẽ cho XTMusic:
 
 - ✅ **Web compatibility**: Hoạt động mượt mà trên web browsers
 - ✅ **Native support**: Giữ nguyên hiệu suất tốt trên mobile

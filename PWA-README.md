@@ -1,8 +1,8 @@
-# TXT Music - Progressive Web App
+# XTMusic - Progressive Web App
 
 ## 🎵 Tính năng PWA
 
-Ứng dụng TXT Music đã được cấu hình như một Progressive Web App (PWA) với các tính năng:
+Ứng dụng XT Music đã được cấu hình như một Progressive Web App (PWA) với các tính năng:
 
 ### ✨ Tính năng chính
 - **📱 Installable**: Có thể cài đặt như một ứng dụng native trên điện thoại và máy tính
@@ -50,7 +50,7 @@ npm run build:pwa
 #### 💻 Desktop (Chrome/Edge)
 1. Nhìn thấy icon install trong address bar
 2. Click vào icon install
-3. Hoặc Menu > "Install TXT Music..."
+3. Hoặc Menu > "Install XTMusic..."
 
 ### 🔧 PWA Configuration Files
 
@@ -105,9 +105,9 @@ Sử dụng Lighthouse trong Chrome DevTools để kiểm tra PWA score:
 
 ---
 
-# PWA Configuration for TXT Music App
+# PWA Configuration for XTMusic App
 
-This document outlines the Progressive Web App (PWA) configuration for the TXT Music application.
+This document outlines the Progressive Web App (PWA) configuration for the XTMusic application.
 
 ## ✅ Completed Configuration
 
@@ -161,8 +161,8 @@ Deploy to Vercel/hosting platform with HTTPS to test:
 - Full offline support
 
 ## PWA Manifest Features
-- **Name**: TXT Music App
-- **Short Name**: TXT Music  
+- **Name**: XTMusic App
+- **Short Name**: XTMusic  
 - **Theme Color**: #3880ff
 - **Background Color**: #ffffff
 - **Display**: standalone
