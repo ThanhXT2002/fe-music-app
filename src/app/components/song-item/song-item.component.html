@@ -3,8 +3,7 @@
   (contextmenu)="onShowMenu($event)"
   class="song-item-container mb-2 transition-all duration-300 cursor-pointer relative"
   [ngClass]="{
-        'song-item-active': isCurrentSong,
-        'song-item-hover': !isCurrentSong
+        'song-item-active': isCurrentSong
       }"
 >
   <div class="song-item-glass-bg">
@@ -30,7 +29,7 @@
       }"
     />
     <!-- Song Info -->
-    <div class="flex-1 min-w-0">
+    <div class="flex-1 min-w-0 relative z-30">
       <h4
         class="font-medium truncate transition-colors duration-300"
         [ngClass]="{
@@ -97,7 +96,7 @@
         class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors text-gray-500"
       >
         @if (isThisSongPlaying) {
-        <div class="text-blue-500 playing-indicator">
+        <div class="text-blue-500">
           <app-lottie-equalizer
             [width]="20"
             [height]="20"
