@@ -44,11 +44,14 @@ export class AppComponent implements OnInit {
 
     if (Capacitor.isNativePlatform()) {
       await this.requestNativePermissions();
-      await StatusBar.setOverlaysWebView({ overlay: false });
-      await StatusBar.setStyle({ style: Style.Dark });      await StatusBar.setBackgroundColor({ color: '#00000000' });
+      // Enable full screen mode - overlay web view and transparent status bar
+      await StatusBar.setOverlaysWebView({ overlay: true });
+      await StatusBar.setStyle({ style: Style.Dark });
+      await StatusBar.setBackgroundColor({ color: '#00000000' });
     }
 
-    this.safeAreaService.applyToContent();
+    // Removed safe area application to use full screen
+    // this.safeAreaService.applyToContent();
   }
 
   private async requestNativePermissions(): Promise<void> {

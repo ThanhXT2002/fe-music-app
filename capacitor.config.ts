@@ -6,20 +6,21 @@ const config: CapacitorConfig = {
   webDir: 'www',
   server: {
     androidScheme: 'https',
-    allowNavigation: [
-      'https://i.ytimg.com',
-      'https://img.youtube.com']
-  },  plugins: {
+    allowNavigation: ['https://i.ytimg.com', 'https://img.youtube.com'],
+  },
+  plugins: {
     Keyboard: {
-      resize: "none",
-      resizeOnFullScreen: false
+      resize: 'none',
+      resizeOnFullScreen: false,
     },
     StatusBar: {
-      style: "default"
+      style: 'dark',
+      backgroundColor: '#000000',
+      overlaysWebView: true,
     },
     SafeArea: {
-      enabled: true,
-      customColorsForSystemNavigation: true,
+      enabled: false,
+      customColorsForSystemNavigation: false,
     },
     SplashScreen: {
       launchShowDuration: 3000,
@@ -38,12 +39,13 @@ const config: CapacitorConfig = {
       androidRequestReadExternalStoragePermission: true,
     },
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample",
-      iconColor: "#488AFF",
-      sound: "beep.wav",    },
+      smallIcon: 'ic_stat_icon_config_sample',
+      iconColor: '#488AFF',
+      sound: 'beep.wav',
+    },
     FirebaseAuthentication: {
       skipNativeAuth: false,
-      providers: ['google.com']
+      providers: ['google.com'],
     },
   },
 };

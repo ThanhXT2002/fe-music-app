@@ -63,7 +63,9 @@
   }
 
   .h__header {
-    height: var(--h-header);
+    // height: var(--h-header);
+    height: calc(var(--h-header) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
   }
 }
 
@@ -446,3 +448,6 @@ ion-backdrop {
   @apply bg-gray-600 backdrop-blur-sm rounded-full transition-all duration-200 border border-purple-500;
 }
 
+.ptAreanSave {
+  padding-top: env(safe-area-inset-top);
+}

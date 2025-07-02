@@ -518,11 +518,11 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getRepeatColor(): string {
-    return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-gray-400';
+    return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';
   }
 
   getShuffleColor(): string {
-    return this.isShuffling() ? 'text-purple-500' : 'text-gray-400';
+    return this.isShuffling() ? 'text-purple-500' : 'text-white';
   }
 
     onImageError(event: any): void {

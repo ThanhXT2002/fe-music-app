@@ -22,13 +22,15 @@ import {
   IonRefresher,
   IonRefresherContent
 } from '@ionic/angular/standalone';
-import { SearchComponent } from 'src/app/components/search(trash)/search.component';
+
 import { Platform } from '@ionic/angular';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 import { NavbarBottomComponent } from "../../components/navbar-bottom/navbar-bottom.component";
+import { SearchPage } from 'src/app/pages/search/search.page';
+
 
 @Component({
   selector: 'app-layout',
@@ -75,7 +77,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
   refresherEnabled = true;
   topRegionHeight = 100;
-
   canDismiss = false;
 
   constructor(
@@ -90,7 +91,7 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
   }
 
   onWillPresentSearch() {
-    this.navSearch.setRoot(SearchComponent);
+    this.navSearch.setRoot(SearchPage);
   }
 
   onWillPresentPlayer() {

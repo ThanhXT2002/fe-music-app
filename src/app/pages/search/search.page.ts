@@ -8,13 +8,14 @@ import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController } from '@ionic/angular/standalone';
 import { finalize, tap } from 'rxjs';
 import { DownloadService } from 'src/app/services/download.service';
-
+import { ModalController, IonicModule } from '@ionic/angular';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IonicModule],
+  styleUrls: ['./search.page.scss'],
 })
 export class SearchPage implements OnInit {
   downloadService = inject(DownloadService);
@@ -31,64 +32,69 @@ export class SearchPage implements OnInit {
   private clipboardRetryCount = 0; // Thêm counter
   private readonly MAX_CLIPBOARD_RETRIES = 2; // Giới hạn retry
 
-  ngOnInit() {
+  constructor(private modalCtrl: ModalController) {}
 
+  ngOnInit() {}
+
+  async onSearchInput(event: any) {
+    const query = event.target.value;
+    this.searchQuery.set(query);
+
+    if (query.trim().length < 3) {
+      this.searchResults.set([]);
+      return;
+    }
+
+    // Check if the input is a valid YouTube URL
+    if (this.downloadService.validateYoutubeUrl(query)) {
+      // Don't automatically process YouTube URLs - wait for user to click search button
+      this.searchResults.set([]);
+      return;
+    } else {
+      await this.searchYouTube(query);
+    }
   }
 
-async onSearchInput(event: any) {
-  const query = event.target.value;
-  this.searchQuery.set(query);
+  async processYouTubeUrl(url: string) {
+    try {
+      this.isSearching.set(true);
+      this.downloadService
+        .getYoutubeUrlInfo(url)
+        .pipe(
+          tap((response) => {
+            if (response.success) {
+              const song = response.data;
+              // Convert API response to search result format
+              const result: DataSong = {
+                id: song.id,
+                title: song.title,
+                artist: song.artist,
+                duration: song.duration,
+                duration_formatted: song.duration_formatted,
+                thumbnail_url: song.thumbnail_url,
+                audio_url: song.audio_url,
+                keywords: song.keywords || [],
+              };
 
-  if (query.trim().length < 3) {
-    this.searchResults.set([]);
-    return;
+              this.searchResults.set([result]);
+            } else {
+              console.error('API returned error:', response.message);
+              this.searchResults.set([]);
+            }
+          }),
+          finalize(() => this.isSearching.set(false))
+        )
+        .subscribe();
+    } catch (error) {
+      console.error('Error processing YouTube URL:', error);
+      this.isSearching.set(false);
+      this.searchResults.set([]);
+    }
   }
 
-  // Check if the input is a valid YouTube URL
-  if (this.downloadService.validateYoutubeUrl(query)) {
-    // Don't automatically process YouTube URLs - wait for user to click search button
-    this.searchResults.set([]);
-    return;
-  } else {
-    await this.searchYouTube(query);
+  closeModal() {
+    this.modalCtrl.dismiss(); // Có thể truyền dữ liệu ra nếu muốn
   }
-}
-
-async processYouTubeUrl(url: string) {
-  try {
-    this.isSearching.set(true);
-    this.downloadService.getYoutubeUrlInfo(url)
-      .pipe(
-        tap(response => {
-          if (response.success) {
-            const song = response.data;
-            // Convert API response to search result format
-            const result: DataSong = {
-              id: song.id,
-              title: song.title,
-              artist: song.artist,
-              duration: song.duration,
-              duration_formatted: song.duration_formatted,
-              thumbnail_url: song.thumbnail_url,
-              audio_url: song.audio_url,
-              keywords: song.keywords || [],
-            };
-
-            this.searchResults.set([result]);
-          } else {
-            console.error('API returned error:', response.message);
-            this.searchResults.set([]);
-          }
-        }),
-        finalize(() => this.isSearching.set(false))
-      )
-      .subscribe();
-  } catch (error) {
-    console.error('Error processing YouTube URL:', error);
-    this.isSearching.set(false);
-    this.searchResults.set([]);
-  }
-}
 
   clearSearch() {
     this.searchQuery.set('');
@@ -136,23 +142,21 @@ async processYouTubeUrl(url: string) {
     }
   }
 
+  onSearchYoutubeUrl() {
+    const query = this.searchQuery().trim();
 
+    if (query.length === 0) {
+      return;
+    }
 
-onSearchYoutubeUrl(){
-  const query = this.searchQuery().trim();
-
-  if (query.length === 0) {
-    return;
+    // Check if the input is a valid YouTube URL
+    if (this.downloadService.validateYoutubeUrl(query)) {
+      this.processYouTubeUrl(query);
+    } else {
+      // If not a YouTube URL, perform regular search
+      this.searchYouTube(query);
+    }
   }
-
-  // Check if the input is a valid YouTube URL
-  if (this.downloadService.validateYoutubeUrl(query)) {
-    this.processYouTubeUrl(query);
-  } else {
-    // If not a YouTube URL, perform regular search
-    this.searchYouTube(query);
-  }
-}
   async onPaste(event?: Event, isRetry: boolean = false) {
     if (!event) {
       // Button click - show loading
@@ -244,26 +248,27 @@ onSearchYoutubeUrl(){
     await alert.present();
   }
 
-private async showManualPasteAlert() {
-  this.clipboardRetryCount = 0; // Reset counter
+  private async showManualPasteAlert() {
+    this.clipboardRetryCount = 0; // Reset counter
 
-  const alert = await this.alertController.create({
-    mode: 'ios',
-    header: 'Paste thủ công',
-    message: 'Không thể đọc clipboard tự động. Vui lòng:\n\n• Desktop: Nhấn Ctrl+V (hoặc Cmd+V)\n• Mobile: Nhấn giữ và chọn "Dán"',
-    buttons: [
-      {
-        text: 'OK',
-        handler: () => {
-          this.focusSearchInput();
-        }
-      }
-    ],
-    cssClass: 'custom-info-alert'
-  });
+    const alert = await this.alertController.create({
+      mode: 'ios',
+      header: 'Paste thủ công',
+      message:
+        'Không thể đọc clipboard tự động. Vui lòng:\n\n• Desktop: Nhấn Ctrl+V (hoặc Cmd+V)\n• Mobile: Nhấn giữ và chọn "Dán"',
+      buttons: [
+        {
+          text: 'OK',
+          handler: () => {
+            this.focusSearchInput();
+          },
+        },
+      ],
+      cssClass: 'custom-info-alert',
+    });
 
-  await alert.present();
-}
+    await alert.present();
+  }
 
   private focusSearchInput() {
     setTimeout(() => {

@@ -1,58 +1,94 @@
-<div class="search-page h-full flex flex-col bg-black">
+<div class="search-page h-full flex flex-col bg-black ptAreanSave">
   <!-- Content -->
   <div class="flex-1 overflow-y-auto">
     <!-- Search Section -->
     <div class="p-4">
       <!-- Search Input -->
-<div class="relative mb-4">
-  <input
-    #searchInput
-    id="searchInput"
-    type="text"
-    [value]="searchQuery()"
-    (input)="onSearchInput($event)"
-    placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
-    class="input w-full pl-10 pr-10 bg-gray-700"
-  />
+      <!-- <div class="relative mb-4">
+        <input
+          #searchInput
+          id="searchInput"
+          type="text"
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          placeholder="Dán link YouTube hoặc tìm kiếm bài hát..."
+          class="input w-full pl-10 pr-10 bg-gray-700 "
+        />
 
-  @if(searchQuery().length > 0) {
-    <button
-      (click)="clearSearch()"
-      class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M6 18L18 6M6 6l12 12"
-        ></path>
-      </svg>
-    </button>
-  } @else {
-      <button
-      (click)="onPaste()"
-      [disabled]="isClipboardLoading()"
-      class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-    >
-      @if(isClipboardLoading()) {
-        <div class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-      } @else {
-        <i class="fa-solid fa-paste w-4 h-4"></i>
-      }
-    </button>
-  }  <button
-      (click)="onSearchYoutubeUrl()"
-      [ngClass]="{
+        @if(searchQuery().length > 0) {
+        <button
+          (click)="clearSearch()"
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            ></path>
+          </svg>
+        </button>
+        } @else {
+        <button
+          (click)="onPaste()"
+          [disabled]="isClipboardLoading()"
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+        >
+          @if(isClipboardLoading()) {
+          <div
+            class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"
+          ></div>
+          } @else {
+          <i class="fa-solid fa-paste w-4 h-4"></i>
+          }
+        </button>
+        }
+        <button
+          (click)="onSearchYoutubeUrl()"
+          [ngClass]="{
         'bg-pink-500': downloadService.validateYoutubeUrl(searchQuery()),
         'bg-gray-300 bg-opacity-20': !downloadService.validateYoutubeUrl(searchQuery())
       }"
-      class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
-    >
-      <i class="fa-solid fa-magnifying-glass w-4 h-4"></i>
-    </button>
-</div>
+          class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
+        >
+          <i class="fa-solid fa-magnifying-glass w-4 h-4"></i>
+        </button>
+      </div> -->
+      <div class="relative mb-4">
+        <input
+          type="text"
+          [value]="searchQuery()"
+          (input)="onSearchInput($event)"
+          placeholder="Search YouTube for music..."
+          class="input w-full pl-10 pr-10 bg-gray-700"
+        />
 
+        <button
+          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          (click)="closeModal()"
+        >
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        @if(searchQuery().length > 0) {
+        <button
+          (click)="clearSearch()"
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        } @else {
+        <button
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+        >
+      <i class="fa-solid fa-magnifying-glass"></i></button>
+        }
+      </div>
       <!-- Loading State -->
       <div *ngIf="isSearching()" class="text-center py-8">
         <div class="spinner mx-auto"></div>
@@ -85,9 +121,7 @@
               <h4 class="font-medium text-gray-100 truncate">
                 {{ result.title }}
               </h4>
-              <p class="text-sm text-gray-400 truncate">
-                {{ result.artist }}
-              </p>
+              <p class="text-sm text-gray-400 truncate">{{ result.artist }}</p>
               <p class="text-xs text-gray-400">
                 {{ result.duration_formatted }}
               </p>
@@ -95,10 +129,7 @@
 
             <!-- Download Button -->
             <div class="flex-shrink-0">
-              <button
-
-                class="btn-icon text-purple-600 hover:text-purple-700"
-              >
+              <button class="btn-icon text-purple-600 hover:text-purple-700">
                 <svg
                   class="w-5 h-5"
                   fill="none"
@@ -124,7 +155,8 @@
             </div>
           </div>
         </div>
-      </div>      <!-- No Results -->
+      </div>
+      <!-- No Results -->
       <div
         *ngIf="searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()"
         class="text-center py-8"
@@ -144,15 +176,13 @@
         </svg>
 
         @if(downloadService.validateYoutubeUrl(searchQuery())) {
-          <p class="text-gray-400">Tìm kiếm ngay</p>
-          <p class="text-sm text-gray-500">
-            Nhấn nút tìm kiếm để tải video YouTube
-          </p>
+        <p class="text-gray-400">Tìm kiếm ngay</p>
+        <p class="text-sm text-gray-500">
+          Nhấn nút tìm kiếm để tải video YouTube
+        </p>
         } @else {
-          <p class="text-gray-400">No results found</p>
-          <p class="text-sm text-gray-500">
-            Try different keywords
-          </p>
+        <p class="text-gray-400">No results found</p>
+        <p class="text-sm text-gray-500">Try different keywords</p>
         }
       </div>
     </div>
@@ -179,14 +209,10 @@
 
               <!-- Song Info -->
               <div class="flex-1 min-w-0">
-                <h4
-                  class="font-medium text-gray-100 truncate"
-                >
+                <h4 class="font-medium text-gray-100 truncate">
                   {{ song.title }}
                 </h4>
-                <p class="text-sm text-gray-400 truncate">
-                  {{ song.artist }}
-                </p>
+                <p class="text-sm text-gray-400 truncate">{{ song.artist }}</p>
                 <p class="text-xs text-gray-400">
                   {{ song.duration_formatted }}
                 </p>
