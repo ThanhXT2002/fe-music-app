@@ -296,7 +296,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
         this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
       }
     }
-    event.detail.complete();
+    event.detail.complete(true);
     this.cdr.detectChanges();
   }
 

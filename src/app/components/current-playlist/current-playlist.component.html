@@ -113,8 +113,7 @@
       <div *ngIf="currentPlaylist().length > 0" class="space-y-1">
         <ion-reorder-group
           [disabled]="false"
-            mode="md"
-          (ionItemReorder)="onIonReorder($event)"
+          (ionItemReorder)="onIonReorder($any($event))"
         >
           <app-song-item
           *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"
@@ -124,8 +123,6 @@
           (play)="playSong($event.song, $event.index)"
           [modePage]="'current-play'"
         >
-         <!-- (showMenu)="showSongMenu($event)"
-          (removeSong)="removeSong($event, i)" -->
         </app-song-item>
         </ion-reorder-group>
       </div>
