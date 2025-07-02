@@ -57,8 +57,13 @@
     <!-- Action Buttons -->
     <div class="flex-shrink-0 flex justify-end items-center space-x-2">
       @if (isCurrentPlayPage) {
-      <!-- Reorder handle được handle bởi parent ion-item, không cần hiển thị gì ở đây -->
-      <div class="w-8"></div>
+      <ion-reorder slot="end">
+        <ion-icon
+          class="text-gray-400"
+          name="reorder-three-outline"
+          size="large"
+        ></ion-icon>
+      </ion-reorder>
       } @else if (isDownPage) {
         @if (isDownloaded) {
       <div class="text-green-600">

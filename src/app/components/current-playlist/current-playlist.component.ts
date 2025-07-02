@@ -38,9 +38,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   private cdr = inject(ChangeDetectorRef);
 
-  // Output để thông báo trạng thái drag cho parent component
-  @Output() dragActive = new EventEmitter<boolean>();
-
   // Use signals to track state - this ensures proper reactivity
   currentSong = this.audioPlayerService.currentSong;
   isPlaying = this.audioPlayerService.isPlayingSignal;
@@ -275,9 +272,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     const from = event.detail.from;
     const to = event.detail.to;
 
-    // Emit drag active state
-    this.dragActive.emit(true);
-
     if (from !== to) {
       const playlist = [...this.currentPlaylist()];
       const [moved] = playlist.splice(from, 1);
@@ -298,32 +292,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       } else {
         this.audioPlayerService.setPlaylist(playlist, newCurrentIndex);
       }
-
-      // Add completion animation class
-      setTimeout(() => {
-        const items = document.querySelectorAll('.reorder-item-wrapper');
-        if (items[to]) {
-          items[to].classList.add('item-reorder-complete');
-          setTimeout(() => {
-            items[to].classList.remove('item-reorder-complete');
-          }, 400);
-        }
-      }, 50);
     }
 
-    // Complete the reorder with haptic feedback on iOS
+    // Complete the reorder
     event.detail.complete(true);
-
-    // iOS haptic feedback
-    if ('navigator' in window && 'vibrate' in navigator) {
-      navigator.vibrate(50);
-    }
-
-    // Emit drag inactive state
-    setTimeout(() => {
-      this.dragActive.emit(false);
-    }, 100);
-
     this.cdr.detectChanges();
   }
 
