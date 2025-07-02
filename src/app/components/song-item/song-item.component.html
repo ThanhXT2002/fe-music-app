@@ -1,17 +1,12 @@
 <div
   (click)="onPlay()"
   (contextmenu)="onShowMenu($event)"
-  class="song-item-container mb-2 transition-all duration-300 cursor-pointer relative"
+  class="song-item-container bg-gray-100/10"
   [ngClass]="{
         'song-item-active': isCurrentSong
       }"
 >
-  <div class="song-item-glass-bg">
-    <div class="song-item-glass-blur"></div>
-    <div class="song-item-glass-highlight"></div>
-  </div>
-
-  <div class="flex items-center space-x-3 relative z-20 px-3 py-2">
+  <div class="flex items-center space-x-3 px-3 py-2">
     <!-- Thumbnail -->
     <img
       [src]="
@@ -29,7 +24,7 @@
       }"
     />
     <!-- Song Info -->
-    <div class="flex-1 min-w-0 relative z-30">
+    <div class="flex-1 min-w-0">
       <h4
         class="font-medium truncate transition-colors duration-300"
         [ngClass]="{
