@@ -38,15 +38,14 @@ export class DatabaseTestPage implements OnInit {
         id: 'test-song-1',
         title: 'Test Song 1',
         artist: 'Test Artist',
-        album: 'Test Album',
         duration: 180,
         duration_formatted: '3:00',
-        thumbnail: 'https://via.placeholder.com/150',
-        audioUrl: 'https://example.com/audio.mp3',
-        filePath: null,
+        thumbnail_url: 'https://via.placeholder.com/150',
+        audio_url: 'https://example.com/audio.mp3',
+        keywords: ['test', 'song'],
         addedDate: new Date(),
-        isFavorite: false,
-        genre: 'Test'
+        lastUpdated: new Date(),
+        isFavorite: false
       };
 
       const addResult = await this.databaseService.addSong(testSong);
@@ -82,10 +81,11 @@ export class DatabaseTestPage implements OnInit {
         title: 'Test Search Song',
         artist: 'Test Search Artist',
         thumbnail_url: 'https://via.placeholder.com/100',
-        audio_url: 'https://example.com/search-audio.mp3',
         duration: 240,
         duration_formatted: '4:00',
-        keywords: ['test', 'search']
+        keywords: ['test', 'search'],
+        original_url: 'https://youtube.com/test',
+        created_at: new Date().toISOString()
       };
 
       const historyResult = await this.databaseService.addToSearchHistory(testSearchData);

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { FooterComponent } from "../../components/footer/footer.component";
 import { HomeService } from 'src/app/services/api/home.service';
-import { Song } from 'src/app/interfaces/song.interface';
+import { Song, DataSong, SongConverter } from 'src/app/interfaces/song.interface';
 
 
 @Component({
@@ -29,13 +29,10 @@ export class HomePage implements OnInit {
       next: (res) => {
         if (res) {
           console.log('Home page received cached data:', res.data);
-          // Convert res.data (DataSong) to an array of Song objects
-          this.listSongs = (Array.isArray(res.data) ? res.data : [res.data]).map((dataSong: any) => ({
-            ...dataSong,
-            audioUrl: dataSong.audioUrl ?? '',
-            addedDate: dataSong.addedDate ?? '',
-            isFavorite: dataSong.isFavorite ?? false
-          }));
+          // Convert res.data (DataSong) to an array of Song objects using SongConverter
+          this.listSongs = (Array.isArray(res.data) ? res.data : [res.data]).map((dataSong: DataSong) =>
+            SongConverter.fromApiData(dataSong)
+          );
 
           console.log('List of songs:', this.listSongs);
           // Process the cached data here

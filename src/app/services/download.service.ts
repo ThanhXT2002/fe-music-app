@@ -12,6 +12,7 @@ import {
   YouTubeDownloadResponse,
   AudioFile,
   ThumbnailFile,
+  SongConverter,
 } from '../interfaces/song.interface';
 import {
   HttpClient,
@@ -32,8 +33,6 @@ export interface DownloadTask {
   progress: number;
   status: 'pending' | 'downloading' | 'completed' | 'error' | 'paused';
   error?: string;
-  filePath?: string;
-  thumbnail?: string;
   addedAt: Date;
   // Thêm thông tin từ API
   songData?: DataSong;
@@ -57,7 +56,7 @@ export class DownloadService {
   ) {
     this.initializeDownloads();
   }
-  
+
   private async initializeDownloads() {
     try {
       console.log('🔄 Initializing DownloadService...');
@@ -103,10 +102,9 @@ export class DownloadService {
       id: this.generateId(),
       title: songData.title,
       artist: songData.artist,
-      url: songData.audio_url,
+      url: SongConverter.getDownloadUrl(songData.id),
       progress: 0,
       status: 'pending',
-      thumbnail: songData.thumbnail_url,
       addedAt: new Date(),
       songData: songData,
     }; // Thêm vào danh sách downloads
@@ -162,19 +160,18 @@ export class DownloadService {
   }
 
   // Mark download as completed
-  async completeDownload(id: string, filePath?: string) {
+  async completeDownload(id: string) {
     const download = this.getDownload(id);
     if (!download) return;
 
     this.updateDownload(id, {
       status: 'completed',
       progress: 100,
-      filePath,
     });
 
     // Lưu bài hát vào database nếu có songData
     if (download.songData) {
-      await this.saveSongToDatabase(download.songData, filePath);
+      await this.saveSongToDatabase(download.songData);
     }
 
     // Remove from active downloads
@@ -340,10 +337,12 @@ export class DownloadService {
       // Fake progress to 50% for audio download (2.5s)
       await this.animateProgress(id, 10, 50, 2500);
 
-      console.log('🎵 Downloading audio from:', songData.audio_url);
+      // Construct the audio download URL using SongConverter
+      const audioUrl = SongConverter.getDownloadUrl(songData.id);
+      console.log('🎵 Downloading audio from:', audioUrl);
       const audioBlob = await firstValueFrom(
         this.http
-          .get(songData.audio_url, {
+          .get(audioUrl, {
             responseType: 'blob',
             headers: {
               Accept: 'audio/*,*/*;q=0.9',
@@ -469,7 +468,7 @@ export class DownloadService {
       }
 
       this.updateDownloadProgress(id, 100); // Ensure hits 100%
-      await this.completeDownload(id, undefined);
+      await this.completeDownload(id);
     } catch (error) {
       if (signal.aborted) {
         console.log('ℹ️ Download was aborted by user');
@@ -531,30 +530,21 @@ export class DownloadService {
   /**
    * Lưu bài hát vào database
    * @param songData - Data từ API
-   * @param filePath - Đường dẫn file (optional)
    */
-  private async saveSongToDatabase(songData: DataSong, filePath?: string) {
+  private async saveSongToDatabase(songData: DataSong) {
     try {
-      // Chuyển đổi DataSong thành Song object
-      const song: Song = {
-        id: songData.id,
-        title: songData.title,
-        artist: songData.artist,
-        album: undefined,
-        duration: songData.duration || 0,
-        duration_formatted: songData.duration_formatted,
-        thumbnail: songData.thumbnail_url,
-        audioUrl: songData.audio_url,
-        filePath: filePath,
-        addedDate: new Date(),
-        isFavorite: false,
-        genre: this.extractGenreFromKeywords(songData.keywords || []),
-        isDownloaded: true, // Đánh dấu đã download
-      }; // Lưu vào database
+      // Chuyển đổi DataSong thành Song object using SongConverter
+      const song: Song = SongConverter.fromApiData(songData);
+
+      // Set additional fields for downloaded song
+      song.addedDate = new Date();
+      song.isFavorite = false;
+      song.keywords = songData.keywords || [];
+
+      // Lưu vào database
       const success = await this.databaseService.addSong(song);
 
       if (success) {
-        // No need to call markAsDownloaded since we already set isDownloaded = true
         this.refreshService.triggerRefresh();
       } else {
         console.error('❌ Failed to save song to database');
@@ -596,49 +586,7 @@ export class DownloadService {
     });
   }
 
-  /**
-   * Trích xuất genre từ keywords
-   * @param keywords - Mảng từ khóa
-   * @returns string | undefined
-   */
-  private extractGenreFromKeywords(keywords: string[]): string | undefined {
-    if (!keywords || keywords.length === 0) return undefined;
 
-    const genreMap: Record<string, string> = {
-      remix: 'Remix',
-      acoustic: 'Acoustic',
-      live: 'Live',
-      cover: 'Cover',
-      piano: 'Piano',
-      guitar: 'Guitar',
-      ballad: 'Ballad',
-      rap: 'Rap',
-      'hip hop': 'Hip Hop',
-      pop: 'Pop',
-      rock: 'Rock',
-      jazz: 'Jazz',
-      blues: 'Blues',
-      country: 'Country',
-      classical: 'Classical',
-      electronic: 'Electronic',
-      dance: 'Dance',
-      house: 'House',
-      techno: 'Techno',
-      tiktok: 'TikTok Hit',
-      trending: 'Trending',
-    };
-
-    for (const keyword of keywords) {
-      const lower = keyword.toLowerCase();
-      for (const [key, genre] of Object.entries(genreMap)) {
-        if (lower.includes(key)) {
-          return genre;
-        }
-      }
-    }
-
-    return 'Nhạc Trẻ';
-  }
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);

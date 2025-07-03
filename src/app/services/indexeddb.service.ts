@@ -97,18 +97,6 @@ export class IndexedDBService {
       songsStore.createIndex('title', 'title', { unique: false });
       songsStore.createIndex('artist', 'artist', { unique: false });
       songsStore.createIndex('addedDate', 'addedDate', { unique: false });
-      songsStore.createIndex('isDownloaded', 'isDownloaded', { unique: false });
-    } else {
-      // Store đã tồn tại, có thể cần thêm index mới
-      const transaction = db.transaction(['songs'], 'versionchange');
-      const songsStore = transaction.objectStore('songs');
-
-      // Thêm index isDownloaded nếu chưa có
-      if (!songsStore.indexNames.contains('isDownloaded')) {
-        songsStore.createIndex('isDownloaded', 'isDownloaded', {
-          unique: false,
-        });
-      }
     }
 
     // Search history store
@@ -119,9 +107,6 @@ export class IndexedDBService {
       historyStore.createIndex('searchedAt', 'searchedAt', { unique: false });
       historyStore.createIndex('title', 'title', { unique: false });
       historyStore.createIndex('artist', 'artist', { unique: false });
-      historyStore.createIndex('isDownloaded', 'isDownloaded', {
-        unique: false,
-      });
     }
 
     // Recently played store

@@ -120,12 +120,13 @@ export class SearchComponent  implements OnInit {
         id: result.id,
         title: result.title,
         artist: result.artist,
-        album: 'Downloaded',
         duration: this.parseDuration(result.duration),
-        audioUrl: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
-        filePath: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
-        thumbnail: result.thumbnail,
+        duration_formatted: result.duration,
+        audio_url: `/data/music/${result.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`,
+        thumbnail_url: result.thumbnail,
+        keywords: [],
         addedDate: new Date(),
+        lastUpdated: new Date(),
         isFavorite: false
       };
 

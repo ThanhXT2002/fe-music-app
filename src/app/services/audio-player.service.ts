@@ -700,8 +700,8 @@ export class AudioPlayerService {
               id: state.currentSong.id,
               title: state.currentSong.title,
               artist: state.currentSong.artist,
-              url: state.currentSong.audioUrl,
-              thumbnail: state.currentSong.thumbnail,
+              url: state.currentSong.audio_url,
+              thumbnail: state.currentSong.thumbnail_url,
               duration: state.currentSong.duration,
             }
           : null,
@@ -714,8 +714,8 @@ export class AudioPlayerService {
           id: song.id,
           title: song.title,
           artist: song.artist,
-          url: song.audioUrl,
-          thumbnail: song.thumbnail,
+          url: song.audio_url,
+          thumbnail: song.thumbnail_url,
           duration: song.duration,
         })),
         currentIndex: state.currentIndex,
@@ -744,19 +744,19 @@ export class AudioPlayerService {
       }
 
       if (savedState.currentSong && savedState.queue.length > 0) {
-        // Convert back to Song objects
+        // Convert back to Song objects using SongConverter-like logic
         const playlist: Song[] = savedState.queue.map((item) => ({
           id: item.id,
           title: item.title,
           artist: item.artist,
-          audioUrl: item.url,
-          thumbnail: item.thumbnail,
+          audio_url: item.url,
+          thumbnail_url: item.thumbnail || '',
           duration: item.duration,
-          album: '',
-          genre: '',
+          duration_formatted: '', // Will be calculated/updated later
+          keywords: [],
           isFavorite: false,
           addedDate: new Date(),
-          isDownloaded: false,
+          lastUpdated: new Date()
         }));        // Update state
         this.updatePlaybackState(state => ({
           ...state,
@@ -764,14 +764,14 @@ export class AudioPlayerService {
             id: savedState.currentSong!.id,
             title: savedState.currentSong!.title,
             artist: savedState.currentSong!.artist,
-            audioUrl: savedState.currentSong!.url,
-            thumbnail: savedState.currentSong!.thumbnail,
+            audio_url: savedState.currentSong!.url,
+            thumbnail_url: savedState.currentSong!.thumbnail || '',
             duration: savedState.currentSong!.duration,
-            album: '',
-            genre: '',
+            duration_formatted: '', // Will be calculated/updated later
+            keywords: [],
             isFavorite: false,
             addedDate: new Date(),
-            isDownloaded: false,
+            lastUpdated: new Date()
           },
           currentPlaylist: playlist,
           currentIndex: savedState.currentIndex,
@@ -787,11 +787,14 @@ export class AudioPlayerService {
             id: savedState.currentSong.id,
             title: savedState.currentSong.title,
             artist: savedState.currentSong.artist,
-            audioUrl: savedState.currentSong.url,
-            thumbnail: savedState.currentSong.thumbnail,
+            audio_url: savedState.currentSong.url,
+            thumbnail_url: savedState.currentSong.thumbnail || '',
             duration: savedState.currentSong.duration,
-            addedDate: new Date(),
+            duration_formatted: '', // Will be calculated/updated later
+            keywords: [],
             isFavorite: false,
+            addedDate: new Date(),
+            lastUpdated: new Date()
           };
 
           const audioUrl = await this.loadAudioWithBypass(tempSong);

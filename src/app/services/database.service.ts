@@ -6,6 +6,7 @@ import {
   Playlist,
   SearchHistoryItem,
   DataSong,
+  SongConverter,
 } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
@@ -262,11 +263,11 @@ export class DatabaseService {
   }
 
   /**
-   * Lấy bài hát đã download (có filePath)
+   * Lấy bài hát đã download (offline) - check bằng URL pattern
    */
   async getDownloadedSongs(): Promise<Song[]> {
     const allSongs = await this.getAllSongs();
-    return allSongs.filter((song) => song.filePath); // Use filePath to check if downloaded
+    return allSongs.filter((song) => SongConverter.isDownloaded(song));
   }
   // Playlist operations
   async addPlaylist(playlist: Playlist): Promise<boolean> {
@@ -396,7 +397,7 @@ export class DatabaseService {
     const songs = await this.getAllSongs();
     return {
       total: songs.length,
-      downloaded: songs.filter((s) => s.filePath).length, // Use filePath to check if downloaded
+      downloaded: songs.filter((s) => SongConverter.isDownloaded(s)).length,
     };
   }
 
@@ -408,15 +409,17 @@ export class DatabaseService {
       title: 'Debug Test Song',
       artist: 'Debug Artist',
       duration: 180,
-      filePath: `indexeddb://debug-test-${Date.now()}`,
-      audioUrl: 'https://example.com/debug-test.mp3', // Use a dummy URL
+      duration_formatted: '03:00',
+      audio_url: 'https://example.com/debug-test.mp3', // Use a dummy URL
+      thumbnail_url: 'https://example.com/debug-test.jpg',
+      keywords: ['debug', 'test'],
       addedDate: new Date(),
       isFavorite: false,
-      isDownloaded: true, // Mark as downloaded since it's stored in IndexedDB
     };
 
     const success = await this.addSong(testSong);
     if (success) {
+      console.log('✅ Debug test song added successfully');
       // Test song added successfully
     } else {
       console.error('❌ Failed to add debug test song');
@@ -433,7 +436,7 @@ export class DatabaseService {
     const songs = await this.getAllSongs();
     console.log(`📊 Total songs: ${songs.length}`);
 
-    const downloadedSongs = songs.filter((s) => s.filePath);
+    const downloadedSongs = songs.filter((s) => SongConverter.isDownloaded(s));
     console.log(`💾 Downloaded songs: ${downloadedSongs.length}`);
 
     if (songs.length > 0) {
@@ -489,25 +492,11 @@ export class DatabaseService {
   async addToSearchHistory(song: Song): Promise<boolean>;
   async addToSearchHistory(song: DataSong): Promise<boolean>;
   async addToSearchHistory(song: Song | DataSong): Promise<boolean> {
-    // Check if it's DataSong or Song
-    const isDataSong = 'thumbnail_url' in song;
+    // Use SongConverter for proper conversion
+    const searchItem: SearchHistoryItem = 'thumbnail_url' in song
+      ? SongConverter.apiDataToSearchHistory(song as DataSong)
+      : SongConverter.toSearchHistory(song as Song);
 
-    const searchItem: SearchHistoryItem = {
-      songId: song.id,
-      title: song.title,
-      artist: song.artist,
-      thumbnail_url: isDataSong
-        ? (song as DataSong).thumbnail_url
-        : (song as Song).thumbnail || '',
-      audio_url: isDataSong
-        ? (song as DataSong).audio_url
-        : (song as Song).audioUrl || '',
-      duration: song.duration || 0,
-      duration_formatted: song.duration_formatted || '',
-      keywords: isDataSong ? (song as DataSong).keywords || [] : [],
-      searchedAt: new Date(),
-      isDownloaded: isDataSong ? false : !!(song as Song).filePath,
-    };
     return await this.addSearchHistory(searchItem);
   }
 
@@ -519,16 +508,13 @@ export class DatabaseService {
     };
   }
 
-  async markAsDownloaded(songId: string): Promise<boolean> {
+  async markAsDownloaded(songId: string, audioBlobUrl: string, thumbnailBlobUrl: string): Promise<boolean> {
     const song = await this.getSongById(songId);
     if (!song) return false;
 
-    // Keep original audioUrl, just mark as downloaded
-    song.isDownloaded = true;
-    // Use a custom filePath to indicate it's stored in IndexedDB
-    song.filePath = `indexeddb://${songId}`;
-
-    return await this.updateSong(song);
+    // Update Song với offline URLs
+    const downloadedSong = SongConverter.markAsDownloaded(song, audioBlobUrl, thumbnailBlobUrl);
+    return await this.updateSong(downloadedSong);
   }
 
   async closeDatabase(): Promise<void> {
