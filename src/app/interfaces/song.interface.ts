@@ -248,7 +248,7 @@ export class SongConverter {
    * Check if Song is downloaded (offline) by URL pattern
    */
   static isDownloaded(song: Song): boolean {
-    return song.audio_url.startsWith('blob://') || song.audio_url.startsWith('blob:');
+    return song.audio_url.startsWith('blob:');
   }
 
   /**

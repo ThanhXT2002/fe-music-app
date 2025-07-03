@@ -209,14 +209,15 @@ export class DownloadsPage implements OnInit, OnDestroy {
       // Step 6: Convert thumbnail to base64 data URL
       const thumbnailBase64 = thumbnailBlob ? await this.blobToDataUrl(thumbnailBlob) : null;
 
-      // Step 7: Tạo Song object với offline marker cho audio và base64 cho thumbnail
+      // Step 7: Tạo blob URL cho audio (giữ cách cũ) và base64 cho thumbnail
+      const audioBlobUrl = URL.createObjectURL(audioBlob);
+
       const song = SongConverter.fromApiData(songData);
       song.addedDate = new Date();
       song.isFavorite = false;
       song.keywords = songData.keywords || [];
-      song.audio_url = `offline://audio/${songData.id}`; // Offline marker cho audio
-      song.thumbnail_url = thumbnailBase64 || songData.thumbnail_url; // Base64 hoặc fallback
-      // song.isDownloaded = true; // TODO: Add to Song interface
+      song.audio_url = audioBlobUrl; // Blob URL thực tế cho audio (cách cũ)
+      song.thumbnail_url = thumbnailBase64 || songData.thumbnail_url; // Base64 cho thumbnail
 
       // Step 8: Lưu song vào database với new URLs
       await this.databaseService.addSong(song);
