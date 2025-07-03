@@ -140,13 +140,21 @@ export class DownloadsPage implements OnInit, OnDestroy {
       if (response.success) {
         const songData = response.data;
 
-        // Step 2: Save ONLY to search history (not to songs table yet)
+        // Step 2: Kiểm tra xem bài hát đã được download chưa
+        if (this.isDownloaded(songData.id)) {
+          // Show song info nhưng không start polling
+          this.showSongInfo(songData);
+          await this.showToast('Bài hát đã được tải về!', 'success');
+          return;
+        }
+
+        // Step 3: Save ONLY to search history (not to songs table yet)
         await this.databaseService.addToSearchHistory(songData);
 
-        // Step 3: Show song info to user
+        // Step 4: Show song info to user
         this.showSongInfo(songData);
 
-        // Step 4: Start polling status in background để check khi nào ready
+        // Step 5: Start polling status in background để check khi nào ready
         this.startStatusPolling(songData.id);
 
         // Reload search history to show the new item
