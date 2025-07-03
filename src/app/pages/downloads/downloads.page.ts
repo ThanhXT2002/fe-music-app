@@ -62,6 +62,13 @@ export class DownloadsPage implements OnInit, OnDestroy {
     // Subscribe to download changes
     this.downloadService.downloads$.subscribe((downloads) => {
       this.downloads.set(downloads);
+
+      // Check for newly completed downloads and update cache
+      downloads.forEach(download => {
+        if (download.status === 'completed' && download.songData?.id) {
+          this.updateDownloadedCache(download.songData.id);
+        }
+      });
     });
 
     // Auto-paste from clipboard on load
@@ -194,42 +201,14 @@ export class DownloadsPage implements OnInit, OnDestroy {
         return;
       }
 
-      // Step 3: Bắt đầu download audio và thumbnail trước
+      // Step 3: Sử dụng downloadService để tạo download task với progress tracking
       await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
 
-      // Step 4: Download audio và thumbnail cùng lúc
-      const { audioBlob, thumbnailBlob } = await this.musicApiService.downloadSongWithThumbnail(songData.id);
+      // Tạo download task bằng downloadService
+      const downloadTaskId = await this.downloadService.downloadSong(songData);
 
-      // Step 5: Save audio blob to IndexedDB (thumbnails will be base64 in song table)
-      const audioSaved = await this.databaseService.saveSongAudioBlob(songData.id, audioBlob);
-
-      if (!audioSaved) {
-        throw new Error('Failed to save audio data');
-      }
-
-      // Step 6: Convert thumbnail to base64 data URL
-      const thumbnailBase64 = thumbnailBlob ? await this.blobToDataUrl(thumbnailBlob) : null;
-
-      // Step 7: Tạo blob URL cho audio (giữ cách cũ) và base64 cho thumbnail
-      const audioBlobUrl = URL.createObjectURL(audioBlob);
-
-      const song = SongConverter.fromApiData(songData);
-      song.addedDate = new Date();
-      song.isFavorite = false;
-      song.keywords = songData.keywords || [];
-      song.audio_url = audioBlobUrl; // Blob URL thực tế cho audio (cách cũ)
-      song.thumbnail_url = thumbnailBase64 || songData.thumbnail_url; // Base64 cho thumbnail
-
-      // Step 8: Lưu song vào database với new URLs
-      await this.databaseService.addSong(song);
-
-      // Step 9: Update cache để hiển thị check icon ngay lập tức
-      this.updateDownloadedCache(songData.id);
-
-      await this.showToast(`Tải xuống "${songData.title}" thành công!`, 'success');
-
-      // Reload để show downloaded status
-      await this.loadSearchHistory();
+      // Download task đã được tạo và bắt đầu process tự động thông qua downloadService
+      // UI sẽ tự động update thông qua reactive streams
 
     } catch (error) {
       console.error('Download error:', error);
