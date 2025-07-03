@@ -10,7 +10,7 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 34; // Fixed version conflict - current DB is at 33
+  private dbVersion = 35; // Updated: Removed recently_played, user_preferences tables and optimized search_history
 
   constructor() {}
   /**
@@ -45,9 +45,7 @@ export class IndexedDBService {
           const requiredStores = [
             'songs',
             'search_history',
-            'recently_played',
             'playlists',
-            'user_preferences',
             'audioFiles',
             'thumbnailFiles',
             'downloads',
@@ -91,15 +89,16 @@ export class IndexedDBService {
    * Tạo các object stores (tables)
    */
   private createObjectStores(db: IDBDatabase) {
-    // Songs store
+    // Songs store - bảng chính chứa bài hát với lastPlayedDate để tracking
     if (!db.objectStoreNames.contains('songs')) {
       const songsStore = db.createObjectStore('songs', { keyPath: 'id' });
       songsStore.createIndex('title', 'title', { unique: false });
       songsStore.createIndex('artist', 'artist', { unique: false });
       songsStore.createIndex('addedDate', 'addedDate', { unique: false });
+      songsStore.createIndex('lastPlayedDate', 'lastPlayedDate', { unique: false }); // Thêm index cho recently played
     }
 
-    // Search history store
+    // Search history store - chỉ lưu thông tin cần thiết từ API response
     if (!db.objectStoreNames.contains('search_history')) {
       const historyStore = db.createObjectStore('search_history', {
         keyPath: 'songId',
@@ -109,27 +108,12 @@ export class IndexedDBService {
       historyStore.createIndex('artist', 'artist', { unique: false });
     }
 
-    // Recently played store
-    if (!db.objectStoreNames.contains('recently_played')) {
-      const recentStore = db.createObjectStore('recently_played', {
-        keyPath: 'id',
-        autoIncrement: true,
-      });
-      recentStore.createIndex('songId', 'songId', { unique: false });
-      recentStore.createIndex('playedAt', 'playedAt', { unique: false });
-    }
-
     // Playlists store
     if (!db.objectStoreNames.contains('playlists')) {
       const playlistsStore = db.createObjectStore('playlists', {
         keyPath: 'id',
       });
       playlistsStore.createIndex('name', 'name', { unique: false });
-    }
-
-    // User preferences store
-    if (!db.objectStoreNames.contains('user_preferences')) {
-      db.createObjectStore('user_preferences', { keyPath: 'key' });
     }
 
     // Audio files store for offline audio blobs
@@ -150,7 +134,7 @@ export class IndexedDBService {
       thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
 
-    // Downloads store for download task persistence
+    // Downloads store for download task persistence - cần thiết cho DownloadService
     if (!db.objectStoreNames.contains('downloads')) {
       db.createObjectStore('downloads', { keyPath: 'id' });
     }
@@ -168,9 +152,7 @@ export class IndexedDBService {
       const requiredStores = [
         'songs',
         'search_history',
-        'recently_played',
         'playlists',
-        'user_preferences',
         'audioFiles',
         'thumbnailFiles',
         'downloads',

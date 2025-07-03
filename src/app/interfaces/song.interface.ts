@@ -168,13 +168,12 @@ export interface SearchHistoryItem {
   songId: string;
   title: string;
   artist: string;
-  thumbnail_url: string;
-  audio_url: string;
+  thumbnail_url: string;        // Lưu trực tiếp từ API response
   duration: number;
   duration_formatted: string;
   keywords: string[];
   searchedAt: Date;
-  // NOTE: isDownloaded không cần thiết - check bằng cách lookup trong songs table
+  // NOTE: Không lưu audio_url vì không có trong API response, chỉ construct khi cần
 }
 
 // === CONVERSION UTILITIES ===
@@ -211,7 +210,6 @@ export class SongConverter {
       title: song.title,
       artist: song.artist,
       thumbnail_url: song.thumbnail_url,
-      audio_url: song.audio_url,
       duration: song.duration,
       duration_formatted: song.duration_formatted,
       keywords: song.keywords,
@@ -228,7 +226,6 @@ export class SongConverter {
       title: data.title,
       artist: data.artist,
       thumbnail_url: data.thumbnail_url,
-      audio_url: `${this.API_BASE_URL}/songs/download/${data.id}`,
       duration: data.duration,
       duration_formatted: data.duration_formatted,
       keywords: data.keywords,
