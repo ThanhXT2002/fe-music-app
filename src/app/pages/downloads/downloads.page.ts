@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Platform } from '@ionic/angular';
@@ -11,6 +11,7 @@ import {
   DataSong,
   Song,
   SearchHistoryItem,
+  SongConverter,
 } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { AlertController, ToastController } from '@ionic/angular/standalone';
@@ -26,7 +27,7 @@ import { SongItemComponent } from "../../components/song-item/song-item.componen
   imports: [CommonModule, FormsModule, SongItemComponent],
     animations: [routeAnimation],
 })
-export class DownloadsPage implements OnInit {
+export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   downloadService = inject(DownloadService);
   private audioPlayerService = inject(AudioPlayerService);
@@ -44,6 +45,10 @@ export class DownloadsPage implements OnInit {
 
   // Download state
   downloads = signal<DownloadTask[]>([]);
+  // Song status tracking
+  songStatusMap = signal<Map<string, { status: string; progress: number; ready: boolean }>>(new Map());
+  pollingIntervals = new Map<string, any>();
+
   async ngOnInit() {
     await this.loadSearchHistory();
 
@@ -113,22 +118,44 @@ export class DownloadsPage implements OnInit {
     try {
       this.isSearching.set(true);
 
+      // Step 1: Get song info từ API v3
+      console.log('🔍 Getting song info from URL:', url);
       const response = await firstValueFrom(
-        this.downloadService.getYoutubeUrlInfo(url)
+        this.downloadService.getSongInfo(url)
       );
 
       if (response.success) {
-        const song = response.data;
-        await this.databaseService.addToSearchHistory(song);
-        this.showSongInfo(song);
+        const songData = response.data;
+        console.log('✅ Song info received:', songData);
+
+        // Step 2: Save to search history
+        await this.databaseService.addToSearchHistory(songData);
+
+        // Step 3: Save song info to database (với online URLs)
+        const song = SongConverter.fromApiData(songData);
+        song.addedDate = new Date();
+        song.isFavorite = false;
+        song.keywords = songData.keywords || [];
+        await this.databaseService.addSong(song);
+
+        // Step 4: Show song info to user
+        this.showSongInfo(songData);
+
+        // Step 5: Start polling status in background để check khi nào ready
+        this.startStatusPolling(songData.id);
+
         // Reload search history to show the new item
         await this.loadSearchHistory();
+
+        await this.showToast('Đã lấy thông tin bài hát thành công!', 'success');
       } else {
         console.error('API returned error:', response.message);
+        await this.showToast(`Lỗi: ${response.message}`, 'danger');
         this.searchResults.set([]);
       }
     } catch (error) {
       console.error('Error processing YouTube URL:', error);
+      await this.showToast(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`, 'danger');
       this.searchResults.set([]);
     } finally {
       this.isSearching.set(false);
@@ -143,27 +170,37 @@ export class DownloadsPage implements OnInit {
       duration: song.duration,
       duration_formatted: song.duration_formatted,
       thumbnail_url: song.thumbnail_url,
-      audio_url: song.audio_url,
       keywords: song.keywords || [],
+      original_url: song.original_url,
+      created_at: song.created_at,
     };
 
     this.searchResults.set([result]);
   }
 
   /**
-   * Download bài hát từ search results
+   * Download bài hát từ search results (chỉ khi user click Download button)
    * @param songData - Data bài hát từ API
    */
   async downloadSong(songData: DataSong) {
     try {
+      // Kiểm tra xem bài hát có ready không
+      if (!this.isSongReadyForDownload(songData.id)) {
+        await this.showToast('Bài hát chưa sẵn sàng để tải xuống!', 'warning');
+        return;
+      }
+
       // Kiểm tra xem đã download chưa
       if (this.downloadService.isSongDownloaded(songData.id)) {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
-      // Bắt đầu download
+
+      // Bắt đầu download chỉ audio và thumbnail (không poll nữa)
       const downloadId = await this.downloadService.downloadSong(songData);
       await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
+
+      console.log('🎵 Started download for ready song:', songData.id);
     } catch (error) {
       console.error('Download error:', error);
       await this.showToast('Lỗi khi tải bài hát!', 'danger');
@@ -175,18 +212,52 @@ export class DownloadsPage implements OnInit {
    * @param historyItem - Item từ lịch sử tìm kiếm
    */
   async downloadFromHistory(historyItem: SearchHistoryItem) {
-    const songData: DataSong = {
-      id: historyItem.songId,
-      title: historyItem.title,
-      artist: historyItem.artist,
-      thumbnail_url: historyItem.thumbnail_url,
-      audio_url: historyItem.audio_url,
-      duration: historyItem.duration,
-      duration_formatted: historyItem.duration_formatted,
-      keywords: historyItem.keywords,
-    };
+    try {
+      // Kiểm tra xem đã download chưa
+      if (this.downloadService.isSongDownloaded(historyItem.songId)) {
+        await this.showToast('Bài hát đã được tải xuống!', 'warning');
+        return;
+      }
 
-    await this.downloadSong(songData);
+      // Check if download is already in progress
+      const existingDownload = this.getDownloadStatus(historyItem.songId);
+      if (existingDownload) {
+        await this.showToast('Bài hát đang được tải xuống!', 'info');
+        return;
+      }
+
+      // Check if we need to poll status first
+      const songStatus = this.getSongStatus(historyItem.songId);
+      if (!songStatus) {
+        // Start status polling first
+        this.startStatusPolling(historyItem.songId);
+        await this.showToast('Đang kiểm tra trạng thái bài hát...', 'primary');
+        return;
+      }
+
+      // If song is ready, proceed with download
+      if (songStatus.ready) {
+        const songData: DataSong = {
+          id: historyItem.songId,
+          title: historyItem.title,
+          artist: historyItem.artist,
+          thumbnail_url: historyItem.thumbnail_url,
+          duration: historyItem.duration,
+          duration_formatted: historyItem.duration_formatted,
+          keywords: historyItem.keywords,
+          original_url: '', // Will be fetched if needed
+          created_at: new Date().toISOString(), // Default value
+        };
+
+        await this.downloadSong(songData);
+      } else {
+        await this.showToast(`Bài hát đang xử lý (${songStatus.progress}%)...`, 'warning');
+      }
+
+    } catch (error) {
+      console.error('Download error:', error);
+      await this.showToast('Lỗi khi tải bài hát!', 'danger');
+    }
   }
 
   /**
@@ -590,5 +661,155 @@ Hoặc paste thủ công:
 
     onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
+  }
+
+  /**
+   * Start polling song status để check khi nào ready for download
+   * @param songId - ID của bài hát
+   */
+  private startStatusPolling(songId: string) {
+    console.log(`🔄 Starting status polling for song: ${songId}`);
+
+    // Clear existing polling if any
+    this.stopStatusPolling(songId);
+
+    const pollStatus = async () => {
+      try {
+        const statusResponse = await firstValueFrom(
+          this.downloadService.getSongStatus(songId)
+        );
+
+        if (statusResponse.success) {
+          const status = statusResponse.data;
+          const isReady = status.status === 'completed' && status.progress === 1;
+
+          // Update status map
+          const currentMap = this.songStatusMap();
+          currentMap.set(songId, {
+            status: status.status,
+            progress: Math.round(status.progress * 100),
+            ready: isReady
+          });
+          this.songStatusMap.set(new Map(currentMap));
+
+          console.log(`📊 Status update for ${songId}:`, {
+            status: status.status,
+            progress: status.progress,
+            ready: isReady
+          });
+
+          if (isReady) {
+            console.log('✅ Song is ready for download!');
+            this.stopStatusPolling(songId);
+            await this.showToast('Bài hát đã sẵn sàng để tải xuống!', 'success');
+          } else if (status.status === 'failed') {
+            console.error('❌ Song processing failed:', status.error_message);
+            this.stopStatusPolling(songId);
+            await this.showToast(`Xử lý thất bại: ${status.error_message}`, 'danger');
+          }
+        } else {
+          console.warn('⚠️ Status check failed:', statusResponse.message);
+        }
+      } catch (error) {
+        console.error('❌ Error polling status:', error);
+        // Continue polling, don't stop on single error
+      }
+    };
+
+    // Poll immediately, then every 2 seconds
+    pollStatus();
+    const interval = setInterval(pollStatus, 2000);
+    this.pollingIntervals.set(songId, interval);
+  }
+
+  /**
+   * Stop polling song status
+   * @param songId - ID của bài hát
+   */
+  private stopStatusPolling(songId: string) {
+    const interval = this.pollingIntervals.get(songId);
+    if (interval) {
+      clearInterval(interval);
+      this.pollingIntervals.delete(songId);
+      console.log(`⏹️ Stopped polling for song: ${songId}`);
+    }
+  }
+
+  /**
+   * Get song status from signal
+   * @param songId - ID của bài hát
+   * @returns Status object or undefined
+   */
+  getSongStatus(songId: string) {
+    return this.songStatusMap().get(songId);
+  }
+
+  /**
+   * Check if song is ready for download
+   * @param songId - ID của bài hát
+   * @returns boolean
+   */
+  isSongReadyForDownload(songId: string): boolean {
+    const status = this.getSongStatus(songId);
+    return status?.ready === true;
+  }
+
+  /**
+   * Get user-friendly status message for display
+   * @param songId - ID của bài hát
+   * @returns string
+   */
+  getStatusMessage(songId: string): string {
+    const status = this.getSongStatus(songId);
+    if (!status) {
+      return 'Đang kiểm tra...';
+    }
+
+    switch (status.status) {
+      case 'pending':
+        return 'Đang chờ xử lý...';
+      case 'processing':
+        return `Đang xử lý... ${status.progress}%`;
+      case 'completed':
+        return 'Sẵn sàng tải xuống';
+      case 'failed':
+        return 'Xử lý thất bại';
+      default:
+        return 'Trạng thái không xác định';
+    }
+  }
+
+  /**
+   * Get CSS class for status display
+   * @param songId - ID của bài hát
+   * @returns string
+   */
+  getStatusClass(songId: string): string {
+    const status = this.getSongStatus(songId);
+    if (!status) {
+      return 'status-checking';
+    }
+
+    switch (status.status) {
+      case 'pending':
+        return 'status-pending';
+      case 'processing':
+        return 'status-processing';
+      case 'completed':
+        return 'status-ready';
+      case 'failed':
+        return 'status-failed';
+      default:
+        return 'status-unknown';
+    }
+  }
+
+  ngOnDestroy() {
+    // Clear all polling intervals
+    this.pollingIntervals.forEach((interval, songId) => {
+      clearInterval(interval);
+    });
+    this.pollingIntervals.clear();
+    console.log('🧹 Cleared all status polling intervals');
   }
 }

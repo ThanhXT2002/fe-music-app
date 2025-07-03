@@ -22,6 +22,7 @@ import {
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
+import { MusicApiService } from './api/music-api.service';
 import { environment } from 'src/environments/environment';
 
 // Define DownloadTask interface directly in this file
@@ -52,7 +53,8 @@ export class DownloadService {
     private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
-    private refreshService: RefreshService
+    private refreshService: RefreshService,
+    private musicApiService: MusicApiService
   ) {
     this.initializeDownloads();
   }
@@ -653,19 +655,124 @@ export class DownloadService {
     }
   }
 
-  // download youtube video
-  getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
-    const params = new HttpParams().set('url', url);
-    return this.http
-      .post<YouTubeDownloadResponse>(`${this.apiUrl}/songs/download`, null, {
-        params,
-      })
-      .pipe(
-        catchError((error) => {
-          console.error('Error downloading from YouTube:', error);
+  // === NEW API v3 METHODS ===
+
+  /**
+   * NEW: Get song info từ YouTube URL sử dụng API v3
+   * @param url - YouTube URL
+   * @returns Observable<YouTubeDownloadResponse>
+   */
+  getSongInfo(url: string): Observable<YouTubeDownloadResponse> {
+    return this.musicApiService.getSongInfo(url);
+  }
+
+  /**
+   * NEW: Get song status để check xem đã ready download chưa
+   * @param songId - ID của bài hát
+   * @returns Observable<SongStatusResponse>
+   */
+  getSongStatus(songId: string) {
+    return this.musicApiService.getSongStatus(songId);
+  }
+
+  /**
+   * NEW: Workflow mới - Add song từ YouTube URL với API v3
+   * 1. Get song info từ URL
+   * 2. Save song info ngay lập tức
+   * 3. Poll status cho đến khi ready
+   * 4. Download khi ready
+   * @param url - YouTube URL
+   * @returns Promise<string> - Song ID
+   */
+  async addSongFromUrl(url: string): Promise<string> {
+    try {
+      // Step 1: Get song info từ API
+      console.log('🔍 Getting song info from URL:', url);
+      const response = await firstValueFrom(this.getSongInfo(url));
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Failed to get song info');
+      }
+
+      const songData = response.data;
+      console.log('✅ Song info received:', songData);
+
+      // Step 2: Save song info ngay lập tức vào database
+      await this.saveSongToDatabase(songData);
+
+      // Step 3: Create download task để track progress
+      const downloadId = await this.downloadSong(songData);
+
+      return songData.id;
+    } catch (error) {
+      console.error('❌ Error adding song from URL:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * NEW: Poll song status và tự động download khi ready
+   * @param songId - ID của bài hát
+   * @param maxAttempts - Số lần poll tối đa
+   * @returns Promise<boolean> - Success status
+   */
+  async pollAndDownload(songId: string, maxAttempts: number = 30): Promise<boolean> {
+    console.log(`🔄 Starting status polling for song: ${songId}`);
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const statusResponse = await firstValueFrom(this.getSongStatus(songId));
+
+        if (!statusResponse.success) {
+          console.warn(`⚠️ Status check failed (${attempt}/${maxAttempts}):`, statusResponse.message);
+          continue;
+        }
+
+        const status = statusResponse.data;
+        console.log(`📊 Status check (${attempt}/${maxAttempts}):`, status);
+
+        if (this.musicApiService.isSongReadyForDownload(status)) {
+          console.log('✅ Song is ready for download!');
+
+          // Find the download task and trigger actual download
+          const downloadTask = this.getDownloadBySongId(songId);
+          if (downloadTask) {
+            this.startDownload(downloadTask.id);
+            return true;
+          } else {
+            console.warn('⚠️ Download task not found for song:', songId);
+            return false;
+          }
+        } else if (status.status === 'failed') {
+          console.error('❌ Song processing failed:', status.error_message);
+          return false;
+        }
+
+        // Wait 2 seconds before next poll
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+      } catch (error) {
+        console.error(`❌ Error polling status (${attempt}/${maxAttempts}):`, error);
+
+        if (attempt === maxAttempts) {
           throw error;
-        })
-      );
+        }
+
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+    }
+
+    console.warn('⚠️ Max polling attempts reached, song may not be ready');
+    return false;
+  }
+
+  // === LEGACY METHODS (for backwards compatibility) ===
+
+  // download youtube video (LEGACY - use getSongInfo instead)
+  getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
+    console.warn('⚠️ getYoutubeUrlInfo is deprecated, use getSongInfo instead');
+    return this.getSongInfo(url);
   }
 
   validateYoutubeUrl(url: string): boolean {
