@@ -84,15 +84,14 @@
         <div
           class="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto"
         ></div>
-        <p class="text-xs text-yellow-600 mt-1">{{ pollProgress }}%</p>
       </div>
       } @else if (isReady) {
       <!-- 📥 Ready to download - Show download button -->
       <button
         (click)="download.emit(song)"
-        class="w-8 h-8 flex items-center justify-center bg-gradient-to-r from-green-500 to-green-600 rounded-full hover:from-green-600 hover:to-green-700 transition-all"
+        class=""
       >
-        <i class="fa-solid fa-cloud-arrow-down text-white text-sm"></i>
+        <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent"></i>
       </button>
       } @else {
       <!-- ⏳ Default - Not ready yet, show disabled state -->
