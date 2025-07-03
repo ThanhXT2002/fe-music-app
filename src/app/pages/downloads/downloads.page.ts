@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from '../../services/database.service';
 import { DownloadService, DownloadTask } from '../../services/download.service';
 import { AudioPlayerService } from '../../services/audio-player.service';
+import { MusicApiService } from '../../services/api/music-api.service';
 import {
   DataSong,
   Song,
@@ -31,7 +32,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   downloadService = inject(DownloadService);
   private audioPlayerService = inject(AudioPlayerService);
-  private clipboardService = inject(ClipboardService);  private alertController = inject(AlertController);
+  private clipboardService = inject(ClipboardService);
+  private musicApiService = inject(MusicApiService);
+  private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private platform = inject(Platform);
 
@@ -128,26 +131,19 @@ export class DownloadsPage implements OnInit, OnDestroy {
         const songData = response.data;
         console.log('✅ Song info received:', songData);
 
-        // Step 2: Save to search history
+        // Step 2: Save ONLY to search history (not to songs table yet)
         await this.databaseService.addToSearchHistory(songData);
 
-        // Step 3: Save song info to database (với online URLs)
-        const song = SongConverter.fromApiData(songData);
-        song.addedDate = new Date();
-        song.isFavorite = false;
-        song.keywords = songData.keywords || [];
-        await this.databaseService.addSong(song);
-
-        // Step 4: Show song info to user
+        // Step 3: Show song info to user
         this.showSongInfo(songData);
 
-        // Step 5: Start polling status in background để check khi nào ready
+        // Step 4: Start polling status in background để check khi nào ready
         this.startStatusPolling(songData.id);
 
         // Reload search history to show the new item
         await this.loadSearchHistory();
 
-        await this.showToast('Đã lấy thông tin bài hát thành công!', 'success');
+        await this.showToast('Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.', 'success');
       } else {
         console.error('API returned error:', response.message);
         await this.showToast(`Lỗi: ${response.message}`, 'danger');
@@ -179,36 +175,74 @@ export class DownloadsPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Download bài hát từ search results (chỉ khi user click Download button)
+   * Download bài hát từ search results - NEW WORKFLOW
    * @param songData - Data bài hát từ API
    */
   async downloadSong(songData: DataSong) {
     try {
-      // Kiểm tra xem bài hát có ready không
+      // Step 1: Kiểm tra xem bài hát có ready không
       if (!this.isSongReadyForDownload(songData.id)) {
         await this.showToast('Bài hát chưa sẵn sàng để tải xuống!', 'warning');
         return;
       }
 
-      // Kiểm tra xem đã download chưa
+      // Step 2: Kiểm tra xem đã download chưa
       if (this.downloadService.isSongDownloaded(songData.id)) {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
 
-      // Bắt đầu download chỉ audio và thumbnail (không poll nữa)
-      const downloadId = await this.downloadService.downloadSong(songData);
+      // Step 3: Bắt đầu download audio và thumbnail trước
       await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
+      console.log('🎵 Starting download for song:', songData.id);
 
-      console.log('🎵 Started download for ready song:', songData.id);
+      // Step 4: Download audio và thumbnail cùng lúc
+      const { audioBlob, thumbnailBlob } = await this.musicApiService.downloadSongWithThumbnail(songData.id);
+
+      // Step 5: Lưu blobs vào IndexedDB trước
+      const blobsSaved = await this.databaseService.saveSongBlobs(songData.id, audioBlob, thumbnailBlob);
+
+      if (!blobsSaved) {
+        throw new Error('Failed to save audio/thumbnail data');
+      }
+
+      // Step 6: Lấy blob URLs từ IndexedDB để tạo persistent URLs
+      const savedAudioBlob = await this.databaseService.getAudioBlob(songData.id);
+      const savedThumbnailBlob = await this.databaseService.getThumbnailBlob(songData.id);
+
+      if (!savedAudioBlob) {
+        throw new Error('Failed to retrieve saved audio data');
+      }
+
+      // Step 7: Tạo blob URLs từ saved blobs
+      const audioBlobUrl = URL.createObjectURL(savedAudioBlob);
+      const thumbnailBlobUrl = savedThumbnailBlob ? URL.createObjectURL(savedThumbnailBlob) : null;
+
+      // Step 8: Tạo Song object với blob URLs
+      const song = SongConverter.fromApiData(songData);
+      song.addedDate = new Date();
+      song.isFavorite = false;
+      song.keywords = songData.keywords || [];
+      song.audio_url = audioBlobUrl; // Blob URL cho audio
+      song.thumbnail_url = thumbnailBlobUrl || songData.thumbnail_url; // Blob URL hoặc fallback
+
+      // Step 9: Lưu song vào database với blob URLs
+      await this.databaseService.addSong(song);
+
+      await this.showToast(`Tải xuống "${songData.title}" thành công!`, 'success');
+      console.log('✅ Download completed for song:', songData.id);
+
+      // Reload để show downloaded status
+      await this.loadSearchHistory();
+
     } catch (error) {
       console.error('Download error:', error);
-      await this.showToast('Lỗi khi tải bài hát!', 'danger');
+      await this.showToast(`Lỗi khi tải bài hát: ${error instanceof Error ? error.message : 'Unknown error'}`, 'danger');
     }
   }
 
   /**
-   * Download bài hát từ search history
+   * Download bài hát từ search history - NEW WORKFLOW
    * @param historyItem - Item từ lịch sử tìm kiếm
    */
   async downloadFromHistory(historyItem: SearchHistoryItem) {
@@ -216,13 +250,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
       // Kiểm tra xem đã download chưa
       if (this.downloadService.isSongDownloaded(historyItem.songId)) {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
-        return;
-      }
-
-      // Check if download is already in progress
-      const existingDownload = this.getDownloadStatus(historyItem.songId);
-      if (existingDownload) {
-        await this.showToast('Bài hát đang được tải xuống!', 'info');
         return;
       }
 

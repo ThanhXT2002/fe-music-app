@@ -521,4 +521,55 @@ export class DatabaseService {
     // IndexedDB doesn't need explicit close
     console.log('🔄 IndexedDB cleanup completed');
   }
+
+  /**
+   * Save audio and thumbnail blobs to IndexedDB
+   * @param songId - ID của bài hát
+   * @param audioBlob - Audio blob data
+   * @param thumbnailBlob - Thumbnail blob data (optional)
+   * @returns Promise<boolean>
+   */
+  async saveSongBlobs(songId: string, audioBlob: Blob, thumbnailBlob: Blob | null): Promise<boolean> {
+    try {
+      console.log('💾 Saving blobs for song:', songId);
+
+      // Save to IndexedDB using existing audio/thumbnail storage
+      const audioSaved = await this.indexedDB.saveAudioFile(songId, audioBlob, audioBlob.type || 'audio/mpeg');
+
+      let thumbnailSaved = true;
+      if (thumbnailBlob) {
+        thumbnailSaved = await this.indexedDB.saveThumbnailFile(songId, thumbnailBlob, thumbnailBlob.type || 'image/jpeg');
+      }
+
+      if (audioSaved && thumbnailSaved) {
+        console.log('✅ Blobs saved successfully for song:', songId);
+        return true;
+      } else {
+        console.error('❌ Failed to save blobs for song:', songId);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Error saving blobs:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get audio blob from IndexedDB
+   * @param songId - ID của bài hát
+   * @returns Promise<Blob | null>
+   */
+  async getAudioBlob(songId: string): Promise<Blob | null> {
+    return await this.indexedDB.getAudioFile(songId);
+  }
+
+  /**
+   * Get thumbnail blob from IndexedDB
+   * @param songId - ID của bài hát
+   * @returns Promise<Blob | null>
+   */
+  async getThumbnailBlob(songId: string): Promise<Blob | null> {
+    return await this.indexedDB.getThumbnailFile(songId);
+  }
 }

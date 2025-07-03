@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, throwError } from 'rxjs';
+import { Observable, catchError, throwError, firstValueFrom } from 'rxjs';
 import {
   YouTubeDownloadResponse,
   SongStatusResponse,
@@ -87,6 +87,43 @@ export class MusicApiService {
     }).pipe(
       catchError(this.handleError('downloadThumbnail'))
     );
+  }
+
+  /**
+   * Download both audio and thumbnail for a song
+   * @param songId - ID của bài hát
+   * @returns Promise<{audioBlob: Blob, thumbnailBlob: Blob | null}>
+   */
+  async downloadSongWithThumbnail(songId: string): Promise<{
+    audioBlob: Blob;
+    thumbnailBlob: Blob | null;
+  }> {
+    try {
+      console.log('🎵 Starting download for song:', songId);
+
+      // Download audio (bắt buộc)
+      const audioBlob = await firstValueFrom(this.downloadSongAudio(songId, true));
+
+      // Download thumbnail (optional, không fail toàn bộ nếu lỗi)
+      let thumbnailBlob: Blob | null = null;
+      try {
+        thumbnailBlob = await firstValueFrom(this.downloadThumbnail(songId));
+        console.log('✅ Thumbnail downloaded successfully');
+      } catch (thumbnailError) {
+        console.warn('⚠️ Thumbnail download failed:', thumbnailError);
+        // Continue without thumbnail - this is not critical
+      }
+
+      console.log('✅ Audio downloaded successfully');
+      return {
+        audioBlob,
+        thumbnailBlob
+      };
+
+    } catch (error) {
+      console.error('❌ Download failed:', error);
+      throw error;
+    }
   }
 
   /**
