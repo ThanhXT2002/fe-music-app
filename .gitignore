@@ -76,3 +76,4 @@ key-auth-google.json
 google-services.json
 
 .vercel
+/documents

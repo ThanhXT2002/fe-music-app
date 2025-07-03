@@ -1,17 +1,19 @@
 export interface Song {
+  // === CORE DATA (từ API) ===
   id: string;
   title: string;
   artist: string;
-  album?: string;
-  duration: number; // in seconds
-  duration_formatted?: string; // in seconds
-  thumbnail?: string;
-  audioUrl: string;
-  filePath?: string | null; // local file path
-  addedDate: Date;
+  duration: number;              // seconds
+  duration_formatted: string;   // "03:32"
+  keywords: string[];            // từ API để search
+  // === MEDIA URLs ===
+  audio_url: string;             // URL audio
+  thumbnail_url: string;         // URL thumbnail
+  // === USER DATA ===
   isFavorite: boolean;
-  genre?: string;
-  isDownloaded?: boolean; // Đã download file về máy chưa
+  addedDate: Date;
+  lastUpdated?: Date;
+  lastPlayedDate?: Date;         // Cho Recently Played
 }
 
 export interface Album {
@@ -111,26 +113,56 @@ export interface SearchResultItem {
 }
 
 
-// dowload youtube song
+// === API RESPONSE INTERFACES ===
+
+// Response từ POST /songs/info
 export interface YouTubeDownloadResponse {
   success: boolean;
   message: string;
   data: DataSong;
 }
 
+// Data bài hát từ API
 export interface DataSong {
-  id:string;
+  id: string;
   title: string;
   artist: string;
-  duration?: number;
-  duration_formatted: string;
   thumbnail_url: string;
-  audio_url: string;
-  keywords?: string[];
-  original_url?: string;
-  created_at?:string;
+  duration: number;
+  duration_formatted: string;
+  keywords: string[];
+  original_url: string;
+  created_at: string;
+  // NOTE: audio_url sẽ được construct từ API endpoint
 }
 
+// Response từ GET /songs/status/{song_id}
+export interface SongStatusResponse {
+  success: boolean;
+  message: string;
+  data: SongStatus;
+}
+
+export interface SongStatus {
+  id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress: number; // 0, 0.5, 1
+  error_message?: string;
+  audio_filename?: string;
+  thumbnail_filename?: string;
+  updated_at: string;
+}
+
+// Response từ GET /songs/completed
+export interface CompletedSongsResponse {
+  success: boolean;
+  data: {
+    songs: DataSong[];
+    total: number;
+  };
+}
+
+// === SEARCH HISTORY ===
 export interface SearchHistoryItem {
   id?: number;
   songId: string;
@@ -142,7 +174,127 @@ export interface SearchHistoryItem {
   duration_formatted: string;
   keywords: string[];
   searchedAt: Date;
-  isDownloaded: boolean; // Đã download về máy chưa
+  // NOTE: isDownloaded không cần thiết - check bằng cách lookup trong songs table
+}
+
+// === CONVERSION UTILITIES ===
+export class SongConverter {
+  private static readonly API_BASE_URL = 'https://api-music.tranxuanthanhtxt.com/api/v3';
+
+  /**
+   * Convert API DataSong to unified Song format
+   */
+  static fromApiData(data: DataSong): Song {
+    return {
+      id: data.id,
+      title: data.title,
+      artist: data.artist,
+      duration: data.duration,
+      duration_formatted: data.duration_formatted,
+      thumbnail_url: data.thumbnail_url,
+      audio_url: `${this.API_BASE_URL}/songs/download/${data.id}`,
+      keywords: data.keywords,
+
+      // User data defaults
+      isFavorite: false,
+      addedDate: new Date(),
+      lastUpdated: new Date()
+    };
+  }
+
+  /**
+   * Convert Song to SearchHistoryItem
+   */
+  static toSearchHistory(song: Song): SearchHistoryItem {
+    return {
+      songId: song.id,
+      title: song.title,
+      artist: song.artist,
+      thumbnail_url: song.thumbnail_url,
+      audio_url: song.audio_url,
+      duration: song.duration,
+      duration_formatted: song.duration_formatted,
+      keywords: song.keywords,
+      searchedAt: new Date()
+    };
+  }
+
+  /**
+   * Convert DataSong to SearchHistoryItem (for immediate search results)
+   */
+  static apiDataToSearchHistory(data: DataSong): SearchHistoryItem {
+    return {
+      songId: data.id,
+      title: data.title,
+      artist: data.artist,
+      thumbnail_url: data.thumbnail_url,
+      audio_url: `${this.API_BASE_URL}/songs/download/${data.id}`,
+      duration: data.duration,
+      duration_formatted: data.duration_formatted,
+      keywords: data.keywords,
+      searchedAt: new Date()
+    };
+  }
+
+  /**
+   * Update Song với offline URLs sau khi download
+   */
+  static markAsDownloaded(song: Song, audioBlobUrl: string, thumbnailBlobUrl: string): Song {
+    return {
+      ...song,
+      audio_url: audioBlobUrl,
+      thumbnail_url: thumbnailBlobUrl,
+      lastUpdated: new Date()
+    };
+  }
+
+  /**
+   * Check if Song is downloaded (offline) by URL pattern
+   */
+  static isDownloaded(song: Song): boolean {
+    return song.audio_url.startsWith('blob://') || song.audio_url.startsWith('blob:');
+  }
+
+  /**
+   * Fake progress based on status for IndexedDB
+   */
+  static getProgressFromStatus(status: string): number {
+    switch (status.toLowerCase()) {
+      case 'pending': return 0;
+      case 'processing': return 50;
+      case 'completed': return 100;
+      case 'failed': return 0;
+      default: return 0;
+    }
+  }
+
+  /**
+   * Check if song is ready for download based on status
+   */
+  static isReadyForDownload(status: string): boolean {
+    return status.toLowerCase() === 'completed';
+  }
+
+  /**
+   * Get download URL with download=true parameter
+   */
+  static getDownloadUrl(songId: string): string {
+    return `${this.API_BASE_URL}/songs/download/${songId}?download=true`;
+  }
+
+  /**
+   * Get thumbnail download URL
+   */
+  static getThumbnailDownloadUrl(songId: string): string {
+    return `${this.API_BASE_URL}/songs/thumbnail/${songId}`;
+  }
+
+  /**
+   * Get streaming URL (without download parameter)
+   */
+  static getStreamingUrl(songId: string): string {
+    return `${this.API_BASE_URL}/songs/download/${songId}`;
+  }
 }
 
 // Interfaces for offline file storage
