@@ -52,8 +52,12 @@ export class DownloadsPage implements OnInit, OnDestroy {
   songStatusMap = signal<Map<string, { status: string; progress: number; ready: boolean }>>(new Map());
   pollingIntervals = new Map<string, any>();
 
+  // Cache for downloaded songs (for instant UI feedback)
+  private downloadedSongsCache = new Set<string>();
+
   async ngOnInit() {
     await this.loadSearchHistory();
+    await this.loadDownloadedSongsCache(); // Load cache from database for instant UI feedback
 
     // Subscribe to download changes
     this.downloadService.downloads$.subscribe((downloads) => {
@@ -122,14 +126,12 @@ export class DownloadsPage implements OnInit, OnDestroy {
       this.isSearching.set(true);
 
       // Step 1: Get song info từ API v3
-      console.log('🔍 Getting song info from URL:', url);
       const response = await firstValueFrom(
         this.downloadService.getSongInfo(url)
       );
 
       if (response.success) {
         const songData = response.data;
-        console.log('✅ Song info received:', songData);
 
         // Step 2: Save ONLY to search history (not to songs table yet)
         await this.databaseService.addToSearchHistory(songData);
@@ -187,14 +189,13 @@ export class DownloadsPage implements OnInit, OnDestroy {
       }
 
       // Step 2: Kiểm tra xem đã download chưa
-      if (this.downloadService.isSongDownloaded(songData.id)) {
+      if (this.isDownloaded(songData.id)) {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
 
       // Step 3: Bắt đầu download audio và thumbnail trước
       await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
-      console.log('🎵 Starting download for song:', songData.id);
 
       // Step 4: Download audio và thumbnail cùng lúc
       const { audioBlob, thumbnailBlob } = await this.musicApiService.downloadSongWithThumbnail(songData.id);
@@ -222,8 +223,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
       // Step 8: Lưu song vào database với new URLs
       await this.databaseService.addSong(song);
 
+      // Step 9: Update cache để hiển thị check icon ngay lập tức
+      this.updateDownloadedCache(songData.id);
+
       await this.showToast(`Tải xuống "${songData.title}" thành công!`, 'success');
-      console.log('✅ Download completed for song:', songData.id);
 
       // Reload để show downloaded status
       await this.loadSearchHistory();
@@ -241,7 +244,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
   async downloadFromHistory(historyItem: SearchHistoryItem) {
     try {
       // Kiểm tra xem đã download chưa
-      if (this.downloadService.isSongDownloaded(historyItem.songId)) {
+      if (this.isDownloaded(historyItem.songId)) {
         await this.showToast('Bài hát đã được tải xuống!', 'warning');
         return;
       }
@@ -310,13 +313,15 @@ export class DownloadsPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Kiểm tra xem bài hát đã download xong chưa
+   * Kiểm tra xem bài hát đã download xong chưa - sử dụng cache cho instant feedback
    * @param songId - ID bài hát
    * @returns boolean
    */
   isDownloaded(songId: string): boolean {
-    return this.downloadService.isSongDownloaded(songId);
+    return this.downloadedSongsCache.has(songId);
   }
+
+
 
   /**
    * Cancel download
@@ -360,7 +365,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
       this.isSearching.set(true);
 
       // Tìm kiếm trong lịch sử IndexedDB cục bộ
-      console.log('🔍 Searching in local IndexedDB history for:', query);
       this.filterSearchHistory(query);
 
     } catch (error) {
@@ -393,8 +397,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
       this.originalSearchHistory.set(first20); // ✅ Lưu bản gốc
       this.searchHistoryItem.set(first20); // Hiển thị
-
-      console.log('📋 Loaded search history:', first20.length, 'items');
     } catch (error) {
       console.error('❌ Error loading search history:', error);
       this.originalSearchHistory.set([]);
@@ -412,7 +414,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       message,
       duration: 3000,
       color,
-      position: 'bottom',
+      position: 'top',
     });
     await toast.present();
   }
@@ -676,7 +678,6 @@ Hoặc paste thủ công:
     );
 
     this.searchHistoryItem.set(filtered);
-    console.log(`🔍 Filtered search history: ${filtered.length} results for "${query}"`);
   }
 
     onImageError(event: any): void {
@@ -688,8 +689,6 @@ Hoặc paste thủ công:
    * @param songId - ID của bài hát
    */
   private startStatusPolling(songId: string) {
-    console.log(`🔄 Starting status polling for song: ${songId}`);
-
     // Clear existing polling if any
     this.stopStatusPolling(songId);
 
@@ -712,14 +711,7 @@ Hoặc paste thủ công:
           });
           this.songStatusMap.set(new Map(currentMap));
 
-          console.log(`📊 Status update for ${songId}:`, {
-            status: status.status,
-            progress: status.progress,
-            ready: isReady
-          });
-
           if (isReady) {
-            console.log('✅ Song is ready for download!');
             this.stopStatusPolling(songId);
             await this.showToast('Bài hát đã sẵn sàng để tải xuống!', 'success');
           } else if (status.status === 'failed') {
@@ -751,7 +743,6 @@ Hoặc paste thủ công:
     if (interval) {
       clearInterval(interval);
       this.pollingIntervals.delete(songId);
-      console.log(`⏹️ Stopped polling for song: ${songId}`);
     }
   }
 
@@ -830,7 +821,6 @@ Hoặc paste thủ công:
       clearInterval(interval);
     });
     this.pollingIntervals.clear();
-    console.log('🧹 Cleared all status polling intervals');
   }
 
   /**
@@ -845,5 +835,53 @@ Hoặc paste thủ công:
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
+  }
+
+  /**
+   * Load cache downloaded songs từ database
+   */
+  private async loadDownloadedSongsCache() {
+    try {
+      const songs = await this.databaseService.getAllSongs();
+      this.downloadedSongsCache.clear();
+      songs.forEach(song => {
+        if (song.id) {
+          this.downloadedSongsCache.add(song.id);
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error loading downloaded songs cache:', error);
+    }
+  }
+
+  /**
+   * Update the downloaded songs cache after a successful download
+   */
+  private updateDownloadedCache(songId: string) {
+    this.downloadedSongsCache.add(songId);
+  }
+
+  /**
+   * Check if song is in polling state
+   */
+  isPolling(songId: string): boolean {
+    const status = this.getSongStatus(songId);
+    return status ? (status.status === 'pending' || status.status === 'processing') && !status.ready : false;
+  }
+
+  /**
+   * Get polling progress for display
+   */
+  getPollProgress(songId: string): number {
+    const status = this.getSongStatus(songId);
+    return status?.progress || 0;
+  }
+
+  /**
+   * Check if song is ready for download
+   */
+  isReady(songId: string): boolean {
+    const status = this.getSongStatus(songId);
+    return status?.ready === true;
   }
 }

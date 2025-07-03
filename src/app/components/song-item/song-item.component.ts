@@ -50,6 +50,9 @@ export class SongItemComponent implements OnInit {
   @Input() isDownloaded: boolean = false;
   @Input() isDownloading: boolean = false;
   @Input() downloadProgress: number = 0;
+  @Input() isPolling: boolean = false; // 🆕 Đang polling status
+  @Input() pollProgress: number = 0; // 🆕 Progress polling
+  @Input() isReady: boolean = false; // 🆕 Sẵn sàng download
   @Output() download = new EventEmitter<any>();
   @Output() pauseDownload = new EventEmitter<any>();
   @Output() resumeDownload = new EventEmitter<any>();
