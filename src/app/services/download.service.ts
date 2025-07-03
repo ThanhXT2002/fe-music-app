@@ -422,35 +422,13 @@ export class DownloadService {
         // Audio file saved successfully on retry
       }
 
-      // Step 4: Save thumbnail to IndexedDB (15% of total progress) - optional
+      // Step 4: Thumbnail processing moved to downloads.page.ts (converts to base64)
       // Animate progress from 85 to 100% (0.6s)
       await this.animateProgress(id, 85, 100, 600);
 
-      if (thumbnailBlob) {
-        console.log('💾 Saving thumbnail to IndexedDB...');
-        try {
-          const thumbnailSaved = await this.indexedDBService.saveThumbnailFile(
-            songData.id,
-            thumbnailBlob,
-            thumbnailBlob.type || 'image/jpeg'
-          );
-
-          if (thumbnailSaved) {
-            console.log('✅ Thumbnail saved to IndexedDB');
-          } else {
-            console.warn('⚠️ Failed to save thumbnail, but continuing...');
-          }
-        } catch (thumbSaveError) {
-          console.warn(
-            '⚠️ Error saving thumbnail to IndexedDB (non-critical):',
-            thumbSaveError
-          );
-        }
-      } else {
-        console.log(
-          'ℹ️ No thumbnail to save (download failed or CORS blocked)'
-        );
-      }
+      // Note: Thumbnail is now converted to base64 and saved directly in song table
+      // No longer saving to separate thumbnailFiles store
+      console.log('✅ Download workflow completed (thumbnail handled by caller)');
 
       this.updateDownloadProgress(id, 100); // Ensure hits 100%
       await this.completeDownload(id);

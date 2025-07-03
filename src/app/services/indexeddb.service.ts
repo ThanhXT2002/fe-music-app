@@ -10,7 +10,7 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 35; // Updated: Removed recently_played, user_preferences tables and optimized search_history
+  private dbVersion = 36; // Updated: Removed thumbnailFiles store, thumbnails now stored as base64 in songs table
 
   constructor() {}
   /**
@@ -47,7 +47,6 @@ export class IndexedDBService {
             'search_history',
             'playlists',
             'audioFiles',
-            'thumbnailFiles',
             'downloads',
           ];
           const existingStores = Array.from(this.db.objectStoreNames);
@@ -123,15 +122,6 @@ export class IndexedDBService {
       });
       audioStore.createIndex('mimeType', 'mimeType', { unique: false });
       audioStore.createIndex('createdAt', 'createdAt', { unique: false });
-    }
-
-    // Thumbnail files store for offline thumbnail blobs
-    if (!db.objectStoreNames.contains('thumbnailFiles')) {
-      const thumbStore = db.createObjectStore('thumbnailFiles', {
-        keyPath: 'songId',
-      });
-      thumbStore.createIndex('mimeType', 'mimeType', { unique: false });
-      thumbStore.createIndex('createdAt', 'createdAt', { unique: false });
     }
 
     // Downloads store for download task persistence - cần thiết cho DownloadService
@@ -562,63 +552,6 @@ export class IndexedDBService {
   }
 
   /**
-   * Lưu thumbnail file blob vào IndexedDB
-   * @param songId - ID của bài hát
-   * @param file - Thumbnail file hoặc blob
-   * @param mimeType - MIME type của file
-   * @returns Promise<boolean>
-   */ async saveThumbnailFile(
-    songId: string,
-    file: File | Blob,
-    mimeType: string
-  ): Promise<boolean> {
-    const isReady = await this.ensureDatabaseReady();
-    if (!isReady) {
-      console.error('❌ Database not ready for saveThumbnailFile operation');
-      return false;
-    }
-
-    try {
-      // Convert File to Blob if needed
-      const blob = file instanceof File ? file : file;
-
-      const thumbnailFile = {
-        songId: songId,
-        blob: blob,
-        mimeType: mimeType,
-        size: blob.size,
-        createdAt: new Date(),
-      };
-
-      // Use retry logic for mobile compatibility
-      const result = await this.retryOperation(
-        async () => {
-          const success = await this.put('thumbnailFiles', thumbnailFile);
-          if (!success) {
-            throw new Error('Put operation failed');
-          }
-          return success;
-        },
-        3,
-        2000
-      ); // 3 retries, starting with 2 second delay
-
-      if (!result) {
-        console.error(
-          `❌ Failed to save thumbnail file for song: ${songId} after retries`
-        );
-      }
-      return !!result;
-    } catch (error) {
-      console.error(
-        `❌ Exception saving thumbnail file for song ${songId}:`,
-        error
-      );
-      return false;
-    }
-  }
-
-  /**
    * Lấy audio file blob theo songId
    * @param songId - ID của bài hát
    * @returns Promise<Blob | null>
@@ -635,30 +568,6 @@ export class IndexedDBService {
       return audioFile ? audioFile.blob : null;
     } catch (error) {
       console.error(`❌ Error getting audio file for song ${songId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Lấy thumbnail file blob theo songId
-   * @param songId - ID của bài hát
-   * @returns Promise<Blob | null>
-   */
-  async getThumbnailFile(songId: string): Promise<Blob | null> {
-    const isReady = await this.ensureDatabaseReady();
-    if (!isReady) {
-      console.error('❌ Database not ready for getThumbnailFile operation');
-      return null;
-    }
-
-    try {
-      const thumbnailFile = await this.get('thumbnailFiles', songId);
-      return thumbnailFile ? thumbnailFile.blob : null;
-    } catch (error) {
-      console.error(
-        `❌ Error getting thumbnail file for song ${songId}:`,
-        error
-      );
       return null;
     }
   }
@@ -686,35 +595,6 @@ export class IndexedDBService {
     } catch (error) {
       console.error(
         `❌ Exception deleting audio file for song ${songId}:`,
-        error
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Xóa thumbnail file blob theo songId
-   * @param songId - ID của bài hát
-   * @returns Promise<boolean>
-   */
-  async deleteThumbnailFile(songId: string): Promise<boolean> {
-    const isReady = await this.ensureDatabaseReady();
-    if (!isReady) {
-      console.error('❌ Database not ready for deleteThumbnailFile operation');
-      return false;
-    }
-
-    try {
-      const result = await this.delete('thumbnailFiles', songId);
-      if (result) {
-        // Thumbnail file deleted successfully
-      } else {
-        console.error(`❌ Failed to delete thumbnail file for song: ${songId}`);
-      }
-      return result;
-    } catch (error) {
-      console.error(
-        `❌ Exception deleting thumbnail file for song ${songId}:`,
         error
       );
       return false;

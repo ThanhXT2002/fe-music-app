@@ -218,25 +218,6 @@ export class DatabaseService {
     if (!this.isDbReady) return null;
     return await this.indexedDB.getAudioFile(songId);
   }
-  /**
-   * Lưu thumbnail file
-   */
-  async saveThumbnailFile(
-    songId: string,
-    file: File | Blob,
-    mimeType: string
-  ): Promise<boolean> {
-    if (!this.isDbReady) return false;
-    return await this.indexedDB.saveThumbnailFile(songId, file, mimeType);
-  }
-
-  /**
-   * Lấy thumbnail file
-   */
-  async getThumbnailFile(songId: string): Promise<Blob | null> {
-    if (!this.isDbReady) return null;
-    return await this.indexedDB.getThumbnailFile(songId);
-  }
 
   /**
    * Xóa audio file
@@ -244,14 +225,6 @@ export class DatabaseService {
   async deleteAudioFile(songId: string): Promise<boolean> {
     if (!this.isDbReady) return false;
     return await this.indexedDB.deleteAudioFile(songId);
-  }
-
-  /**
-   * Xóa thumbnail file
-   */
-  async deleteThumbnailFile(songId: string): Promise<boolean> {
-    if (!this.isDbReady) return false;
-    return await this.indexedDB.deleteThumbnailFile(songId);
   }
 
   /**
@@ -372,7 +345,6 @@ export class DatabaseService {
       await this.indexedDB.clear('songs');
       await this.indexedDB.clear('search_history');
       await this.indexedDB.clear('playlists');
-      await this.indexedDB.clear('thumbnailFiles');
       await this.indexedDB.clear('audioFiles');
 
       // Clear all caches khi clear all data
@@ -508,12 +480,12 @@ export class DatabaseService {
     };
   }
 
-  async markAsDownloaded(songId: string, audioBlobUrl: string, thumbnailBlobUrl: string): Promise<boolean> {
+  async markAsDownloaded(songId: string, audioBlobUrl: string): Promise<boolean> {
     const song = await this.getSongById(songId);
     if (!song) return false;
 
     // Update Song với offline URLs
-    const downloadedSong = SongConverter.markAsDownloaded(song, audioBlobUrl, thumbnailBlobUrl);
+    const downloadedSong = SongConverter.markAsDownloaded(song, audioBlobUrl);
     return await this.updateSong(downloadedSong);
   }
 
@@ -523,34 +495,27 @@ export class DatabaseService {
   }
 
   /**
-   * Save audio and thumbnail blobs to IndexedDB
+   * Save audio blob to IndexedDB
    * @param songId - ID của bài hát
    * @param audioBlob - Audio blob data
-   * @param thumbnailBlob - Thumbnail blob data (optional)
    * @returns Promise<boolean>
    */
-  async saveSongBlobs(songId: string, audioBlob: Blob, thumbnailBlob: Blob | null): Promise<boolean> {
+  async saveSongAudioBlob(songId: string, audioBlob: Blob): Promise<boolean> {
     try {
-      console.log('💾 Saving blobs for song:', songId);
+      console.log('💾 Saving audio blob for song:', songId);
 
-      // Save to IndexedDB using existing audio/thumbnail storage
       const audioSaved = await this.indexedDB.saveAudioFile(songId, audioBlob, audioBlob.type || 'audio/mpeg');
 
-      let thumbnailSaved = true;
-      if (thumbnailBlob) {
-        thumbnailSaved = await this.indexedDB.saveThumbnailFile(songId, thumbnailBlob, thumbnailBlob.type || 'image/jpeg');
-      }
-
-      if (audioSaved && thumbnailSaved) {
-        console.log('✅ Blobs saved successfully for song:', songId);
+      if (audioSaved) {
+        console.log('✅ Audio blob saved successfully for song:', songId);
         return true;
       } else {
-        console.error('❌ Failed to save blobs for song:', songId);
+        console.error('❌ Failed to save audio blob for song:', songId);
         return false;
       }
 
     } catch (error) {
-      console.error('❌ Error saving blobs:', error);
+      console.error('❌ Error saving audio blob:', error);
       return false;
     }
   }
@@ -562,14 +527,5 @@ export class DatabaseService {
    */
   async getAudioBlob(songId: string): Promise<Blob | null> {
     return await this.indexedDB.getAudioFile(songId);
-  }
-
-  /**
-   * Get thumbnail blob from IndexedDB
-   * @param songId - ID của bài hát
-   * @returns Promise<Blob | null>
-   */
-  async getThumbnailBlob(songId: string): Promise<Blob | null> {
-    return await this.indexedDB.getThumbnailFile(songId);
   }
 }

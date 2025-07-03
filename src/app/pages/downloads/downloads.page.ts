@@ -199,34 +199,26 @@ export class DownloadsPage implements OnInit, OnDestroy {
       // Step 4: Download audio và thumbnail cùng lúc
       const { audioBlob, thumbnailBlob } = await this.musicApiService.downloadSongWithThumbnail(songData.id);
 
-      // Step 5: Lưu blobs vào IndexedDB trước
-      const blobsSaved = await this.databaseService.saveSongBlobs(songData.id, audioBlob, thumbnailBlob);
+      // Step 5: Save audio blob to IndexedDB (thumbnails will be base64 in song table)
+      const audioSaved = await this.databaseService.saveSongAudioBlob(songData.id, audioBlob);
 
-      if (!blobsSaved) {
-        throw new Error('Failed to save audio/thumbnail data');
+      if (!audioSaved) {
+        throw new Error('Failed to save audio data');
       }
 
-      // Step 6: Lấy blob URLs từ IndexedDB để tạo persistent URLs
-      const savedAudioBlob = await this.databaseService.getAudioBlob(songData.id);
-      const savedThumbnailBlob = await this.databaseService.getThumbnailBlob(songData.id);
+      // Step 6: Convert thumbnail to base64 data URL
+      const thumbnailBase64 = thumbnailBlob ? await this.blobToDataUrl(thumbnailBlob) : null;
 
-      if (!savedAudioBlob) {
-        throw new Error('Failed to retrieve saved audio data');
-      }
-
-      // Step 7: Tạo blob URLs từ saved blobs
-      const audioBlobUrl = URL.createObjectURL(savedAudioBlob);
-      const thumbnailBlobUrl = savedThumbnailBlob ? URL.createObjectURL(savedThumbnailBlob) : null;
-
-      // Step 8: Tạo Song object với blob URLs
+      // Step 7: Tạo Song object với offline marker cho audio và base64 cho thumbnail
       const song = SongConverter.fromApiData(songData);
       song.addedDate = new Date();
       song.isFavorite = false;
       song.keywords = songData.keywords || [];
-      song.audio_url = audioBlobUrl; // Blob URL cho audio
-      song.thumbnail_url = thumbnailBlobUrl || songData.thumbnail_url; // Blob URL hoặc fallback
+      song.audio_url = `offline://audio/${songData.id}`; // Offline marker cho audio
+      song.thumbnail_url = thumbnailBase64 || songData.thumbnail_url; // Base64 hoặc fallback
+      // song.isDownloaded = true; // TODO: Add to Song interface
 
-      // Step 9: Lưu song vào database với blob URLs
+      // Step 8: Lưu song vào database với new URLs
       await this.databaseService.addSong(song);
 
       await this.showToast(`Tải xuống "${songData.title}" thành công!`, 'success');
@@ -838,5 +830,19 @@ Hoặc paste thủ công:
     });
     this.pollingIntervals.clear();
     console.log('🧹 Cleared all status polling intervals');
+  }
+
+  /**
+   * Convert blob to base64 data URL
+   * @param blob - Blob to convert
+   * @returns Promise<string>
+   */
+  private async blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   }
 }

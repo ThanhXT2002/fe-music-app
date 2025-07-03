@@ -236,11 +236,10 @@ export class SongConverter {
   /**
    * Update Song với offline URLs sau khi download
    */
-  static markAsDownloaded(song: Song, audioBlobUrl: string, thumbnailBlobUrl: string): Song {
+  static markAsDownloaded(song: Song, audioBlobUrl: string): Song {
     return {
       ...song,
       audio_url: audioBlobUrl,
-      thumbnail_url: thumbnailBlobUrl,
       lastUpdated: new Date()
     };
   }

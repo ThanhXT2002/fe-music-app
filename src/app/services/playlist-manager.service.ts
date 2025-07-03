@@ -240,7 +240,7 @@ export class PlaylistManagerService {
               name: `💿 ${albumName}`,
               description: `Album: ${albumName}`,
               type: 'dynamic',
-              thumbnail: songs[0].thumbnail // Use first song's thumbnail
+              thumbnail: songs[0].thumbnail_url // Use first song's thumbnail
             });
 
             if (playlist) {
@@ -260,8 +260,8 @@ export class PlaylistManagerService {
             // Update existing playlist
             existingPlaylist.songs = songs;
             existingPlaylist.updatedDate = new Date();
-            if (!existingPlaylist.thumbnail && songs[0]?.thumbnail) {
-              existingPlaylist.thumbnail = songs[0].thumbnail;
+            if (!existingPlaylist.thumbnail && songs[0]?.thumbnail_url) {
+              existingPlaylist.thumbnail = songs[0].thumbnail_url;
             }
             await this.databaseService.updatePlaylist(existingPlaylist);
 
@@ -442,7 +442,7 @@ export class PlaylistManagerService {
     const groups = new Map<string, Song[]>();
 
     songs.forEach(song => {
-      const album = song.album || 'Unknown Album';
+      const album = song.artist || 'Unknown Album';
       if (!groups.has(album)) {
         groups.set(album, []);
       }
