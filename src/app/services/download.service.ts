@@ -104,7 +104,7 @@ export class DownloadService {
       id: this.generateId(),
       title: songData.title,
       artist: songData.artist,
-      url: SongConverter.getDownloadUrl(songData.id),
+      url: this.musicApiService.getDownloadUrl(songData.id),
       progress: 0,
       status: 'pending',
       addedAt: new Date(),
@@ -339,22 +339,12 @@ export class DownloadService {
       // Fake progress to 50% for audio download (2.5s)
       await this.animateProgress(id, 10, 50, 2500);
 
-      // Construct the audio download URL using SongConverter
-      const audioUrl = SongConverter.getDownloadUrl(songData.id);
-      console.log('🎵 Downloading audio from:', audioUrl);
+      // Use MusicApiService for consistent API calls
+      console.log('🎵 Downloading audio for song ID:', songData.id);
       const audioBlob = await firstValueFrom(
-        this.http
-          .get(audioUrl, {
-            responseType: 'blob',
-            headers: {
-              Accept: 'audio/*,*/*;q=0.9',
-              'User-Agent': 'IonicApp/1.0',
-              'Cache-Control': 'no-cache',
-            },
-          })
-          .pipe(
-            timeout(120000) // 2 minutes timeout for mobile
-          )
+        this.musicApiService.downloadSongAudio(songData.id, true).pipe(
+          timeout(120000) // 2 minutes timeout for mobile
+        )
       );
 
       if (signal.aborted) return;
@@ -366,19 +356,12 @@ export class DownloadService {
 
       let thumbnailBlob: Blob | null = null;
       try {
-        console.log('🖼️ Downloading thumbnail from:', songData.thumbnail_url);
+        console.log('🖼️ Downloading thumbnail for song ID:', songData.id);
+        // Use MusicApiService for consistent API calls
         thumbnailBlob = await firstValueFrom(
-          this.http
-            .get(songData.thumbnail_url, {
-              responseType: 'blob',
-              headers: {
-                Accept: 'image/*,*/*;q=0.9',
-                'Cache-Control': 'no-cache',
-              },
-            })
-            .pipe(
-              timeout(30000) // 30 seconds timeout for thumbnail
-            )
+          this.musicApiService.downloadThumbnail(songData.id).pipe(
+            timeout(30000) // 30 seconds timeout for thumbnail
+          )
         );
         // Thumbnail downloaded successfully
       } catch (thumbError) {

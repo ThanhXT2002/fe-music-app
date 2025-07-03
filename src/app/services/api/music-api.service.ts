@@ -62,24 +62,14 @@ export class MusicApiService {
       const params = new HttpParams().set('download', 'true');
       return this.http.get(url, {
         responseType: 'blob',
-        params,
-        headers: {
-          'Accept': 'audio/*,*/*;q=0.9',
-          'User-Agent': 'IonicApp/1.0',
-          'Cache-Control': 'no-cache'
-        }
+        params
       }).pipe(
         catchError(this.handleError('downloadSongAudio'))
       );
     }
 
     return this.http.get(url, {
-      responseType: 'blob',
-      headers: {
-        'Accept': 'audio/*,*/*;q=0.9',
-        'User-Agent': 'IonicApp/1.0',
-        'Cache-Control': 'no-cache'
-      }
+      responseType: 'blob'
     }).pipe(
       catchError(this.handleError('downloadSongAudio'))
     );
@@ -93,11 +83,7 @@ export class MusicApiService {
    */
   downloadThumbnail(songId: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/songs/thumbnail/${songId}`, {
-      responseType: 'blob',
-      headers: {
-        'Accept': 'image/*,*/*;q=0.9',
-        'Cache-Control': 'no-cache'
-      }
+      responseType: 'blob'
     }).pipe(
       catchError(this.handleError('downloadThumbnail'))
     );
