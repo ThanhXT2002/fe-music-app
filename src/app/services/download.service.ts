@@ -330,28 +330,33 @@ export class DownloadService {
     if (!download || !download.songData) return;
 
     const { songData } = download;
-    let totalProgress = 0;
 
     try {
-      // Step 1: Download audio file (70% of total progress)
-      this.updateDownloadProgress(id, 10, 'downloading');
-      // Fake progress to 50% for audio download (2.5s)
-      await this.animateProgress(id, 10, 50, 2500);
+      // Step 1: Start with initial progress
+      this.updateDownloadProgress(id, 5, 'downloading');
 
-      // Use MusicApiService for consistent API calls
+      // Step 2: Download audio file (0-70% of total progress)
       console.log('🎵 Downloading audio for song ID:', songData.id);
-      const audioBlob = await firstValueFrom(
+
+      // Start audio download with progress simulation
+      const audioDownloadPromise = firstValueFrom(
         this.musicApiService.downloadSongAudio(songData.id, true).pipe(
           timeout(120000) // 2 minutes timeout for mobile
         )
       );
 
-      if (signal.aborted) return;
-      // Audio downloaded successfully
+      // Animate progress from 5% to 70% over 15 seconds while downloading
+      // This provides better UX while waiting for actual download
+      const progressPromise = this.animateProgress(id, 5, 70, 15000);
 
-      // Step 2: Download thumbnail (20% of total progress) - optional
-      // Animate progress from 50 to 70% (0.8s)
-      await this.animateProgress(id, 50, 70, 800);
+      // Wait for both audio download and progress animation
+      const [audioBlob] = await Promise.all([audioDownloadPromise, progressPromise]);
+
+      if (signal.aborted) return;
+      console.log('✅ Audio downloaded successfully');
+
+      // Step 3: Download thumbnail (70-75% of total progress) - optional
+      this.updateDownloadProgress(id, 75, 'downloading');
 
       let thumbnailBlob: Blob | null = null;
       try {
@@ -362,7 +367,7 @@ export class DownloadService {
             timeout(30000) // 30 seconds timeout for thumbnail
           )
         );
-        // Thumbnail downloaded successfully
+        console.log('✅ Thumbnail downloaded successfully');
       } catch (thumbError) {
         console.warn(
           '⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:',
@@ -371,9 +376,8 @@ export class DownloadService {
         // Continue without thumbnail - this is not critical
       }
 
-      // Step 3: Save audio to IndexedDB (15% of total progress)
-      // Animate progress from 70 to 85% (0.8s)
-      await this.animateProgress(id, 70, 85, 800);
+      // Step 4: Save audio to IndexedDB (75-95% of total progress)
+      this.updateDownloadProgress(id, 85, 'downloading');
 
       if (signal.aborted) return;
       console.log('💾 Saving audio to IndexedDB...');
@@ -398,6 +402,7 @@ export class DownloadService {
         if (!audioSaved) {
           throw new Error('Failed to save audio file to IndexedDB');
         }
+        console.log('✅ Audio saved to IndexedDB successfully');
         // Audio saved to IndexedDB successfully
       } catch (saveError) {
         console.error('❌ Error saving audio to IndexedDB:', saveError);
@@ -418,12 +423,13 @@ export class DownloadService {
           );
         }
 
+        console.log('✅ Audio file saved successfully on retry');
         // Audio file saved successfully on retry
       }
 
-      // Step 4: Thumbnail processing moved to downloads.page.ts (converts to base64)
-      // Animate progress from 85 to 100% (0.6s)
-      await this.animateProgress(id, 85, 100, 600);
+      // Step 5: Final steps (95-100% of total progress)
+      this.updateDownloadProgress(id, 95, 'downloading');
+      await this.animateProgress(id, 95, 100, 500);
 
       // Note: Thumbnail is now converted to base64 and saved directly in song table
       // No longer saving to separate thumbnailFiles store
@@ -460,6 +466,7 @@ export class DownloadService {
 
   /**
    * Animate progress between two values over a given duration.
+   * Uses exponential easing for more realistic download progress feel
    */
   private animateProgress(
     id: string,
@@ -467,21 +474,25 @@ export class DownloadService {
     to: number,
     duration: number
   ) {
-    const stepTime = 16; // ms (60fps)
+    const stepTime = 100; // ms (10fps for smoother but less CPU intensive)
     const steps = duration / stepTime;
-    let current = from;
-    const increment = (to - from) / steps;
+    let currentStep = 0;
 
     return new Promise<void>((resolve) => {
       const timer = setInterval(() => {
-        current += increment;
-        if (
-          (increment > 0 && current >= to) ||
-          (increment < 0 && current <= to)
-        ) {
-          current = to;
+        currentStep++;
+
+        // Use exponential easing for more realistic progress feel
+        const progress = currentStep / steps;
+        const easedProgress = progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+        const current = from + (to - from) * easedProgress;
+
+        if (currentStep >= steps) {
           clearInterval(timer);
-          this.updateDownloadProgress(id, Math.round(current));
+          this.updateDownloadProgress(id, to);
           resolve();
         } else {
           this.updateDownloadProgress(id, Math.round(current));
