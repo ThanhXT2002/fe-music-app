@@ -302,10 +302,3 @@ export interface AudioFile {
   createdAt: Date;
 }
 
-export interface ThumbnailFile {
-  songId: string;
-  blob: Blob;
-  mimeType: string;
-  size: number;
-  createdAt: Date;
-}

@@ -11,7 +11,6 @@ import {
   DataSong,
   YouTubeDownloadResponse,
   AudioFile,
-  ThumbnailFile,
   SongConverter,
 } from '../interfaces/song.interface';
 import {

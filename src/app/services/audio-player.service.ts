@@ -59,13 +59,11 @@ export class AudioPlayerService {
       }
 
       // 2. Luôn tải từ IndexedDB
-      console.log('🔍 Loading audio from IndexedDB for:', song.title);
       const audioBlob = await this.indexedDBService.getAudioFile(song.id);
 
       if (audioBlob) {
         const audioObjectUrl = URL.createObjectURL(audioBlob);
         this.audioCache.set(cacheKey, audioObjectUrl); // Cache lại blob URL
-        console.log('✅ Audio loaded from IndexedDB:', song.title);
         return audioObjectUrl;
       } else {
         // 3. Nếu không tìm thấy trong DB, báo lỗi -> không fallback
@@ -88,7 +86,7 @@ export class AudioPlayerService {
       }
     } catch (error) {
       // Lỗi preload không cần hiển thị cho người dùng, chỉ log
-      console.log(`Preload failed for ${song.title}: ${error}`);
+      // Silent fail for preload
     }
   }
   // 🔄 Modified playSong method
@@ -104,6 +102,9 @@ export class AudioPlayerService {
         currentIndex: playlist.length > 0 ? index : 0,
         isPlaying: false,
       }));
+
+      // 🆕 Lưu state khi switch song
+      this.savePlaybackStateDebounced();
 
       // Load audio với bypass headers
       const audioUrl = await this.loadAudioWithBypass(song);
@@ -172,7 +173,7 @@ export class AudioPlayerService {
       error?.name === 'AbortError' ||
       error?.message?.includes('interrupted by a new load request')
     ) {
-      console.log('⚠️ Play request was aborted (expected during reload)');
+      // Silent handling for expected abort errors
       return;
     }
     this.updatePlaybackState((state) => ({
@@ -315,13 +316,26 @@ export class AudioPlayerService {
   private updatePlaybackState(
     updateFn: (state: PlaybackState) => PlaybackState
   ) {
+    const oldState = this._playbackState();
     this._playbackState.update(updateFn);
+    const newState = this._playbackState();
+
     this.syncSignalsWithPlaybackState();
+
+    // 🆕 Auto-save settings if related properties changed
+    if (oldState.volume !== newState.volume ||
+        oldState.isMuted !== newState.isMuted ||
+        oldState.repeatMode !== newState.repeatMode ||
+        oldState.isShuffled !== newState.isShuffled) {
+      this.saveSettingsDebounced();
+    }
   }
 
   async pause() {
     if (!this.audio.paused) {
       await this.audio.pause();
+      // 🆕 Lưu state khi pause
+      this.savePlaybackStateDebounced();
     }
   }
   async resume() {
@@ -349,7 +363,6 @@ export class AudioPlayerService {
       // If resume fails, try to reload current song
       const currentSong = this._playbackState().currentSong;
       if (currentSong) {
-        console.log('🔄 Attempting to reload current song...');
         await this.playSong(
           currentSong,
           this._playbackState().currentPlaylist,
@@ -397,7 +410,7 @@ export class AudioPlayerService {
         try {
           await this.audio.play();
         } catch (playError) {
-          console.warn('Failed to resume after seek:', playError);
+          console.error('❌ Failed to resume after seek:', playError);
         }
       }
     } catch (error) {
@@ -540,9 +553,17 @@ export class AudioPlayerService {
           currentTime: this.audio.currentTime,
         }));
 
-        // Save state mỗi 30 giây khi đang phát nhạc
-        if (Math.floor(this.audio.currentTime) % 30 === 0) {
-          this.savePlaybackState();
+        // 🆕 Save state thông minh hơn:
+        // - Mỗi 10 giây thay vì 30 giây (responsive hơn)
+        // - Lưu ở những thời điểm quan trọng: 5s, 15s, 30s, 60s...
+        const currentTime = Math.floor(this.audio.currentTime);
+        if (currentTime > 0 && (
+          currentTime % 10 === 0 ||  // Mỗi 10 giây
+          currentTime === 5 ||       // 5 giây đầu
+          currentTime === 15 ||      // 15 giây
+          currentTime === 45         // 45 giây
+        )) {
+          this.savePlaybackStateDebounced();
         }
       }
     }, 1000);
@@ -568,11 +589,31 @@ export class AudioPlayerService {
     );
   }
 
+  // 🆕 Debounced save settings để tránh spam localStorage
+  private saveSettingsDebounced = this.debounce(() => {
+    this.saveSettings();
+  }, 1000); // Delay 1 giây
+
+  // 🆕 Utility debounce function
+  private debounce(func: Function, wait: number) {
+    let timeout: any;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
   private loadSavedSettings() {
     try {
       const saved = localStorage.getItem('audioPlayerSettings');
       if (saved) {
-        const settings = JSON.parse(saved);        this.updatePlaybackState(state => ({
+        const settings = JSON.parse(saved);
+
+        this.updatePlaybackState(state => ({
           ...state,
           volume: settings.volume || 1,
           isMuted: settings.isMuted || false,
@@ -583,7 +624,7 @@ export class AudioPlayerService {
         this.audio.volume = settings.volume || 1;
       }
     } catch (error) {
-      console.error('Error loading saved settings:', error);
+      console.error('❌ Error loading saved settings:', error);
     }
   }
   async setPlaylist(playlist: Song[], startIndex: number = 0) {
@@ -728,6 +769,11 @@ export class AudioPlayerService {
     }
   }
 
+  // 🆕 Debounced save playback state để tránh spam localStorage
+  private savePlaybackStateDebounced = this.debounce(() => {
+    this.savePlaybackState();
+  }, 2000); // Delay 2 giây
+
   // 🆕 Restore playback state from localStorage
   async restorePlaybackState(): Promise<void> {
     try {
@@ -757,7 +803,12 @@ export class AudioPlayerService {
           isFavorite: false,
           addedDate: new Date(),
           lastUpdated: new Date()
-        }));        // Update state
+        }));
+
+        // 🔧 Get current settings from audioPlayerSettings (priority)
+        const currentState = this._playbackState();
+
+        // Update state - KHÔNG ghi đè settings từ audioPlayerSettings
         this.updatePlaybackState(state => ({
           ...state,
           currentSong: {
@@ -775,11 +826,13 @@ export class AudioPlayerService {
           },
           currentPlaylist: playlist,
           currentIndex: savedState.currentIndex,
-          volume: savedState.volume,
-          isShuffling: savedState.isShuffling,
-          repeatMode: savedState.repeatMode,
           currentTime: savedState.currentTime,
           isPlaying: false, // Không tự động play
+          // 🔧 GIỮ NGUYÊN settings từ audioPlayerSettings
+          volume: currentState.volume,        // From audioPlayerSettings
+          isMuted: currentState.isMuted,      // From audioPlayerSettings
+          repeatMode: currentState.repeatMode, // From audioPlayerSettings
+          isShuffled: currentState.isShuffled // From audioPlayerSettings
         })); // Load audio source nhưng không play
         try {
           // Tạo Song object tạm thời để sử dụng loadAudioWithBypass
