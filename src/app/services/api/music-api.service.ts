@@ -26,17 +26,13 @@ export class MusicApiService {
    * @param url - YouTube URL
    * @returns Observable<YouTubeDownloadResponse>
    */
-  getSongInfo(url: string): Observable<YouTubeDownloadResponse> {
-    const params = new HttpParams().set('url', url);
-
-    return this.http.post<YouTubeDownloadResponse>(
-      `${this.apiUrl}/songs/info`,
-      null,
-      { params }
-    ).pipe(
-      catchError(this.handleError('getSongInfo'))
-    );
+  getSongInfo(youtube_url: string): Observable<YouTubeDownloadResponse> {
+    const url = `${this.apiUrl}/songs/info`;
+    const body = { youtube_url: youtube_url };
+    return this.http.post<YouTubeDownloadResponse>(url, body);
   }
+
+
 
   /**
    * 2. GET /api/v3/songs/status/{song_id} - Get Song Status

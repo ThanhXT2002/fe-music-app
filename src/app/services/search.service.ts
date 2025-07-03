@@ -84,14 +84,16 @@ export class SearchService {
   }
 
   searchByAlbum(albumName: string): Song[] {
+    // Since album field is removed, search by artist instead
     return this.allSongs.filter(song =>
-      song.album?.toLowerCase().includes(albumName.toLowerCase())
+      song.artist?.toLowerCase().includes(albumName.toLowerCase())
     );
   }
 
   searchByGenre(genre: string): Song[] {
+    // Since genre field is removed, search by keywords instead
     return this.allSongs.filter(song =>
-      song.genre?.toLowerCase().includes(genre.toLowerCase())
+      song.keywords?.some(keyword => keyword.toLowerCase().includes(genre.toLowerCase()))
     );
   }
 
@@ -107,23 +109,21 @@ export class SearchService {
     const similar = this.allSongs.filter(s =>
       s.id !== song.id && (
         s.artist.toLowerCase() === song.artist.toLowerCase() ||
-        s.album?.toLowerCase() === song.album?.toLowerCase() ||
-        s.genre?.toLowerCase() === song.genre?.toLowerCase()
+        s.keywords?.some(keyword => song.keywords?.includes(keyword))
       )
     );
 
-    // Sort by relevance (same artist > same album > same genre)
+    // Sort by relevance (same artist > same keywords)
     similar.sort((a, b) => {
       let scoreA = 0;
       let scoreB = 0;
 
       if (a.artist.toLowerCase() === song.artist.toLowerCase()) scoreA += 3;
-      if (a.album?.toLowerCase() === song.album?.toLowerCase()) scoreA += 2;
-      if (a.genre?.toLowerCase() === song.genre?.toLowerCase()) scoreA += 1;
-
-      if (b.artist.toLowerCase() === song.artist.toLowerCase()) scoreB += 3;
-      if (b.album?.toLowerCase() === song.album?.toLowerCase()) scoreB += 2;
-      if (b.genre?.toLowerCase() === song.genre?.toLowerCase()) scoreB += 1;
+      // Check keyword matches
+      const aKeywordMatches = a.keywords?.filter(k => song.keywords?.includes(k)).length || 0;
+      const bKeywordMatches = b.keywords?.filter(k => song.keywords?.includes(k)).length || 0;
+      scoreA += aKeywordMatches;
+      scoreB += bKeywordMatches;
 
       return scoreB - scoreA;
     });
@@ -135,25 +135,24 @@ export class SearchService {
     const albumMap = new Map<string, Album>();
 
     songs.forEach(song => {
-      if (song.album) {
-        const albumKey = `${song.artist}-${song.album}`;
+      // Since album field is removed, group by artist as default album
+      const albumKey = song.artist;
 
-        if (!albumMap.has(albumKey)) {
-          albumMap.set(albumKey, {
-            id: `album_${albumKey}`,
-            name: song.album,
-            artist: song.artist,
-            thumbnail: song.thumbnail,
-            songs: [],
-            genre: song.genre,
-            totalDuration: 0
-          });
-        }
-
-        const album = albumMap.get(albumKey)!;
-        album.songs.push(song);
-        album.totalDuration += song.duration;
+      if (!albumMap.has(albumKey)) {
+        albumMap.set(albumKey, {
+          id: `album_${albumKey}`,
+          name: `Songs by ${song.artist}`,
+          artist: song.artist,
+          thumbnail: song.thumbnail_url,
+          songs: [],
+          genre: 'Music', // Default genre
+          totalDuration: 0
+        });
       }
+
+      const album = albumMap.get(albumKey)!;
+      album.songs.push(song);
+      album.totalDuration += song.duration;
     });
 
     return Array.from(albumMap.values());
@@ -167,7 +166,7 @@ export class SearchService {
         artistMap.set(song.artist, {
           id: `artist_${song.artist}`,
           name: song.artist,
-          thumbnail: song.thumbnail,
+          thumbnail: song.thumbnail_url,
           albums: [],
           totalSongs: 0,
           bio: undefined
@@ -195,9 +194,12 @@ export class SearchService {
       if (song.artist.toLowerCase().startsWith(lowerQuery)) {
         suggestions.add(song.artist);
       }
-      if (song.album?.toLowerCase().startsWith(lowerQuery)) {
-        suggestions.add(song.album);
-      }
+      // Search in keywords instead of album
+      song.keywords?.forEach(keyword => {
+        if (keyword.toLowerCase().startsWith(lowerQuery)) {
+          suggestions.add(keyword);
+        }
+      });
     });
 
     return Array.from(suggestions).slice(0, limit);

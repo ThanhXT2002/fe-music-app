@@ -45,9 +45,9 @@
   [ngClass]="bottomPosition"
 >
   <div class="absolute inset-0 opacity-70 z-[-1]">
-    @if (currentSong.thumbnail) {
+    @if (currentSong.thumbnail_url) {
     <img
-      [src]="currentSong!.thumbnail"
+      [src]="currentSong!.thumbnail_url"
       [alt]="currentSong!.title"
       class="w-full h-full object-cover blur-lg"
     />
@@ -66,7 +66,7 @@
           class="bg-purple-500 rounded-full flex items-center justify-center text-white relative"
         >
           <img
-            [src]="currentSong.thumbnail || 'assets/images/default-song.png'"
+            [src]="currentSong.thumbnail_url || 'assets/images/default-song.png'"
             [alt]="currentSong.title"
             class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
             [ngClass]="{

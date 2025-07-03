@@ -72,8 +72,9 @@ export class SearchPage implements OnInit {
                 duration: song.duration,
                 duration_formatted: song.duration_formatted,
                 thumbnail_url: song.thumbnail_url,
-                audio_url: song.audio_url,
                 keywords: song.keywords || [],
+                original_url: song.original_url || '',
+                created_at: song.created_at || new Date().toISOString(),
               };
 
               this.searchResults.set([result]);
@@ -114,7 +115,9 @@ export class SearchPage implements OnInit {
           duration_formatted: '3:45',
           duration: 225, // seconds
           thumbnail_url: 'https://via.placeholder.com/120x90',
-          audio_url: 'https://youtube.com/watch?v=sample1',
+          keywords: ['sample', 'test'],
+          original_url: 'https://youtube.com/watch?v=sample1',
+          created_at: new Date().toISOString(),
         },
         {
           id: '2',
@@ -123,7 +126,9 @@ export class SearchPage implements OnInit {
           duration_formatted: '4:12',
           duration: 252, // seconds
           thumbnail_url: 'https://via.placeholder.com/120x90',
-          audio_url: 'https://youtube.com/watch?v=sample2',
+          keywords: ['another', 'great'],
+          original_url: 'https://youtube.com/watch?v=sample2',
+          created_at: new Date().toISOString(),
         },
       ];
 

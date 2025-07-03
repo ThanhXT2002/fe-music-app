@@ -215,7 +215,7 @@ export class ArtistDetailPage implements OnInit {
         // Group songs by album
         const albumMap = new Map<string, Song[]>();
         this.songs.forEach(song => {
-          const albumName = song.album || 'Unknown Album';
+          const albumName = 'Songs by ' + song.artist; // Default album name since album field is removed
           if (!albumMap.has(albumName)) {
             albumMap.set(albumName, []);
           }
@@ -229,9 +229,9 @@ export class ArtistDetailPage implements OnInit {
             id: albumName,
             name: albumName,
             artist: artistName,
-            thumbnail: firstSong.thumbnail,
+            thumbnail: firstSong.thumbnail_url,
             songs: albumSongs,
-            genre: firstSong.genre,
+            genre: 'Music', // Default genre since genre field is removed
             totalDuration: albumSongs.reduce((total, song) => total + song.duration, 0)
           };
         });
@@ -240,7 +240,7 @@ export class ArtistDetailPage implements OnInit {
         this.artist = {
           id: artistName,
           name: artistName,
-          thumbnail: this.songs[0].thumbnail,
+          thumbnail: this.songs[0].thumbnail_url,
           albums: this.albums,
           totalSongs: this.songs.length,
           bio: `${this.albums.length} albums • ${this.songs.length} songs`

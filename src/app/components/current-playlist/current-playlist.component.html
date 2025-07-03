@@ -2,9 +2,9 @@
   <!-- Header -->
   <div class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600">
     <div class="absolute inset-0 opacity-50">
-      @if (currentSong()?.thumbnail) {
+      @if (currentSong()?.thumbnail_url) {
       <img
-        [src]="currentSong()!.thumbnail"
+        [src]="currentSong()!.thumbnail_url"
         [alt]="currentSong()!.title"
         class="w-full h-full object-cover blur-md scale-110"
       />

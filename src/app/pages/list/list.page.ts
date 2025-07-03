@@ -209,7 +209,7 @@ export class ListPage implements OnInit, OnDestroy {
         artistMap.set(song.artist, {
           name: song.artist,
           songCount: 0,
-          thumbnail: song.thumbnail,
+          thumbnail: song.thumbnail_url,
           totalDuration: 0,
         });
       }

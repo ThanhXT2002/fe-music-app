@@ -5,9 +5,9 @@
 >
   <!-- Background Album Art -->
   <div class="absolute inset-0 opacity-50">
-    @if (currentSong()?.thumbnail) {
+    @if (currentSong()?.thumbnail_url) {
     <img
-      [src]="currentSong()!.thumbnail"
+      [src]="currentSong()!.thumbnail_url"
       [alt]="currentSong()!.title"
        (error)="onImageError($event)"
       class="w-full h-full object-cover blur-md scale-110"
@@ -26,7 +26,7 @@
 
     <div class="text-center">
       <p class="text-sm opacity-75">NOW PLAYING</p>
-      <p class="font-medium">{{currentSong()?.album || ' _ ____ _ '}}</p>
+      <p class="font-medium">_ ___ _</p>
     </div>
 
     <button
@@ -50,9 +50,9 @@
           'spin-paused': !isPlaying()
         }"
       >
-        @if (currentSong()?.thumbnail) {
+        @if (currentSong()?.thumbnail_url) {
         <img
-          [src]="currentSong()!.thumbnail"
+          [src]="currentSong()!.thumbnail_url"
           [alt]="currentSong()!.title"
            (error)="onImageError($event)"
           class="w-full h-full object-cover"

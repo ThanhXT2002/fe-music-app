@@ -43,7 +43,7 @@ export class HomeService {
   }
 
   private getHomeDataFromAPI(numberOfSongs: number = 1000): Observable<YouTubeDownloadResponse> {
-    const url = `${this.apiUrl}/songs/recent-downloads?limit=${numberOfSongs}`;
+    const url = `https://api-music.tranxuanthanhtxt.com/api/v1/songs/recent-downloads?limit=${numberOfSongs}`;
     return this.http.get<YouTubeDownloadResponse>(url);
   }
 

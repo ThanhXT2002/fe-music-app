@@ -201,9 +201,9 @@ export class AlbumService {
           id: `auto_album_${this.sanitizeString(artistName)}`,
           name: artistName, // Artist name becomes album name
           artist: artistName, // Same as name for consistency
-          thumbnail: song.thumbnail,
+          thumbnail: song.thumbnail_url,
           songs: [],
-          genre: song.genre,
+          genre: 'Music', // Default genre since genre field is removed
           totalDuration: 0,
           isUserCreated: false,
           isEditable: false,
@@ -216,8 +216,8 @@ export class AlbumService {
       album.songs.push(song);
       album.totalDuration += song.duration;
 
-      if (!album.thumbnail && song.thumbnail) {
-        album.thumbnail = song.thumbnail;
+      if (!album.thumbnail && song.thumbnail_url) {
+        album.thumbnail = song.thumbnail_url;
       }
     });
 
