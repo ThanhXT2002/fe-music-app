@@ -844,8 +844,35 @@ Hoặc paste thủ công:
   /**
    * Update the downloaded songs cache after a successful download
    */
-  private updateDownloadedCache(songId: string) {
-    this.downloadedSongsCache.add(songId);
+  private async updateDownloadedCache(songId: string) {
+    // Only add if not already in cache to avoid duplicate notifications
+    if (!this.downloadedSongsCache.has(songId)) {
+      this.downloadedSongsCache.add(songId);
+
+      // Find song title for notification
+      let songTitle = 'Bài hát';
+
+      // Try to get title from current downloads
+      const download = this.downloads().find(d => d.songData?.id === songId);
+      if (download?.title) {
+        songTitle = download.title;
+      } else {
+        // Try to get from search results
+        const searchResult = this.searchResults().find(s => s.id === songId);
+        if (searchResult?.title) {
+          songTitle = searchResult.title;
+        } else {
+          // Try to get from search history
+          const historyItem = this.searchHistoryItem().find(h => h.songId === songId);
+          if (historyItem?.title) {
+            songTitle = historyItem.title;
+          }
+        }
+      }
+
+      // Show success notification
+      await this.showToast(`Bài hát "${songTitle}" đã được tải xuống thành công!`, 'success');
+    }
   }
 
   /**
