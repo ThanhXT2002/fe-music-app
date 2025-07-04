@@ -1,11 +1,47 @@
-<ion-content [fullscreen]="true" class="h-screen max-h-screen py-3">
-  <div>
-    <div class="mt-2 px-3">
-      <h2 class="text-xl text-white font-semibold">Mọi người cùng nghe</h2>
-    </div>
-    <div></div>
+<ion-content [fullscreen]="true" class="home-container">
+  <!-- Main Container -->
+  <div class="space-y-8 pt-6">
+
+    <!-- Everyone's Listening Section -->
+    <app-song-section
+      title="Mọi người cùng nghe"
+      [songs]="listEveryoneToListens"
+      (songClick)="onSongClick($event)"
+      (songPlay)="onSongPlay($event)"
+      (songOptions)="onSongOptions($event)"
+    />
+
+    <!-- Remix Songs Section -->
+    <app-song-section
+      title="Nhạc Remix"
+      [songs]="listRemixSongs"
+      (songClick)="onSongClick($event)"
+      (songPlay)="onSongPlay($event)"
+      (songOptions)="onSongOptions($event)"
+    />
+
+    <!-- Instrumental Songs Section -->
+    <app-song-section
+      title="Nhạc Không Lời"
+      [songs]="listInstrumentalSongs"
+      (songClick)="onSongClick($event)"
+      (songPlay)="onSongPlay($event)"
+      (songOptions)="onSongOptions($event)"
+    />
+
+    <!-- TikTok Songs Section -->
+    <app-song-section
+      title="Nhạc TikTok Hot"
+      [songs]="listTikTokSongs"
+      (songClick)="onSongClick($event)"
+      (songPlay)="onSongPlay($event)"
+      (songOptions)="onSongOptions($event)"
+    />
+
   </div>
-  <div class="mt-5">
+
+  <!-- Footer -->
+  <div class="mt-8 pb-20">
     <app-footer />
   </div>
 </ion-content>

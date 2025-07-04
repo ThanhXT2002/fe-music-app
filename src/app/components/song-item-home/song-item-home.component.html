@@ -1,0 +1,54 @@
+<div class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 transition-colors duration-200"
+     (click)="onSongClick()">
+  <!-- Thumbnail -->
+  <div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative group">
+    <img
+      [src]="song.thumbnail_url"
+      [alt]="song.title"
+      class="w-full h-full object-cover"
+      loading="lazy"
+    >
+    <!-- Play button overlay -->
+    <div class="absolute inset-0 flex items-center justify-center transition-all duration-200">
+      <button
+        class="w-8 h-8 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-200"
+        (click)="onPlayClick($event)"
+      >
+        <svg class="w-4 h-4 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Song Info -->
+  <div class="flex-1 min-w-0">
+    <h3 class="text-white text-sm font-medium truncate leading-tight">{{ song.title }}</h3>
+    @if (showArtist || showDuration) {
+      <p class="text-gray-400 text-xs truncate mt-0.5">
+        @if (showArtist) {
+          {{ song.artist }}
+        }
+        @if (showArtist && showDuration) {
+          <span class="text-gray-500"> • </span>
+        }
+        @if (showDuration) {
+          <span class="text-gray-500">{{ song.duration_formatted }}</span>
+        }
+      </p>
+    }
+  </div>
+
+  <!-- Options -->
+  <div class="flex items-center flex-shrink-0">
+    <!-- Options button -->
+    <button
+      class="w-6 h-6 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-colors duration-200"
+      (click)="onOptionsClick($event)"
+    >
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+      </svg>
+    </button>
+  </div>
+</div>

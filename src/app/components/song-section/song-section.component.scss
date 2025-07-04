@@ -1,0 +1,71 @@
+// Song Section Component Styles
+
+.section-header {
+  h2 {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.375rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Swiper Customization
+swiper-container {
+  --swiper-theme-color: #3b82f6;
+  --swiper-pagination-color: #3b82f6;
+
+  .swiper-slide {
+    height: auto;
+  }
+}
+
+// Song Group Container
+.song-group {
+  background: rgba(55, 65, 81, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(55, 65, 81, 0.95);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+}
+
+// Loading State
+.loading-text {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+// Responsive Design
+@media (max-width: 640px) {
+  .section-header h2 {
+    font-size: 1.125rem;
+  }
+
+  .song-group {
+    width: 280px !important;
+  }
+}
+
+@media (min-width: 768px) {
+  swiper-container {
+    --slides-per-view: 1.5;
+  }
+}
+
+@media (min-width: 1024px) {
+  swiper-container {
+    --slides-per-view: 2;
+  }
+}
+
+@media (min-width: 1280px) {
+  swiper-container {
+    --slides-per-view: 2.5;
+  }
+}

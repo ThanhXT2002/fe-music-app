@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, throwError, firstValueFrom } from 'rxjs';
 import {
-  YouTubeDownloadResponse,
+  SongsResponse,
   SongStatusResponse,
   DataSong,
   SongStatus
@@ -24,12 +24,12 @@ export class MusicApiService {
   /**
    * 1. POST /api/v3/songs/info - Get Song Info từ YouTube URL
    * @param url - YouTube URL
-   * @returns Observable<YouTubeDownloadResponse>
+   * @returns Observable<SongsResponse>
    */
-  getSongInfo(youtube_url: string): Observable<YouTubeDownloadResponse> {
+  getSongInfo(youtube_url: string): Observable<SongsResponse> {
     const url = `${this.apiUrl}/songs/info`;
     const body = { youtube_url: youtube_url };
-    return this.http.post<YouTubeDownloadResponse>(url, body);
+    return this.http.post<SongsResponse>(url, body);
   }
 
 

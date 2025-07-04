@@ -1,0 +1,154 @@
+// Home Page Styles
+.home-container {
+  // background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  min-height: 100vh;
+}
+
+// Swiper Customization
+swiper-container {
+  --swiper-theme-color: #3b82f6;
+  --swiper-pagination-color: #3b82f6;
+
+  .swiper-slide {
+    height: auto;
+  }
+}
+
+// Song Card Styles
+.song-card {
+  background: rgba(55, 65, 81, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-4px);
+    background: rgba(55, 65, 81, 0.95);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  .song-image {
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover::after {
+      opacity: 1;
+    }
+
+    img {
+      transition: transform 0.3s ease;
+    }
+
+    &:hover img {
+      transform: scale(1.05);
+    }
+  }
+
+  .song-title {
+    color: #ffffff;
+    font-weight: 600;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .song-artist {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .song-duration {
+    color: #6b7280;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+}
+
+// Section Headers
+.section-header {
+  h2 {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.375rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Loading States
+.loading-skeleton {
+  .skeleton-card {
+    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 0.5rem;
+  }
+
+  @keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
+// Responsive Design
+@media (max-width: 640px) {
+  .song-card {
+    min-width: 140px;
+    max-width: 140px;
+  }
+
+  .section-header h2 {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 768px) {
+  swiper-container {
+    --slides-per-view: 3.5;
+  }
+}
+
+@media (min-width: 1024px) {
+  swiper-container {
+    --slides-per-view: 4.5;
+  }
+}
+
+// Custom Scrollbar
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(55, 65, 81, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.7);
+  border-radius: 3px;
+
+  &:hover {
+    background: rgba(156, 163, 175, 0.9);
+  }
+}

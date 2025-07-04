@@ -116,10 +116,10 @@ export interface SearchResultItem {
 // === API RESPONSE INTERFACES ===
 
 // Response từ POST /songs/info
-export interface YouTubeDownloadResponse {
+export interface SongsResponse<T = DataSong> {
   success: boolean;
   message: string;
-  data: DataSong;
+  data: T;
 }
 
 // Data bài hát từ API

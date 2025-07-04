@@ -9,7 +9,7 @@ import {
 import {
   Song,
   DataSong,
-  YouTubeDownloadResponse,
+  SongsResponse,
   AudioFile,
   SongConverter,
 } from '../interfaces/song.interface';
@@ -632,9 +632,9 @@ export class DownloadService {
   /**
    * NEW: Get song info từ YouTube URL sử dụng API v3
    * @param url - YouTube URL
-   * @returns Observable<YouTubeDownloadResponse>
+   * @returns Observable<SongsResponse>
    */
-  getSongInfo(url: string): Observable<YouTubeDownloadResponse> {
+  getSongInfo(url: string): Observable<SongsResponse> {
     return this.musicApiService.getSongInfo(url);
   }
 
@@ -742,7 +742,7 @@ export class DownloadService {
   // === LEGACY METHODS (for backwards compatibility) ===
 
   // download youtube video (LEGACY - use getSongInfo instead)
-  getYoutubeUrlInfo(url: string): Observable<YouTubeDownloadResponse> {
+  getYoutubeUrlInfo(url: string): Observable<SongsResponse> {
     console.warn('⚠️ getYoutubeUrlInfo is deprecated, use getSongInfo instead');
     return this.getSongInfo(url);
   }

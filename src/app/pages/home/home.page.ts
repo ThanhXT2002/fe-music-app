@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
 import { FooterComponent } from "../../components/footer/footer.component";
+import { SongSectionComponent } from "../../components/song-section/song-section.component";
 import { HomeService } from 'src/app/services/api/home.service';
 import { Song, DataSong, SongConverter } from 'src/app/interfaces/song.interface';
 
@@ -13,37 +14,169 @@ import { Song, DataSong, SongConverter } from 'src/app/interfaces/song.interface
   styleUrls: ['./home.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [ CommonModule, FormsModule, FooterComponent, IonContent]
+  imports: [ CommonModule, FormsModule, FooterComponent, SongSectionComponent, IonContent]
 })
 export class HomePage implements OnInit {
 
-  listSongs: Song[] = [];
+  listEveryoneToListens: Song[] = [];
+  listRemixSongs: Song[] = [];
+  listInstrumentalSongs: Song[] = [];
+  listTikTokSongs: Song[] = [];
 
   constructor(
     private homeService: HomeService
   ) { }
 
   ngOnInit() {
+    this.loadEveryoneToListen();
+    this.loadRemixSongs();
+    this.loadInstrumentalSongs();
+    this.loadTikTokSongs();
+  }
+
+  loadEveryoneToListen(){
     // Get cached data (already loaded when app started)
     this.homeService.getHomeData().subscribe({
       next: (res) => {
-        if (res) {
+        if (res && res.data) {
           console.log('Home page received cached data:', res.data);
-          // Convert res.data (DataSong) to an array of Song objects using SongConverter
-          this.listSongs = (Array.isArray(res.data) ? res.data : [res.data]).map((dataSong: DataSong) =>
-            SongConverter.fromApiData(dataSong)
-          );
-
-          console.log('List of songs:', this.listSongs);
-          // Process the cached data here
+          // Ensure data is an array
+          if (Array.isArray(res.data)) {
+            this.listEveryoneToListens = res.data;
+          } else {
+            console.warn('Expected array but got:', typeof res.data);
+            this.listEveryoneToListens = [];
+          }
         } else {
           console.log('Data is still loading...');
+          this.listEveryoneToListens = [];
         }
       },
       error: (error) => {
         console.error('Error in home page:', error);
+        this.listEveryoneToListens = [];
       }
     });
   }
 
+  loadRemixSongs() {
+    this.homeService.getHomeData('remix', 25).subscribe({
+      next: (res) => {
+        if (res && res.data) {
+          console.log('Remix songs loaded:', res.data);
+          if (Array.isArray(res.data)) {
+            this.listRemixSongs = res.data;
+          } else {
+            console.warn('Expected array but got:', typeof res.data);
+            this.listRemixSongs = [];
+          }
+        } else {
+          console.log('Remix songs are still loading...');
+          this.listRemixSongs = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading remix songs:', error);
+        this.listRemixSongs = [];
+      }
+    });
+  }
+
+  loadInstrumentalSongs() {
+    this.homeService.getHomeData('khong loi', 25).subscribe({
+      next: (res) => {
+        if (res && res.data) {
+          console.log('Instrumental songs loaded:', res.data);
+          if (Array.isArray(res.data)) {
+            this.listInstrumentalSongs = res.data;
+          } else {
+            console.warn('Expected array but got:', typeof res.data);
+            this.listInstrumentalSongs = [];
+          }
+        } else {
+          console.log('Instrumental songs are still loading...');
+          this.listInstrumentalSongs = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading instrumental songs:', error);
+        this.listInstrumentalSongs = [];
+      }
+    });
+  }
+
+  loadTikTokSongs() {
+    this.homeService.getHomeData('tik', 25).subscribe({
+      next: (res) => {
+        if (res && res.data) {
+          console.log('TikTok songs loaded:', res.data);
+          if (Array.isArray(res.data)) {
+            this.listTikTokSongs = res.data;
+          } else {
+            console.warn('Expected array but got:', typeof res.data);
+            this.listTikTokSongs = [];
+          }
+        } else {
+          console.log('TikTok songs are still loading...');
+          this.listTikTokSongs = [];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading TikTok songs:', error);
+        this.listTikTokSongs = [];
+      }
+    });
+  }
+
+  // Các method tiện ích để refresh từng danh sách
+  refreshRemixSongs() {
+    this.homeService.refreshData('remix', 25).subscribe({
+      next: (res) => {
+        console.log('Remix songs refreshed:', res.data);
+        this.listRemixSongs = res.data;
+      },
+      error: (error) => {
+        console.error('Error refreshing remix songs:', error);
+      }
+    });
+  }
+
+  refreshInstrumentalSongs() {
+    this.homeService.refreshData('khong loi', 25).subscribe({
+      next: (res) => {
+        console.log('Instrumental songs refreshed:', res.data);
+        this.listInstrumentalSongs = res.data;
+      },
+      error: (error) => {
+        console.error('Error refreshing instrumental songs:', error);
+      }
+    });
+  }
+  refreshTikTokSongs() {
+    this.homeService.refreshData('tik', 25).subscribe({
+      next: (res) => {
+        console.log('TikTok songs refreshed:', res.data);
+        this.listTikTokSongs = res.data;
+      },
+      error: (error) => {
+        console.error('Error refreshing TikTok songs:', error);
+      }
+    });
+  }
+
+  // Event handlers for song interactions
+  onSongClick(song: Song) {
+    console.log('Song clicked:', song.title);
+    // TODO: Navigate to song detail or add to queue
+  }
+
+  onSongPlay(song: Song) {
+    console.log('Play song:', song.title);
+    // TODO: Start playing the song
+  }
+
+  onSongOptions(song: Song) {
+    console.log('Song options:', song.title);
+    // TODO: Show song options menu (add to playlist, download, etc.)
+  }
 }
