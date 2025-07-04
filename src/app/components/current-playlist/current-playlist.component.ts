@@ -19,7 +19,7 @@ import { DatabaseService } from 'src/app/services/database.service';
 import {
   IonReorderGroup,
   IonContent,
-   ItemReorderEventDetail, IonItem, IonReorder, IonIcon } from '@ionic/angular/standalone';
+   ItemReorderEventDetail, IonItem } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { reorderThreeOutline } from 'ionicons/icons';
 import { SongItemComponent } from "../song-item/song-item.component";
@@ -29,7 +29,7 @@ import { SongItemComponent } from "../song-item/song-item.component";
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [IonIcon, IonReorder, IonItem,  IonReorderGroup, IonContent, CommonModule, SongItemComponent],
+  imports: [ IonItem,  IonReorderGroup, IonContent, CommonModule, SongItemComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {

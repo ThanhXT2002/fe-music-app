@@ -14,7 +14,7 @@ import { PermissionService } from './services/permission.service';
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
-  imports: [IonContent, IonRouterOutlet, IonApp, CommonModule],
+  imports: [ IonRouterOutlet, IonApp, CommonModule],
   standalone: true
 })
 export class AppComponent implements OnInit {
