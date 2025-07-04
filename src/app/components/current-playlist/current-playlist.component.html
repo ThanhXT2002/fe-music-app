@@ -115,6 +115,7 @@
           [disabled]="false"
           (ionItemReorder)="onIonReorder($any($event))"
           class="ios-reorder-fix"
+          no-haptics
         >
           <ion-item
             *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"

@@ -98,7 +98,10 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
     addIcons({ reorderThreeOutline });
   }
-  ngOnInit() {}
+  
+  ngOnInit() {
+
+  }
 
   ngOnDestroy() {
     this.destroy$.next();

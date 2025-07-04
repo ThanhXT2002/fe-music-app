@@ -108,7 +108,8 @@ export class DownloadService {
       status: 'pending',
       addedAt: new Date(),
       songData: songData,
-    }; // Thêm vào danh sách downloads
+    };
+    // Thêm vào danh sách downloads
     const currentDownloads = this.currentDownloads;
     currentDownloads.unshift(downloadTask);
     this.downloadsSubject.next(currentDownloads);

@@ -31,9 +31,7 @@ import { SongItemComponent } from "../../components/song-item/song-item.componen
 export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   downloadService = inject(DownloadService);
-  private audioPlayerService = inject(AudioPlayerService);
   private clipboardService = inject(ClipboardService);
-  private musicApiService = inject(MusicApiService);
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private platform = inject(Platform);
