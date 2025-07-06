@@ -14,9 +14,7 @@
         class="w-8 h-8 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-200"
         (click)="onPlayClick($event)"
       >
-        <svg class="w-4 h-4 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
+        <i class="fa-solid fa-play text-xl text-purple-500 ml-1"></i>
       </button>
     </div>
   </div>
@@ -43,12 +41,10 @@
   <div class="flex items-center flex-shrink-0">
     <!-- Options button -->
     <button
-      class="w-6 h-6 text-gray-400 hover:text-white rounded-full flex items-center justify-center transition-colors duration-200"
+      class="w-6 h-6 text-white hover:text-white rounded-full flex items-center justify-center transition-colors duration-200"
       (click)="onOptionsClick($event)"
     >
-      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-      </svg>
+      <i class="fa-solid fa-ellipsis-vertical"></i>
     </button>
   </div>
 </div>

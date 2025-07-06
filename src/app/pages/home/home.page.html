@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true"  class="home-container">
+<div class="home-container overflow-y-auto scrollbar-hide bg-page">
   <!-- Main Container -->
   <div class="space-y-8 py-6">
 
@@ -41,9 +41,9 @@
   </div>
 
   <!-- Footer -->
-  <div class="mt-8"
+  <div 
   [ngClass]="isCurrentSongPlaying ?'pb-48': 'pb-28'"
   >
     <app-footer />
   </div>
-</ion-content>
+</div>

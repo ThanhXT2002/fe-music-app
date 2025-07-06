@@ -2,17 +2,17 @@
   <ion-toolbar [ngClass]="hTookbar">
     <div class="bottom-tabs bg-black h__bottom__tabs w-full">
       <div class="flex justify-between items-center h-full !w-full py-1 px-2">
-  @for (tab of tabs; track tab.label) {
-    <a
-      [routerLink]="tab.link"
-      routerLinkActive="active"
-      class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
-    >
-      <i class="fas" [ngClass]="tab.icon + ' text-xl mb-1'"></i>
-      <span class="text-xs font-medium">{{ tab.label }}</span>
-    </a>
-  }
-</div>
+        @for (tab of tabs; track tab.label) {
+        <a
+          [routerLink]="tab.link"
+          routerLinkActive="active"
+          class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+        >
+          <i class="fas" [ngClass]="tab.icon + ' text-xl mb-1'"></i>
+          <span class="text-xs font-medium">{{ tab.label }}</span>
+        </a>
+        }
+      </div>
     </div>
   </ion-toolbar>
 </ion-footer>

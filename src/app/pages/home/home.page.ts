@@ -33,7 +33,7 @@ export class HomePage implements OnInit {
    }
 
   isCurrentSongPlaying = !!this.audioPlayerService.currentSong();
-  
+
 
 
   ngOnInit() {
@@ -92,7 +92,7 @@ export class HomePage implements OnInit {
   }
 
   loadInstrumentalSongs() {
-    this.homeService.getHomeData('khong loi', 25).subscribe({
+    this.homeService.getHomeData('Không Lời', 25).subscribe({
       next: (res) => {
         if (res && res.data) {
           console.log('Instrumental songs loaded:', res.data);

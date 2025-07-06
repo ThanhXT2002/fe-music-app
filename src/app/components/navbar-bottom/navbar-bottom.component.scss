@@ -4,11 +4,11 @@
 }
 
 .tab-item.active {
-  @apply text-purple-500 bg-purple-900/20;
+  @apply text-purple-600;
 }
 
 .tab-item:hover {
-  @apply text-purple-400 bg-gray-700;
+  @apply text-purple-600;
 }
 
 // .bottom-tabs {

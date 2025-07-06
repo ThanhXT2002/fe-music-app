@@ -1,4 +1,4 @@
-<div class="search-page h-full flex flex-col">
+<div class="search-page h-full flex flex-col bg-page">
   <!-- Content -->
   <div
     class="overflow-y-auto"
@@ -69,9 +69,7 @@
       <!-- Loading State -->
       @if(isSearching()){
       <div class="space-y-3">
-        <h3
-          class="text-lg font-semibold text-gray-200 mb-3 animate-pulse"
-        >
+        <h3 class="text-lg font-semibold text-gray-200 mb-3 animate-pulse">
           Đang tìm kiếm ...
         </h3>
 
@@ -101,19 +99,19 @@
         </h3>
 
         <app-song-item
-  *ngFor="let result of searchResults()"
-  [song]="result"
-  [modePage]="'down-page'"
-  [isDownloaded]="isDownloaded(result.id)"
-  [isDownloading]="isDownloading(result.id)"
-  [downloadProgress]="getDownloadProgress(result.id)"
-  [isPolling]="isPolling(result.id)"
-  [pollProgress]="getPollProgress(result.id)"
-  [isReady]="isReady(result.id)"
-  (download)="downloadSong(result)"
-  (pauseDownload)="pauseDownload(result.id)"
-  (cancelDownload)="cancelDownload(result.id)"
-/>
+          *ngFor="let result of searchResults()"
+          [song]="result"
+          [modePage]="'down-page'"
+          [isDownloaded]="isDownloaded(result.id)"
+          [isDownloading]="isDownloading(result.id)"
+          [downloadProgress]="getDownloadProgress(result.id)"
+          [isPolling]="isPolling(result.id)"
+          [pollProgress]="getPollProgress(result.id)"
+          [isReady]="isReady(result.id)"
+          (download)="downloadSong(result)"
+          (pauseDownload)="pauseDownload(result.id)"
+          (cancelDownload)="cancelDownload(result.id)"
+        />
       </div>
       }
       <!-- No Results -->
@@ -136,9 +134,7 @@
       <i
         class="fa-solid fa-cloud-arrow-down text-7xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mb-5"
       ></i>
-      <h3 class="text-lg font-semibold text-gray-300 mb-2">
-        Download Music
-      </h3>
+      <h3 class="text-lg font-semibold text-gray-300 mb-2">Download Music</h3>
       <p class="text-gray-400 text-sm">
         Dán link YouTube để tải nhạc mới hoặc gõ tên bài hát để tìm trong lịch
         sử
@@ -146,84 +142,75 @@
     </div>
 
     @if(searchQuery().length >= 2 &&
-  !downloadService.validateYoutubeUrl(searchQuery()) && !isSearching()) {
-  <!-- No search results found for text search -->
-  <div class=" flex flex-col items-start justify-center px-4">
-    <div class="text-center">
-      <i
-        class="fa-solid fa-search text-6xl text-gray-600 mb-4"
-      ></i>
-      <h3 class="text-lg font-semibold text-gray-300 mb-2">
-        Không tìm thấy kết quả
-      </h3>
-      <p class="text-gray-400 text-sm mb-1">
-        Không có bài hát nào phù hợp với "{{ searchQuery() }}"
-      </p>
-      <p class="text-gray-500 text-xs">
-        Thử tìm kiếm với từ khóa khác hoặc dán link YouTube để tải nhạc mới
-      </p>
-
-      <!-- Suggestions -->
-      <div class="mt-4 space-y-2">
-        <p class="text-xs text-gray-500 font-medium">
-          Gợi ý:
+    !downloadService.validateYoutubeUrl(searchQuery()) && !isSearching()) {
+    <!-- No search results found for text search -->
+    <div class="flex flex-col items-start justify-center px-4">
+      <div class="text-center">
+        <i class="fa-solid fa-search text-6xl text-gray-600 mb-4"></i>
+        <h3 class="text-lg font-semibold text-gray-300 mb-2">
+          Không tìm thấy kết quả
+        </h3>
+        <p class="text-gray-400 text-sm mb-1">
+          Không có bài hát nào phù hợp với "{{ searchQuery() }}"
         </p>
-        <div class="flex flex-wrap gap-2 justify-center">
-          <button
-            (click)="clearSearch()"
-            class="px-3 py-1 bg-gray-700 text-gray-400 rounded-full text-xs hover:bg-gray-600 transition-colors"
-          >
-            <i class="fa-solid fa-history mr-1"></i>
-            Xem tất cả lịch sử
-          </button>
-          <button
-            (click)="focusSearchInput()"
-            class="px-3 py-1 bg-purple-900 text-purple-400 rounded-full text-xs hover:bg-purple-800 transition-colors"
-          >
-            <i class="fa-solid fa-edit mr-1"></i>
-            Sửa từ khóa
-          </button>
+        <p class="text-gray-500 text-xs">
+          Thử tìm kiếm với từ khóa khác hoặc dán link YouTube để tải nhạc mới
+        </p>
+
+        <!-- Suggestions -->
+        <div class="mt-4 space-y-2">
+          <p class="text-xs text-gray-500 font-medium">Gợi ý:</p>
+          <div class="flex flex-wrap gap-2 justify-center">
+            <button
+              (click)="clearSearch()"
+              class="px-3 py-1 bg-gray-700 text-gray-400 rounded-full text-xs hover:bg-gray-600 transition-colors"
+            >
+              <i class="fa-solid fa-history mr-1"></i>
+              Xem tất cả lịch sử
+            </button>
+            <button
+              (click)="focusSearchInput()"
+              class="px-3 py-1 bg-purple-900 text-purple-400 rounded-full text-xs hover:bg-purple-800 transition-colors"
+            >
+              <i class="fa-solid fa-edit mr-1"></i>
+              Sửa từ khóa
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  }
-
+    }
   </div>
   @if(searchHistoryItem().length > 0){
   <div class="h-3/5">
     <div class="space-y-3 h-full">
       @if(searchQuery().length >= 2 &&
       !downloadService.validateYoutubeUrl(searchQuery())) {
-      <h3
-        class="text-lg font-semibold text-gray-200 mb-3 px-4"
-      >
+      <h3 class="text-lg font-semibold text-gray-200 mb-3 px-4">
         <i class="fa-solid fa-filter mr-2"></i> Kết quả tìm kiếm "{{
         searchQuery() }}"
       </h3>
       } @else {
-      <h3
-        class="text-lg font-semibold text-gray-200 mb-3 px-4"
-      >
+      <h3 class="text-lg font-semibold text-gray-200 mb-3 px-4">
         <i class="fa-solid fa-clock-rotate-left mr-2"></i> Lịch sử tìm kiếm
       </h3>
       }
-      <div class="h-full overflow-y-auto">
+      <div class="h-full overflow-y-auto scrollbar-hide">
         <div class="space-y-2 px-4">
-         <app-song-item
-  *ngFor="let song of searchHistoryItem()"
-  [song]="song"
-  [modePage]="'down-page'"
-  [isDownloaded]="isDownloaded(song.songId)"
-  [isDownloading]="isDownloading(song.songId)"
-  [downloadProgress]="getDownloadProgress(song.songId)"
-  [isPolling]="isPolling(song.songId)"
-  [pollProgress]="getPollProgress(song.songId)"
-  [isReady]="isReady(song.songId)"
-  (download)="downloadFromHistory(song)"
-  (pauseDownload)="pauseDownload(song.songId)"
-  (cancelDownload)="cancelDownload(song.songId)"
-/>
+          <app-song-item
+            *ngFor="let song of searchHistoryItem()"
+            [song]="song"
+            [modePage]="'down-page'"
+            [isDownloaded]="isDownloaded(song.songId)"
+            [isDownloading]="isDownloading(song.songId)"
+            [downloadProgress]="getDownloadProgress(song.songId)"
+            [isPolling]="isPolling(song.songId)"
+            [pollProgress]="getPollProgress(song.songId)"
+            [isReady]="isReady(song.songId)"
+            (download)="downloadFromHistory(song)"
+            (pauseDownload)="pauseDownload(song.songId)"
+            (cancelDownload)="cancelDownload(song.songId)"
+          />
           <div class="h-[110px]"></div>
         </div>
       </div>
