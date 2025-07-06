@@ -1,6 +1,6 @@
-<ion-content [fullscreen]="true" class="home-container">
+<ion-content [fullscreen]="true"  class="home-container">
   <!-- Main Container -->
-  <div class="space-y-8 pt-6">
+  <div class="space-y-8 py-6">
 
     <!-- Everyone's Listening Section -->
     <app-song-section
@@ -41,7 +41,9 @@
   </div>
 
   <!-- Footer -->
-  <div class="mt-8 pb-20">
+  <div class="mt-8"
+  [ngClass]="isCurrentSongPlaying ?'pb-48': 'pb-28'"
+  >
     <app-footer />
   </div>
 </ion-content>

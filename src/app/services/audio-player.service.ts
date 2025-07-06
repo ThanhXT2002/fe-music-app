@@ -39,17 +39,18 @@ export class AudioPlayerService {
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
+
+  
   constructor(
-    private databaseService: DatabaseService,
-    private indexedDBService: IndexedDBService,
-    private http: HttpClient
+    private indexedDBService: IndexedDBService
   ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
-  } // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
+  }
+  // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
       // 1. Kiểm tra cache trước (sử dụng ID bài hát làm key)
@@ -267,6 +268,7 @@ export class AudioPlayerService {
       }
     });
   }
+  // 🆕 Update buffer progress
   private updateBufferProgress() {
     try {
       if (this.audio.buffered.length > 0 && this.audio.duration > 0) {
@@ -299,6 +301,7 @@ export class AudioPlayerService {
       this.updateBufferProgress();
     }, 200); // Still frequent enough for smooth UI updates
   }
+  // Sync signals with playbackState immediately when it changes
   private syncSignalsWithPlaybackState() {
     // This method will be called immediately when playbackState changes
     const state = this._playbackState();

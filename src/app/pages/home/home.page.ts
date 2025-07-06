@@ -6,6 +6,7 @@ import { FooterComponent } from "../../components/footer/footer.component";
 import { SongSectionComponent } from "../../components/song-section/song-section.component";
 import { HomeService } from 'src/app/services/api/home.service';
 import { Song, DataSong, SongConverter } from 'src/app/interfaces/song.interface';
+import { AudioPlayerService } from 'src/app/services/audio-player.service';
 
 
 @Component({
@@ -23,9 +24,17 @@ export class HomePage implements OnInit {
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
 
+
   constructor(
-    private homeService: HomeService
-  ) { }
+    private homeService: HomeService,
+    private audioPlayerService: AudioPlayerService
+  ) {
+
+   }
+
+  isCurrentSongPlaying = !!this.audioPlayerService.currentSong();
+  
+
 
   ngOnInit() {
     this.loadEveryoneToListen();
