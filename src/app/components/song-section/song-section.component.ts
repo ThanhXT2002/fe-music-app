@@ -24,6 +24,17 @@ export class SongSectionComponent {
   @Output() songPlay = new EventEmitter<Song>();
   @Output() songOptions = new EventEmitter<Song>();
 
+    readonly swiperParams: any = {
+    navigation: false,
+    pagination: false,
+    slidesPerView: 'auto',
+    breakpoints: {
+      320: { slidesPerView: 1.3, spaceBetween: 0 },
+      768: { slidesPerView: 3.3, spaceBetween: 0 },
+      1024: { slidesPerView: 5, spaceBetween: 10 },
+    },
+  };
+
   // Group songs into arrays of 4 for slide layout
   getGroupedSongs(songs: Song[]): Song[][] {
     if (!songs || songs.length === 0) {
