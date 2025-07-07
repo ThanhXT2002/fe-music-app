@@ -56,7 +56,7 @@ export class HomePage implements OnInit {
       console.log('Native platform detected, padding set to:', this.pbCustom);
     }else{
       if(this.platform.is('ios') && this.platform.is('pwa')) {
-        this.pbCustom = this.isCurrentSong ? 'pb-52' : 'pb-40';
+        this.pbCustom = this.isCurrentSong ? 'pb-56' : 'pb-40';
       }
       else{
 
