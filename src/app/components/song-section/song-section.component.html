@@ -8,13 +8,12 @@
 
   <!-- Songs Content -->
   <swiper-container
-  [navigation]="swiperParams.navigation"
-  [pagination]="swiperParams.pagination"
-  [slides-per-view]="swiperParams.slidesPerView"
-  [breakpoints]="swiperParams.breakpoints"
-  speed="400"
-  class="w-full"
->
+    navigation="false"
+    pagination="false"
+    slides-per-view="auto"
+    speed="400"
+    class="w-full responsive-swiper"
+  >
     @if (songs && songs.length > 0) {
       @for (songGroup of getGroupedSongs(songs); track $index) {
         <swiper-slide class="!w-auto">

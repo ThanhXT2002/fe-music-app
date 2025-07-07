@@ -11,9 +11,31 @@
 }
 
 // Swiper Customization
-swiper-container {
+.responsive-swiper {
   --swiper-theme-color: #3b82f6;
   --swiper-pagination-color: #3b82f6;
+
+  // Default mobile styles
+  swiper-slide {
+    width: calc(100% / 1.1) !important;
+    margin-right: 0px;
+  }
+
+  // Tablet styles
+  @media (min-width: 768px) {
+    swiper-slide {
+      width: calc(100% / 3.3) !important;
+      margin-right: 0px;
+    }
+  }
+
+  // Desktop styles
+  @media (min-width: 1024px) {
+    swiper-slide {
+      width: calc(100% / 5) !important;
+      margin-right: 10px;
+    }
+  }
 
   .swiper-slide {
     height: auto;
@@ -49,23 +71,5 @@ swiper-container {
 
   .song-group {
     width: 280px !important;
-  }
-}
-
-@media (min-width: 768px) {
-  swiper-container {
-    --slides-per-view: 1.5;
-  }
-}
-
-@media (min-width: 1024px) {
-  swiper-container {
-    --slides-per-view: 2;
-  }
-}
-
-@media (min-width: 1280px) {
-  swiper-container {
-    --slides-per-view: 2.5;
   }
 }
