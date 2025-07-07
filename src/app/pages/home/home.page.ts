@@ -38,7 +38,7 @@ export class HomePage implements OnInit {
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
   isCurrentSong: boolean = false;
-  pbCustom: string = 'pb-40'; // Default padding for non-current song
+  pbCustom: string = 'pb-96'; // Default padding for non-current song
 
   constructor(
     private homeService: HomeService,
@@ -56,10 +56,10 @@ export class HomePage implements OnInit {
       console.log('Native platform detected, padding set to:', this.pbCustom);
     }else{
       if(this.platform.is('ios') && this.platform.is('pwa')) {
+        console.log('iOS PWA detected');
         this.pbCustom = this.isCurrentSong ? 'pb-56' : 'pb-40';
-      }
-      else{
-
+      }else{
+        this.pbCustom =this.isCurrentSong?'pb-[660px]' :'pb-[600px]';
       }
     }
 
