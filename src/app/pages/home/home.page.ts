@@ -23,16 +23,17 @@ export class HomePage implements OnInit {
   listRemixSongs: Song[] = [];
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
+  isCurrentSong:boolean = false;
 
 
   constructor(
     private homeService: HomeService,
     private audioPlayerService: AudioPlayerService
   ) {
-
+    this.isCurrentSong = !!this.audioPlayerService.currentSong();
    }
 
-  isCurrentSongPlaying = !!this.audioPlayerService.currentSong();
+
 
 
 
