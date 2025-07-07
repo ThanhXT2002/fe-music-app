@@ -1,13 +1,23 @@
 import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
-import { FooterComponent } from "../../components/footer/footer.component";
-import { SongSectionComponent } from "../../components/song-section/song-section.component";
+import {
+  IonContent,
+  IonHeader,
+  IonTitle,
+  IonToolbar,
+  Platform,
+} from '@ionic/angular/standalone';
+import { FooterComponent } from '../../components/footer/footer.component';
+import { SongSectionComponent } from '../../components/song-section/song-section.component';
 import { HomeService } from 'src/app/services/api/home.service';
-import { Song, DataSong, SongConverter } from 'src/app/interfaces/song.interface';
+import {
+  Song,
+  DataSong,
+  SongConverter,
+} from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
-
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-home',
@@ -15,36 +25,51 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
   styleUrls: ['./home.page.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [ CommonModule, FormsModule, FooterComponent, SongSectionComponent, IonContent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    FooterComponent,
+    SongSectionComponent
+  ],
 })
 export class HomePage implements OnInit {
-
   listEveryoneToListens: Song[] = [];
   listRemixSongs: Song[] = [];
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
-  isCurrentSong:boolean = false;
-
+  isCurrentSong: boolean = false;
+  pbCustom: string = 'pb-40'; // Default padding for non-current song
 
   constructor(
     private homeService: HomeService,
-    private audioPlayerService: AudioPlayerService
+    private audioPlayerService: AudioPlayerService,
+    private platform: Platform
   ) {
     this.isCurrentSong = !!this.audioPlayerService.currentSong();
-   }
-
-
-
-
+  }
 
   ngOnInit() {
+
+    if(Capacitor.isNativePlatform()) {
+      // For native platforms, set padding based on current song
+      this.pbCustom = this.isCurrentSong ? 'pb-48' : 'pb-32';
+      console.log('Native platform detected, padding set to:', this.pbCustom);
+    }else{
+      if(this.platform.is('ios') && this.platform.is('pwa')) {
+        this.pbCustom = this.isCurrentSong ? 'pb-52' : 'pb-40';
+      }
+      else{
+
+      }
+    }
+
     this.loadEveryoneToListen();
     this.loadRemixSongs();
     this.loadInstrumentalSongs();
     this.loadTikTokSongs();
   }
 
-  loadEveryoneToListen(){
+  loadEveryoneToListen() {
     // Get cached data (already loaded when app started)
     this.homeService.getHomeData().subscribe({
       next: (res) => {
@@ -65,7 +90,7 @@ export class HomePage implements OnInit {
       error: (error) => {
         console.error('Error in home page:', error);
         this.listEveryoneToListens = [];
-      }
+      },
     });
   }
 
@@ -88,7 +113,7 @@ export class HomePage implements OnInit {
       error: (error) => {
         console.error('Error loading remix songs:', error);
         this.listRemixSongs = [];
-      }
+      },
     });
   }
 
@@ -111,7 +136,7 @@ export class HomePage implements OnInit {
       error: (error) => {
         console.error('Error loading instrumental songs:', error);
         this.listInstrumentalSongs = [];
-      }
+      },
     });
   }
 
@@ -134,7 +159,7 @@ export class HomePage implements OnInit {
       error: (error) => {
         console.error('Error loading TikTok songs:', error);
         this.listTikTokSongs = [];
-      }
+      },
     });
   }
 
@@ -147,7 +172,7 @@ export class HomePage implements OnInit {
       },
       error: (error) => {
         console.error('Error refreshing remix songs:', error);
-      }
+      },
     });
   }
 
@@ -159,7 +184,7 @@ export class HomePage implements OnInit {
       },
       error: (error) => {
         console.error('Error refreshing instrumental songs:', error);
-      }
+      },
     });
   }
   refreshTikTokSongs() {
@@ -170,7 +195,7 @@ export class HomePage implements OnInit {
       },
       error: (error) => {
         console.error('Error refreshing TikTok songs:', error);
-      }
+      },
     });
   }
 

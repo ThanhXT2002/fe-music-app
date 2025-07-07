@@ -1,7 +1,7 @@
-<div class="home-container overflow-y-auto scrollbar-hide bg-page">
+<ion-content class="home-container overflow-y-auto scrollbar-hide bg-page">
   <!-- Main Container -->
-  <div class="space-y-8 py-6">
-
+  <div class="space-y-8"
+  >
     <!-- Everyone's Listening Section -->
     <app-song-section
       title="Mọi người cùng nghe"
@@ -37,14 +37,8 @@
       (songPlay)="onSongPlay($event)"
       (songOptions)="onSongOptions($event)"
     />
+  </div>
+  <div [class]="pbCustom">
 
   </div>
-
-  <!-- Footer -->
-     <!-- [ngClass]="isCurrentSong ? 'pb-48': 'pb-48'" -->
-  <div class="pb-48"
-
-  >
-    <app-footer />
-  </div>
-</div>
+</ion-content>
