@@ -256,22 +256,15 @@ export class DatabaseService {
   async getAllPlaylists(): Promise<Playlist[]> {
     if (!this.isDbReady) return [];
 
-    // Check cache first
-    const now = Date.now();
-    if (
-      this.playlistsCache &&
-      now - this.playlistsCacheTime < this.CACHE_DURATION
-    ) {
-      return this.playlistsCache;
-    }
-
     try {
+      // Always clear cache to ensure fresh data
+      this.playlistsCache = null;
+      console.log('[DatabaseService] Getting fresh playlists from IndexedDB');
+
       const playlists = await this.indexedDB.getAll('playlists');
+      console.log('[DatabaseService] Retrieved playlists:', playlists.length, playlists.map(p => ({ id: p.id, name: p.name })));
 
-      // Cache the results
-      this.playlistsCache = playlists;
-      this.playlistsCacheTime = now;
-
+      // Don't cache the results to avoid stale data
       return playlists;
     } catch (error) {
       console.error('Error getting all playlists:', error);
@@ -282,9 +275,13 @@ export class DatabaseService {
   async updatePlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
 
+    console.log('[DatabaseService] Updating playlist:', { id: playlist.id, name: playlist.name });
     const success = await this.indexedDB.put('playlists', playlist);
     if (success) {
       this.playlistsCache = null; // Clear cache
+      console.log('[DatabaseService] Playlist updated successfully and cache cleared');
+    } else {
+      console.error('[DatabaseService] Failed to update playlist');
     }
     return success;
   }
@@ -342,18 +339,23 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
 
     try {
-      await this.indexedDB.clear('songs');
-      await this.indexedDB.clear('search_history');
-      await this.indexedDB.clear('playlists');
-      await this.indexedDB.clear('audioFiles');
+      console.log('🗑️ Clearing all IndexedDB data...');
 
-      // Clear all caches khi clear all data
-      this.songsCache = null;
+      // Clear cache first
       this.playlistsCache = null;
+      this.playlistsCacheTime = 0;
+      this.songsCache = null;
+      this.songsCacheTime = 0;
 
+      // Clear all tables
+      await this.indexedDB.clear('songs');
+      await this.indexedDB.clear('playlists');
+      await this.indexedDB.clear('search_history');
+
+      console.log('✅ All IndexedDB data cleared');
       return true;
     } catch (error) {
-      console.error('Error clearing all data:', error);
+      console.error('❌ Error clearing IndexedDB data:', error);
       return false;
     }
   }

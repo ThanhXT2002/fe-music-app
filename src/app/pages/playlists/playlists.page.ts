@@ -81,14 +81,34 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   async loadPlaylists() {
     try {
       // ✨ Always load fresh from database
-      console.log('Loading playlists from database...');
+      console.log('=== LOADING PLAYLISTS START ===');
+      console.log('Current playlists in signal before load:', this.playlists().map(p => ({ id: p.id, name: p.name })));
+
+      // Force clear all cache first
+      await this.playlistService.clearAllCache();
+
+      // Also force clear database cache explicitly
+      this.playlistService['databaseService'].clearPlaylistsCache();
+
       const playlists = await this.playlistService.getAllArtistPlaylists();
 
       // Update signals directly
       this.playlists.set(playlists);
       this.isDataLoaded.set(true);
 
-      console.log('Playlists loaded successfully:', playlists.length, playlists);
+      console.log('=== PLAYLISTS LOADED ===');
+      console.log('Total playlists:', playlists.length);
+      playlists.forEach((playlist, index) => {
+        console.log(`Playlist ${index + 1}:`, {
+          id: playlist.id,
+          name: playlist.name,
+          artist: playlist.artist,
+          isUserCreated: playlist.isUserCreated,
+          songs: playlist.songs.length
+        });
+      });
+      console.log('Updated playlists in signal after load:', this.playlists().map(p => ({ id: p.id, name: p.name })));
+      console.log('=== LOADING PLAYLISTS END ===');
     } catch (error) {
       console.error('Error loading playlists:', error);
     }
@@ -294,17 +314,29 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     playlistName: string
   ) {
     try {
-      console.log('Updating playlist name:', { playlistId, playlistName });
+      console.log('=== UPDATING PLAYLIST NAME START ===');
+      console.log('Playlist ID:', playlistId);
+      console.log('New name:', playlistName);
 
       const success = await this.playlistService.updateArtistPlaylist(playlistId, {
         name: playlistName
       });
 
-      console.log('Update result:', success);      if (success) {
-        // Reload playlists fresh từ database sau khi update
-        await this.loadPlaylists();
+      console.log('Update result:', success);
 
-        console.log('Playlist name updated successfully and reloaded');
+      if (success) {
+        console.log('=== FORCE RELOAD FROM DATABASE ===');
+
+        // Force clear ALL caches
+        await this.playlistService.clearAllCache();
+
+        // Force reload playlists with a small delay to ensure IndexedDB write is complete
+        setTimeout(async () => {
+          await this.loadPlaylists();
+          console.log('=== PLAYLIST RELOADED AFTER UPDATE ===');
+        }, 100);
+
+        console.log('Playlist name updated successfully');
 
         const successAlert = await this.alertController.create({
           mode: 'ios',
@@ -397,6 +429,42 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       });
       await errorAlert.present();
     }
+  }
+
+  // ✨ Clear database for debugging
+  async clearDatabase() {
+    const confirm = await this.alertController.create({
+      mode: 'ios',
+      header: 'Clear Database',
+      message: 'This will delete ALL data including songs and playlists. Are you sure?',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Clear All',
+          role: 'destructive',
+          handler: async () => {
+            const success = await this.playlistService.clearAllDatabase();
+            if (success) {
+              this.playlists.set([]);
+              console.log('Database cleared successfully');
+
+              const alert = await this.alertController.create({
+                mode: 'ios',
+                header: 'Success',
+                message: 'Database cleared successfully!',
+                buttons: ['OK']
+              });
+              await alert.present();
+            }
+          }
+        }
+      ]
+    });
+
+    await confirm.present();
   }
 
   // ✨ Force reload playlists từ database (for testing)
