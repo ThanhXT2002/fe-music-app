@@ -8,14 +8,14 @@ import { AlertController } from '@ionic/angular';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { User } from '@angular/fire/auth';
 import { routeAnimation } from 'src/app/shared/route-animation';
-import { IonContent } from "@ionic/angular/standalone";
 import { Capacitor } from '@capacitor/core';
 import { AudioPlayerService } from '../../services/audio-player.service';
+import { DownloadService } from '../../services/download.service';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [IonContent, CommonModule, FormsModule, InstallPromptComponent],
+  imports: [CommonModule, FormsModule, InstallPromptComponent],
   templateUrl: './settings.page.html',
   animations: [routeAnimation],
 })
@@ -25,6 +25,7 @@ export class SettingsPage implements OnInit {
   private playlistService = inject(PlaylistService);
   private alertController = inject(AlertController);
   private audioPlayerService = inject(AudioPlayerService);
+  private downloadService = inject(DownloadService);
   currentSong = this.audioPlayerService.currentSong;
   isNative = Capacitor.isNativePlatform();
 
@@ -81,10 +82,13 @@ export class SettingsPage implements OnInit {
           handler: async () => {
             const success = await this.playlistService.clearAllDatabase();
             if (success) {
+              // Also clear download notification caches
+              this.downloadService.resetNotificationState();
+
               const alert = await this.alertController.create({
                 mode: 'ios',
                 header: 'Success',
-                message: 'Database cleared successfully!',
+                message: 'Database and notification cache cleared successfully!',
                 buttons: ['OK']
               });
               await alert.present();
@@ -93,7 +97,6 @@ export class SettingsPage implements OnInit {
         }
       ]
     });
-
     await confirm.present();
   }
 
@@ -163,7 +166,7 @@ export class SettingsPage implements OnInit {
     const confirm = await this.alertController.create({
       mode: 'ios',
       header: 'Clear Cache',
-      message: 'This will clear app cache but keep your data. Continue?',
+      message: 'This will clear notification caches and reset download states. Continue?',
       buttons: [
         {
           text: 'Cancel',
@@ -172,7 +175,8 @@ export class SettingsPage implements OnInit {
         {
           text: 'Clear Cache',
           handler: async () => {
-            await this.playlistService.clearAllCache();
+            this.downloadService.resetNotificationState();
+
             const alert = await this.alertController.create({
               mode: 'ios',
               header: 'Success',
