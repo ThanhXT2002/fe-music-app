@@ -17,7 +17,7 @@
     @if (songs && songs.length > 0) {
       @for (songGroup of getGroupedSongs(songs); track $index) {
         <swiper-slide class="!w-auto">
-          <div class="rounded-lg w-[320px]">
+          <div class="rounded-lg w-full">
             <div class="space-y-1">
               @for (song of songGroup; track song.id) {
                 <app-song-item-home

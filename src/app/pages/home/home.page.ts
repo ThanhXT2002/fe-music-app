@@ -57,19 +57,16 @@ export class HomePage implements OnInit {
     }else{
       if(this.platform.is('ios') && this.platform.is('pwa')) {
         console.log('iOS PWA detected');
-        this.pbCustom = this.isCurrentSong ? 'pb-56' : 'pb-40';
+         this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
       }
       else if(this.platform.is('android') && this.platform.is('pwa')){
         this.pbCustom =this.isCurrentSong?'pb-44' :'pb-40';
       }
-      else if(this.platform.is('android')){
-       this.pbCustom =this.isCurrentSong?'pb-[600px]' :'pb-[560px]';
-      }
       else if(this.platform.is('desktop')) {
-       this.pbCustom =this.isCurrentSong?'pb-[450px]' :'pb-[400px]';
+          this.pbCustom = this.isCurrentSong ? 'pb-80' : 'pb-64';
       }
       else {
-        this.pbCustom =this.isCurrentSong?'pb-[660px]' :'pb-[600px]';
+        this.pbCustom =this.isCurrentSong?'pb-[445px]' :'pb-96';
       }
     }
 

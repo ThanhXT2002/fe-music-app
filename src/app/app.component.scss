@@ -13,10 +13,12 @@
 .img-top {
   position: absolute;
   left: 0;
+  right: 0px;
   top:0px;
   width: auto; /* thu nhỏ */
   height: 40vh;
   opacity: 1;
+  width: 100%;
   object-fit: cover;
 }
 
