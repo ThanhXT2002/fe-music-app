@@ -11,7 +11,6 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Album, Song } from '../../interfaces/song.interface';
 import { AudioPlayerService } from '../../services/audio-player.service';
-import { PlaylistsPageStateService } from 'src/app/services/playlists-page-state.service';
 import { PlaylistService } from '../../services/playlist.service'; // ✨ Updated import
 import { Subject, takeUntil } from 'rxjs';
 import { RefreshService } from 'src/app/services/refresh.service';
@@ -31,6 +30,11 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
   @ViewChild('playlistNameInput') playlistNameInput!: ElementRef<HTMLInputElement>;
 
+  // Direct playlist management signals
+  playlists = signal<Album[]>([]);
+  isDataLoaded = signal<boolean>(false);
+  scrollPosition = 0;
+
   // Track active playlist
   activePlaylist = signal<string | null>(null);
 
@@ -38,7 +42,6 @@ export class PlaylistsPage implements OnInit, OnDestroy {
 
   constructor(
     private audioPlayerService: AudioPlayerService,
-    public playlistsState: PlaylistsPageStateService,
     private refreshService: RefreshService,
     private playlistService: PlaylistService, // ✨ Updated to use PlaylistService
     private alertController: AlertController // ✨ Inject AlertController
@@ -50,16 +53,13 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   async ngOnInit() {
     // Restore scroll position if available
     setTimeout(() => {
-      if (this.scrollContainer && this.playlistsState.scrollPosition > 0) {
-        this.scrollContainer.nativeElement.scrollTop =
-          this.playlistsState.scrollPosition;
+      if (this.scrollContainer && this.scrollPosition > 0) {
+        this.scrollContainer.nativeElement.scrollTop = this.scrollPosition;
       }
     }, 100);
 
-    // Load playlists if not already loaded
-    if (!this.playlistsState.isDataLoaded) {
-      await this.loadPlaylists();
-    }
+    // Always load playlists fresh from database
+    await this.loadPlaylists();
 
     // Lắng nghe tín hiệu refresh
     this.refreshService.refresh$
@@ -72,19 +72,23 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     // Save scroll position when leaving the page
     if (this.scrollContainer) {
-      this.playlistsState.setScrollPosition(
-        this.scrollContainer.nativeElement.scrollTop
-      );
+      this.scrollPosition = this.scrollContainer.nativeElement.scrollTop;
     }
     this.destroy$.next();
     this.destroy$.complete();
-  }  async loadPlaylists() {
-    try {
-      // ✨ Use PlaylistService instead of manual grouping
-      const playlists = await this.playlistService.getAllArtistPlaylists();
-      this.playlistsState.setPlaylists(playlists);
+  }
 
-      console.log('Playlists loaded and UI updated:', playlists.length);
+  async loadPlaylists() {
+    try {
+      // ✨ Always load fresh from database
+      console.log('Loading playlists from database...');
+      const playlists = await this.playlistService.getAllArtistPlaylists();
+
+      // Update signals directly
+      this.playlists.set(playlists);
+      this.isDataLoaded.set(true);
+
+      console.log('Playlists loaded successfully:', playlists.length, playlists);
     } catch (error) {
       console.error('Error loading playlists:', error);
     }
@@ -297,10 +301,10 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       });
 
       console.log('Update result:', success);      if (success) {
-        // Cập nhật ngay lập tức trong state để UI hiển thị luôn
-        this.playlistsState.updatePlaylist(playlistId, { name: playlistName });
+        // Reload playlists fresh từ database sau khi update
+        await this.loadPlaylists();
 
-        console.log('Playlist name updated successfully in UI');
+        console.log('Playlist name updated successfully and reloaded');
 
         const successAlert = await this.alertController.create({
           mode: 'ios',
@@ -398,7 +402,6 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   // ✨ Force reload playlists từ database (for testing)
   async forceReloadPlaylists() {
     console.log('Force reloading playlists...');
-    this.playlistsState.resetState();
     await this.loadPlaylists();
   }
 
@@ -412,7 +415,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       this.currentSong = this.audioPlayerService.currentSong();
       if (this.currentSong) {
         // Find which playlist contains the current song
-        const currentPlaylist = this.playlistsState.playlists.find((playlist: Album) =>
+        const currentPlaylist = this.playlists().find((playlist: Album) =>
           playlist.songs.some((song: Song) => song.id === this.currentSong?.id)
         );
         this.activePlaylist.set(currentPlaylist ? currentPlaylist.name : null);
