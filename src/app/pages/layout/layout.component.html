@@ -68,6 +68,7 @@
           <img
             [src]="currentSong.thumbnail_url || 'assets/images/default-song.png'"
             [alt]="currentSong.title"
+            (error)="onImageError($event)"
             class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
             [ngClass]="{
               'spin-with-fill': true,

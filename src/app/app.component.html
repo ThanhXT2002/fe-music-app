@@ -1,6 +1,9 @@
 <ion-app>
   <div class="bg-container">
-    <img src="/assets/images/img-body.webp" class="img-top" />
+    <img [src]="currentSong()?.thumbnail_url"
+  (error)="onImageError($event)"
+
+    class="img-top " />
     <div class="blur-overlay"></div>
   </div>
   <ion-router-outlet></ion-router-outlet>

@@ -213,4 +213,8 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     this.clearSearch();
     this.showSearch = false;
   }
+
+  onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
+  }
 }
