@@ -1,7 +1,7 @@
 <div class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 transition-colors duration-200"
      (click)="onSongClick()">
   <!-- Thumbnail -->
-  <div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative group">
+  <div class="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 relative group shadow shadow-rose-300">
     <img
       [src]="song.thumbnail_url"
       [alt]="song.title"
