@@ -1,5 +1,13 @@
 import { Injectable } from '@angular/core';
 import { ToastController } from '@ionic/angular/standalone';
+import {
+  checkmarkCircle,
+  alertCircle,
+  warning,
+  informationCircle,
+  hourglass,
+} from 'ionicons/icons';
+import { addIcons } from 'ionicons';
 
 export interface ToastOptions {
   message: string;
@@ -22,7 +30,15 @@ export class ToastService {
   private toastQueue: ToastOptions[] = [];
   private isProcessing = false;
 
-  constructor(private toastController: ToastController) {}
+  constructor(private toastController: ToastController) {
+    addIcons({
+    'checkmark-circle': checkmarkCircle,
+    'alert-circle': alertCircle,
+    'warning': warning,
+    'information-circle': informationCircle,
+    'hourglass': hourglass,
+  });
+  }
 
   /**
    * Show a toast, automatically dismissing any current toast
@@ -41,8 +57,8 @@ export class ToastService {
   /**
    * Convenience methods for common toast types
    */
-  async success(message: string, duration: number = 3000): Promise<void> {
-    await this.show({
+  success(message: string, duration: number = 3000) {
+    this.show({
       message,
       color: 'success',
       duration,
@@ -50,8 +66,8 @@ export class ToastService {
     });
   }
 
-  async error(message: string, duration: number = 4000): Promise<void> {
-    await this.show({
+  error(message: string, duration: number = 3000) {
+   this.show({
       message,
       color: 'danger',
       duration,
@@ -59,8 +75,8 @@ export class ToastService {
     });
   }
 
-  async warning(message: string, duration: number = 3500): Promise<void> {
-    await this.show({
+   warning(message: string, duration: number = 3000) {
+     this.show({
       message,
       color: 'warning',
       duration,
@@ -68,8 +84,8 @@ export class ToastService {
     });
   }
 
-  async info(message: string, duration: number = 3000): Promise<void> {
-    await this.show({
+   info(message: string, duration: number = 3000) {
+    this.show({
       message,
       color: 'primary',
       duration,
@@ -80,10 +96,10 @@ export class ToastService {
   /**
    * Dismiss current toast immediately
    */
-  async dismiss(): Promise<void> {
+   dismiss() {
     if (this.currentToast) {
       try {
-        await this.currentToast.dismiss();
+         this.currentToast.dismiss();
         this.currentToast = null;
       } catch (error) {
         console.warn('Error dismissing toast:', error);
@@ -189,3 +205,4 @@ export class ToastService {
     });
   }
 }
+

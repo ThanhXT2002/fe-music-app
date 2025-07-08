@@ -40,7 +40,7 @@ export class AudioPlayerService {
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
 
-  
+
   constructor(
     private indexedDBService: IndexedDBService
   ) {

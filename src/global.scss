@@ -481,52 +481,14 @@ ion-backdrop {
   display: none;
 }
 
-/* Toast Styling */
-.custom-toast {
-  --background: var(--ion-color-step-50, #f8f9fa);
-  --color: var(--ion-color-step-800, #1a1a1a);
-  --border-radius: 12px;
-  --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  --min-height: 56px;
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
+ion-toast {
+  --border-radius: 8px !important;
+  font-size: 16px;
 }
 
-.custom-toast.toast-success {
-  --background: var(--ion-color-success);
-  --color: var(--ion-color-success-contrast);
-}
-
-.custom-toast.toast-danger {
-  --background: var(--ion-color-danger);
-  --color: var(--ion-color-danger-contrast);
-}
-
-.custom-toast.toast-warning {
-  --background: var(--ion-color-warning);
-  --color: var(--ion-color-warning-contrast);
-}
-
-.custom-toast.toast-primary {
-  --background: var(--ion-color-primary);
-  --color: var(--ion-color-primary-contrast);
-}
-
-.custom-toast .toast-message {
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.custom-toast .toast-icon {
-  margin-inline-end: 8px;
-  font-size: 18px;
-}
-
-.custom-toast .toast-button {
-  --color: currentColor;
-  font-weight: 600;
-  font-size: 14px;
-}
+// ion-toast .toast-wrapper,
+// ion-toast .toast-container,
+// ion-toast .toast-message {
+//   border-radius: 4px !important;
+//   --border-radius: 4px !important;
+// }

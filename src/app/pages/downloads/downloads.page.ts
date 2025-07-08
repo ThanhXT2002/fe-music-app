@@ -5,21 +5,20 @@ import { Platform } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 
 import { DatabaseService } from '../../services/database.service';
-import { DownloadService, DownloadTask, CompletionNotification, StatusNotification } from '../../services/download.service';
-import { AudioPlayerService } from '../../services/audio-player.service';
-import { MusicApiService } from '../../services/api/music-api.service';
 import {
-  DataSong,
-  Song,
-  SearchHistoryItem,
-  SongConverter,
-} from '../../interfaces/song.interface';
+  DownloadService,
+  DownloadTask,
+  CompletionNotification,
+  StatusNotification,
+} from '../../services/download.service';
+import { DataSong, SearchHistoryItem } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { ToastService } from 'src/app/services/toast.service';
 import { AlertController } from '@ionic/angular/standalone';
-import { finalize, firstValueFrom, tap } from 'rxjs';
+import { firstValueFrom, takeUntil } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
-import { SongItemComponent } from "../../components/song-item/song-item.component";
+import { SongItemComponent } from '../../components/song-item/song-item.component';
+import { Subject } from 'rxjs';
 
 @Component({
   selector: 'app-downloads',
@@ -27,7 +26,7 @@ import { SongItemComponent } from "../../components/song-item/song-item.componen
   styleUrls: ['./downloads.page.scss'],
   standalone: true,
   imports: [CommonModule, FormsModule, SongItemComponent],
-    animations: [routeAnimation],
+  animations: [routeAnimation],
 })
 export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
@@ -47,6 +46,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
   // Download state - chỉ subscribe từ service
   downloads = signal<DownloadTask[]>([]);
 
+  private destroy$ = new Subject<void>();
+
+  constructor() {}
+
   // Song status tracking - sử dụng service thay vì local
   // private songStatusMap = signal<Map<string, { status: string; progress: number; ready: boolean }>>(new Map());
   // private pollingIntervals = new Map<string, any>();
@@ -55,27 +58,33 @@ export class DownloadsPage implements OnInit, OnDestroy {
     await this.loadSearchHistory();
 
     // Subscribe to download changes - notification logic moved to service
-    this.downloadService.downloads$.subscribe((downloads) => {
-      this.downloads.set(downloads);
-    });
+    this.downloadService.downloads$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((downloads) => {
+        this.downloads.set(downloads);
+      });
 
     // Subscribe to completion notifications from service
-    this.downloadService.completionNotifications$.subscribe((notification: CompletionNotification | null) => {
-      if (notification) {
-        this.showCompletedNotification(notification.title);
-      }
-    });
+    this.downloadService.completionNotifications$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((notification: CompletionNotification | null) => {
+        if (notification) {
+          this.showCompletedNotification(notification.title);
+        }
+      });
 
     // Subscribe to status notifications from service (ready/failed)
-    this.downloadService.statusNotifications$.subscribe((notification: StatusNotification | null) => {
-      if (notification) {
-        if (notification.type === 'error') {
-          this.toastService.error(notification.message);
-        } else {
-          this.toastService.success(notification.message);
+    this.downloadService.statusNotifications$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((notification: StatusNotification | null) => {
+        if (notification) {
+          if (notification.type === 'error') {
+            this.toastService.error(notification.message);
+          } else {
+            this.toastService.success(notification.message);
+          }
         }
-      }
-    });
+      });
 
     // Auto-paste from clipboard on load
     await this.tryAutoPaste();
@@ -98,7 +107,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
           const finalUrl = validation.cleanUrl || result.content;
           this.searchQuery.set(finalUrl);
           await this.processYouTubeUrl(finalUrl);
-          await this.toastService.success('Đã tự động dán link YouTube từ clipboard!');
+          await this.toastService.success(
+            'Đã tự động dán link YouTube từ clipboard!'
+          );
         }
       }
       // Không hiển thị lỗi cho auto-paste để tránh làm phiền user
@@ -163,7 +174,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
         // Reload search history to show the new item
         await this.loadSearchHistory();
 
-        await this.toastService.success('Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.');
+        await this.toastService.success(
+          'Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.'
+        );
       } else {
         console.error('API returned error:', response.message);
         await this.toastService.error(`Lỗi: ${response.message}`);
@@ -171,7 +184,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error processing YouTube URL:', error);
-      await this.toastService.error(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`);
+      await this.toastService.error(
+        `Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`
+      );
       this.searchResults.set([]);
     } finally {
       this.isSearching.set(false);
@@ -220,10 +235,13 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
       // Download task đã được tạo và bắt đầu process tự động thông qua downloadService
       // UI sẽ tự động update thông qua reactive streams
-
     } catch (error) {
       console.error('Download error:', error);
-      await this.toastService.error(`Lỗi khi tải bài hát: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      await this.toastService.error(
+        `Lỗi khi tải bài hát: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      );
     }
   }
 
@@ -240,7 +258,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
       }
 
       // Check if we need to poll status first
-      const songStatus = this.downloadService.getSongStatusSync(historyItem.songId);
+      const songStatus = this.downloadService.getSongStatusSync(
+        historyItem.songId
+      );
       if (!songStatus) {
         // Start status polling first
         this.downloadService.startStatusPolling(historyItem.songId);
@@ -264,9 +284,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
         await this.downloadSong(songData);
       } else {
-        await this.toastService.warning(`Bài hát đang xử lý (${songStatus.progress}%)...`);
+        await this.toastService.warning(
+          `Bài hát đang xử lý (${songStatus.progress}%)...`
+        );
       }
-
     } catch (error) {
       console.error('Download error:', error);
       await this.toastService.error('Lỗi khi tải bài hát!');
@@ -314,10 +335,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
    * Show completion notification (one-time only)
    */
   private async showCompletedNotification(songTitle: string) {
-    await this.toastService.success(`Bài hát "${songTitle}" đã được tải xuống thành công!`);
+    await this.toastService.success(
+      `Bài hát "${songTitle}" đã được tải xuống thành công!`
+    );
   }
-
-
 
   /**
    * Cancel download
@@ -356,13 +377,13 @@ export class DownloadsPage implements OnInit, OnDestroy {
     this.searchResults.set([]); // Clear YouTube search results
     this.searchHistoryItem.set(this.originalSearchHistory()); // Reset về danh sách gốc
     this.isSearching.set(false);
-  }  async searchHistory(query: string) {
+  }
+  async searchHistory(query: string) {
     try {
       this.isSearching.set(true);
 
       // Tìm kiếm trong lịch sử IndexedDB cục bộ
       this.filterSearchHistory(query);
-
     } catch (error) {
       console.error('❌ Error searching in history:', error);
       await this.toastService.error('Lỗi khi tìm kiếm trong lịch sử.');
@@ -375,7 +396,8 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
     if (query.length === 0) {
       return;
-    }    if (this.downloadService.validateYoutubeUrl(query)) {
+    }
+    if (this.downloadService.validateYoutubeUrl(query)) {
       // YouTube URL → tìm kiếm API và hiển thị trong searchResults
       this.processYouTubeUrl(query);
     } else {
@@ -432,7 +454,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
           } else if (result.error === 'NOT_SUPPORTED') {
             await this.showManualPasteInstructions();
           } else {
-            await this.toastService.warning('Không thể đọc clipboard. Vui lòng paste thủ công.');
+            await this.toastService.warning(
+              'Không thể đọc clipboard. Vui lòng paste thủ công.'
+            );
             this.focusSearchInput();
           }
           return;
@@ -448,7 +472,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
           await this.toastService.success('Đã dán link YouTube!');
         }
       } else {
-        await this.toastService.warning('Clipboard trống hoặc không có nội dung hợp lệ');
+        await this.toastService.warning(
+          'Clipboard trống hoặc không có nội dung hợp lệ'
+        );
       }
     } catch (error) {
       console.error('Paste failed:', error);
@@ -644,12 +670,14 @@ Hoặc paste thủ công:
    */
   private filterSearchHistory(query: string) {
     const originalHistory = this.originalSearchHistory();
-    const filtered = originalHistory.filter(item =>
-      item.title.toLowerCase().includes(query.toLowerCase()) ||
-      item.artist.toLowerCase().includes(query.toLowerCase()) ||
-      (item.keywords && item.keywords.some(keyword =>
-        keyword.toLowerCase().includes(query.toLowerCase())
-      ))
+    const filtered = originalHistory.filter(
+      (item) =>
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.artist.toLowerCase().includes(query.toLowerCase()) ||
+        (item.keywords &&
+          item.keywords.some((keyword) =>
+            keyword.toLowerCase().includes(query.toLowerCase())
+          ))
     );
 
     this.searchHistoryItem.set(filtered);
@@ -660,7 +688,8 @@ Hoặc paste thủ công:
   }
 
   ngOnDestroy() {
-    // Service handles polling cleanup
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**
@@ -668,7 +697,10 @@ Hoặc paste thủ công:
    */
   isPolling(songId: string): boolean {
     const status = this.downloadService.getSongStatusSync(songId);
-    return status ? (status.status === 'pending' || status.status === 'processing') && !status.ready : false;
+    return status
+      ? (status.status === 'pending' || status.status === 'processing') &&
+          !status.ready
+      : false;
   }
 
   /**
