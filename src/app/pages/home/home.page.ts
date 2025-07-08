@@ -60,7 +60,7 @@ export class HomePage implements OnInit {
          this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
       }
       else if(this.platform.is('android') && this.platform.is('pwa')){
-        this.pbCustom =this.isCurrentSong?'pb-44' :'pb-40';
+        this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
       }
       else if(this.platform.is('desktop')) {
           this.pbCustom = this.isCurrentSong ? 'pb-80' : 'pb-64';
