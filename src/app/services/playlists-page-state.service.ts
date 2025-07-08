@@ -42,9 +42,10 @@ export class PlaylistsPageStateService {
   setPlaylists(playlists: Album[]) {
     this.state.update(current => ({
       ...current,
-      playlists: playlists,
+      playlists: [...playlists], // Tạo array mới để đảm bảo signal detect change
       isDataLoaded: true
     }));
+    console.log('State updated with playlists:', playlists.length);
   }
 
   /** @deprecated Sử dụng setPlaylists thay thế */
@@ -76,6 +77,7 @@ export class PlaylistsPageStateService {
         playlist.id === playlistId ? { ...playlist, ...updates } : playlist
       )
     }));
+    console.log('Playlist updated in state:', playlistId, updates);
   }
 
   /** @deprecated Sử dụng updatePlaylist thay thế */

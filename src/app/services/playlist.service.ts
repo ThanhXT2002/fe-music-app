@@ -475,19 +475,34 @@ export class PlaylistService {
    */
   async updateArtistPlaylist(playlistId: string, updates: Partial<Album>): Promise<boolean> {
     try {
-      // Kiểm tra xem có phải artist playlist do người dùng tạo không
-      const playlist = await this.getArtistPlaylistById(playlistId);
-      if (!playlist?.isUserCreated) {
-        throw new Error('Cannot update auto-generated artist playlist');
+      // Clear cache trước khi update để đảm bảo consistency
+      this.databaseService.clearPlaylistsCache();
+
+      // Tìm playlist trong user-created playlists
+      const playlist = await this.getPlaylistById(playlistId);
+      if (!playlist) {
+        console.error('Playlist not found:', playlistId);
+        return false;
+      }
+
+      // Chỉ cho phép cập nhật user-created playlists (có __ALBUM__ marker)
+      if (!playlist.description?.startsWith('__ALBUM__')) {
+        console.error('Cannot update non-artist playlist');
+        return false;
       }
 
       const playlistUpdates: Partial<Pick<Playlist, 'name' | 'description' | 'thumbnail'>> = {
         name: updates.name, // Tên artist trở thành tên playlist
-        description: updates.description ? `__ALBUM__${updates.name || playlist.name}__${updates.description}` : undefined,
+        description: updates.description ? `__ALBUM__${updates.name || playlist.name}__${updates.description}` : playlist.description,
         thumbnail: updates.thumbnail
       };
 
-      return await this.updatePlaylistInfo(playlistId, playlistUpdates);
+      const result = await this.updatePlaylistInfo(playlistId, playlistUpdates);
+
+      // Clear cache sau khi update để đảm bảo lần read tiếp theo sẽ fresh
+      this.databaseService.clearPlaylistsCache();
+
+      return result;
     } catch (error) {
       console.error('Error updating artist playlist:', error);
       return false;

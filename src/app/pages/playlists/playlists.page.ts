@@ -78,12 +78,13 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     }
     this.destroy$.next();
     this.destroy$.complete();
-  }
-  async loadPlaylists() {
+  }  async loadPlaylists() {
     try {
       // ✨ Use PlaylistService instead of manual grouping
       const playlists = await this.playlistService.getAllArtistPlaylists();
       this.playlistsState.setPlaylists(playlists);
+
+      console.log('Playlists loaded and UI updated:', playlists.length);
     } catch (error) {
       console.error('Error loading playlists:', error);
     }
@@ -151,8 +152,8 @@ export class PlaylistsPage implements OnInit, OnDestroy {
         {
           text: 'Lưu',
           handler: async (data) => {
-            if (data.name) {
-              await this.createNewPlaylist(data.name, data.description);
+            if (data.name && data.name.trim()) {
+              await this.createNewPlaylist(data.name.trim());
               return true;
             }
             return false;
@@ -164,12 +165,15 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     await alert.present();
   }
   // ✨ Create new playlist (artist-based)
-  private async createNewPlaylist(name: string, description?: string) {
+  private async createNewPlaylist(name: string) {
     try {
+      console.log('Creating new playlist:', name);
+
       const newPlaylist = await this.playlistService.createArtistPlaylist({
         name: name, // Artist name becomes playlist name
-        description: description,
       });
+
+      console.log('Created playlist:', newPlaylist);
 
       if (newPlaylist) {
         // Refresh playlists list
@@ -194,7 +198,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       const errorAlert = await this.alertController.create({
         mode: 'ios',
         header: 'Lỗi',
-        message: 'Không thể tạo playlist. Vui lòng thử lại.',
+        message: `Không thể tạo playlist: ${error}`,
         buttons: ['OK'],
       });
       await errorAlert.present();
@@ -213,9 +217,9 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       header: playlist.name,
       buttons: [
         {
-          text: '✏️ Chỉnh sửa Playlist',
+          text: '✏️ Đổi tên Playlist',
           handler: () => {
-            this.editPlaylist(playlist);
+            this.editNamePlaylist(playlist);
           },
         },
         {
@@ -239,26 +243,22 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     });
 
     await alert.present();
-  }  // ✨ Edit playlist information (artist-based)
-  async editPlaylist(playlist: Album) {
+  }
+
+  // ✨ Edit playlist name only
+  async editNamePlaylist(playlist: Album) {
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: 'Chỉnh sửa Playlist',
+      header: 'Đổi tên Playlist',
       inputs: [
         {
           name: 'name',
           type: 'text',
-          placeholder: 'Tên playlist',
-          value: playlist.name, // Playlist name is artist name
+          placeholder: 'Tên playlist mới',
+          value: playlist.name,
           attributes: {
             required: true,
           },
-        },
-        {
-          name: 'description',
-          type: 'textarea',
-          placeholder: 'Playlist description (optional)',
-          value: playlist.description || '',
         },
       ],
       buttons: [
@@ -269,11 +269,10 @@ export class PlaylistsPage implements OnInit, OnDestroy {
         {
           text: 'Lưu',
           handler: async (data) => {
-            if (data.name) {
-              await this.updatePlaylist(
+            if (data.name && data.name.trim()) {
+              await this.updatePlaylistName(
                 playlist.id,
-                data.name,
-                data.description
+                data.name.trim()
               );
               return true;
             }
@@ -285,39 +284,41 @@ export class PlaylistsPage implements OnInit, OnDestroy {
 
     await alert.present();
   }
-  // ✨ Update playlist (artist-based)
-  private async updatePlaylist(
+  // ✨ Update playlist name only
+  private async updatePlaylistName(
     playlistId: string,
-    playlistName: string,
-    description?: string
+    playlistName: string
   ) {
     try {
+      console.log('Updating playlist name:', { playlistId, playlistName });
+
       const success = await this.playlistService.updateArtistPlaylist(playlistId, {
-        name: playlistName, // Artist name becomes playlist name
-        description: description,
+        name: playlistName
       });
 
-      if (success) {
-        await this.loadPlaylists();
-        console.log('Playlist updated successfully');
+      console.log('Update result:', success);      if (success) {
+        // Cập nhật ngay lập tức trong state để UI hiển thị luôn
+        this.playlistsState.updatePlaylist(playlistId, { name: playlistName });
+
+        console.log('Playlist name updated successfully in UI');
 
         const successAlert = await this.alertController.create({
           mode: 'ios',
           header: 'Thành Công',
-          message: 'Playlist đã được cập nhật thành công!',
+          message: 'Tên playlist đã được cập nhật!',
           buttons: ['OK'],
         });
         await successAlert.present();
       } else {
-        throw new Error('Failed to update playlist');
+        throw new Error('Failed to update playlist name');
       }
     } catch (error) {
-      console.error('Error updating playlist:', error);
+      console.error('Error updating playlist name:', error);
 
       const errorAlert = await this.alertController.create({
         mode: 'ios',
         header: 'Lỗi',
-        message: 'Không thể cập nhật playlist. Vui lòng thử lại.',
+        message: `Không thể cập nhật tên playlist: ${error}`,
         buttons: ['OK'],
       });
       await errorAlert.present();
@@ -392,6 +393,13 @@ export class PlaylistsPage implements OnInit, OnDestroy {
       });
       await errorAlert.present();
     }
+  }
+
+  // ✨ Force reload playlists từ database (for testing)
+  async forceReloadPlaylists() {
+    console.log('Force reloading playlists...');
+    this.playlistsState.resetState();
+    await this.loadPlaylists();
   }
 
   onImageError(event: any): void {

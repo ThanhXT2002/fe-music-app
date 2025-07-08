@@ -528,4 +528,13 @@ export class DatabaseService {
   async getAudioBlob(songId: string): Promise<Blob | null> {
     return await this.indexedDB.getAudioFile(songId);
   }
+
+  /**
+   * Force clear playlists cache
+   */
+  clearPlaylistsCache(): void {
+    this.playlistsCache = null;
+    this.playlistsCacheTime = 0;
+    console.log('Playlists cache cleared');
+  }
 }
