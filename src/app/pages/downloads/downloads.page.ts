@@ -15,7 +15,8 @@ import {
   SongConverter,
 } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
-import { AlertController, ToastController } from '@ionic/angular/standalone';
+import { ToastService } from 'src/app/services/toast.service';
+import { AlertController } from '@ionic/angular/standalone';
 import { finalize, firstValueFrom, tap } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { SongItemComponent } from "../../components/song-item/song-item.component";
@@ -33,7 +34,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
   downloadService = inject(DownloadService);
   private clipboardService = inject(ClipboardService);
   private alertController = inject(AlertController);
-  private toastController = inject(ToastController);
+  private toastService = inject(ToastService);
   private platform = inject(Platform);
 
   searchQuery = signal('');
@@ -68,7 +69,11 @@ export class DownloadsPage implements OnInit, OnDestroy {
     // Subscribe to status notifications from service (ready/failed)
     this.downloadService.statusNotifications$.subscribe((notification: StatusNotification | null) => {
       if (notification) {
-        this.showToast(notification.message, notification.type === 'error' ? 'danger' : 'success');
+        if (notification.type === 'error') {
+          this.toastService.error(notification.message);
+        } else {
+          this.toastService.success(notification.message);
+        }
       }
     });
 
@@ -93,10 +98,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
           const finalUrl = validation.cleanUrl || result.content;
           this.searchQuery.set(finalUrl);
           await this.processYouTubeUrl(finalUrl);
-          await this.showToast(
-            'Đã tự động dán link YouTube từ clipboard!',
-            'success'
-          );
+          await this.toastService.success('Đã tự động dán link YouTube từ clipboard!');
         }
       }
       // Không hiển thị lỗi cho auto-paste để tránh làm phiền user
@@ -145,7 +147,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
         if (this.isDownloaded(songData.id)) {
           // Show song info nhưng không start polling
           this.showSongInfo(songData);
-          await this.showToast('Bài hát đã được tải về!', 'success');
+          await this.toastService.success('Bài hát đã được tải về!');
           return;
         }
 
@@ -161,15 +163,15 @@ export class DownloadsPage implements OnInit, OnDestroy {
         // Reload search history to show the new item
         await this.loadSearchHistory();
 
-        await this.showToast('Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.', 'success');
+        await this.toastService.success('Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.');
       } else {
         console.error('API returned error:', response.message);
-        await this.showToast(`Lỗi: ${response.message}`, 'danger');
+        await this.toastService.error(`Lỗi: ${response.message}`);
         this.searchResults.set([]);
       }
     } catch (error) {
       console.error('Error processing YouTube URL:', error);
-      await this.showToast(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`, 'danger');
+      await this.toastService.error(`Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`);
       this.searchResults.set([]);
     } finally {
       this.isSearching.set(false);
@@ -200,18 +202,18 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       // Step 1: Kiểm tra xem bài hát có ready không
       if (!this.downloadService.isSongReadyForDownload(songData.id)) {
-        await this.showToast('Bài hát chưa sẵn sàng để tải xuống!', 'warning');
+        await this.toastService.warning('Bài hát chưa sẵn sàng để tải xuống!');
         return;
       }
 
       // Step 2: Kiểm tra xem đã download chưa
       if (this.isDownloaded(songData.id)) {
-        await this.showToast('Bài hát đã được tải xuống!', 'warning');
+        await this.toastService.warning('Bài hát đã được tải xuống!');
         return;
       }
 
       // Step 3: Sử dụng downloadService để tạo download task với progress tracking
-      await this.showToast(`Đang tải "${songData.title}"...`, 'primary');
+      await this.toastService.info(`Đang tải "${songData.title}"...`);
 
       // Tạo download task bằng downloadService
       const downloadTaskId = await this.downloadService.downloadSong(songData);
@@ -221,7 +223,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
     } catch (error) {
       console.error('Download error:', error);
-      await this.showToast(`Lỗi khi tải bài hát: ${error instanceof Error ? error.message : 'Unknown error'}`, 'danger');
+      await this.toastService.error(`Lỗi khi tải bài hát: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -233,7 +235,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       // Kiểm tra xem đã download chưa
       if (this.isDownloaded(historyItem.songId)) {
-        await this.showToast('Bài hát đã được tải xuống!', 'warning');
+        await this.toastService.warning('Bài hát đã được tải xuống!');
         return;
       }
 
@@ -242,7 +244,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       if (!songStatus) {
         // Start status polling first
         this.downloadService.startStatusPolling(historyItem.songId);
-        await this.showToast('Đang kiểm tra trạng thái bài hát...', 'primary');
+        await this.toastService.info('Đang kiểm tra trạng thái bài hát...');
         return;
       }
 
@@ -262,12 +264,12 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
         await this.downloadSong(songData);
       } else {
-        await this.showToast(`Bài hát đang xử lý (${songStatus.progress}%)...`, 'warning');
+        await this.toastService.warning(`Bài hát đang xử lý (${songStatus.progress}%)...`);
       }
 
     } catch (error) {
       console.error('Download error:', error);
-      await this.showToast('Lỗi khi tải bài hát!', 'danger');
+      await this.toastService.error('Lỗi khi tải bài hát!');
     }
   }
 
@@ -312,7 +314,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
    * Show completion notification (one-time only)
    */
   private async showCompletedNotification(songTitle: string) {
-    await this.showToast(`Bài hát "${songTitle}" đã được tải xuống thành công!`, 'success');
+    await this.toastService.success(`Bài hát "${songTitle}" đã được tải xuống thành công!`);
   }
 
 
@@ -363,7 +365,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
     } catch (error) {
       console.error('❌ Error searching in history:', error);
-      await this.showToast('Lỗi khi tìm kiếm trong lịch sử.', 'danger');
+      await this.toastService.error('Lỗi khi tìm kiếm trong lịch sử.');
     } finally {
       this.isSearching.set(false);
     }
@@ -399,21 +401,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Hiển thị toast message
-   * @param message - Nội dung thông báo
-   * @param color - Màu sắc toast
-   */
-  private async showToast(message: string, color: string) {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color,
-      position: 'top',
-    });
-    await toast.present();
-  }
-
-  /**
    * Paste từ clipboard với logic thông minh
    */
   async onPaste(event?: Event) {
@@ -437,7 +424,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
           // Hiển thị thông báo thành công
           if (result.method === 'web') {
-            await this.showToast('Đã đọc clipboard thành công!', 'success');
+            await this.toastService.success('Đã đọc clipboard thành công!');
           }
         } else if (result.error) {
           if (result.error === 'PERMISSION_DENIED') {
@@ -445,10 +432,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
           } else if (result.error === 'NOT_SUPPORTED') {
             await this.showManualPasteInstructions();
           } else {
-            await this.showToast(
-              'Không thể đọc clipboard. Vui lòng paste thủ công.',
-              'warning'
-            );
+            await this.toastService.warning('Không thể đọc clipboard. Vui lòng paste thủ công.');
             this.focusSearchInput();
           }
           return;
@@ -461,13 +445,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
         // Nếu là YouTube URL, tự động xử lý
         if (this.downloadService.validateYoutubeUrl(clipboardText.trim())) {
-          await this.showToast('Đã dán link YouTube!', 'success');
+          await this.toastService.success('Đã dán link YouTube!');
         }
       } else {
-        await this.showToast(
-          'Clipboard trống hoặc không có nội dung hợp lệ',
-          'warning'
-        );
+        await this.toastService.warning('Clipboard trống hoặc không có nội dung hợp lệ');
       }
     } catch (error) {
       console.error('Paste failed:', error);
@@ -639,19 +620,19 @@ Hoặc paste thủ công:
         // Hiển thị thông báo thành công với suggestion
         const message =
           result.suggestion || 'Đã tự động dán và xử lý link YouTube!';
-        await this.showToast(message, 'success');
+        await this.toastService.success(message);
       } else if (result.needsManualPaste) {
         await this.showManualPasteInstructions();
       } else {
         // Hiển thị lỗi với suggestion từ service
         const errorMessage =
           result.suggestion || result.error || 'Không thể đọc clipboard';
-        await this.showToast(errorMessage, 'warning');
+        await this.toastService.warning(errorMessage);
         this.focusSearchInput();
       }
     } catch (error) {
       console.error('Smart paste failed:', error);
-      await this.showToast('Lỗi khi đọc clipboard', 'danger');
+      await this.toastService.error('Lỗi khi đọc clipboard');
       await this.showManualPasteInstructions();
     } finally {
       this.isClipboardLoading.set(false);
