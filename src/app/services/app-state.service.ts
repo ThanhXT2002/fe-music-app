@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { ListPageStateService } from './list-page-state.service';
-import { AlbumsPageStateService } from './albums-page-state.service';
+import { PlaylistsPageStateService } from './playlists-page-state.service';
 import { SearchPageStateService } from './search-page-state.service';
 import { DownloadService } from './download.service';
 
@@ -13,7 +13,7 @@ export class AppStateService {
 
   constructor(
     private listPageState: ListPageStateService,
-    private albumsPageState: AlbumsPageStateService,
+    private playlistsPageState: PlaylistsPageStateService,
     private searchPageState: SearchPageStateService,
     private downloadService: DownloadService
   ) {}
@@ -31,7 +31,7 @@ export class AppStateService {
   async refreshAllData() {
     // Reset and reload data for all pages
     this.listPageState.resetState();
-    this.albumsPageState.resetState();
+    this.playlistsPageState.resetState();
 
     // Don't reset search state and download state as they should persist
     // Comment below line if you want search results to persist between app refreshes
@@ -42,7 +42,7 @@ export class AppStateService {
   // Method to clear all user-specific data (for logout)
   async clearUserData() {
     this.listPageState.resetState();
-    this.albumsPageState.resetState();
+    this.playlistsPageState.resetState();
     this.searchPageState.resetState();
     // Downloads might persist even after logout, depending on business logic
     // this.downloadService.clearAll();
@@ -57,9 +57,9 @@ export class AppStateService {
         isDataLoaded: this.listPageState.isDataLoaded,
         songsCount: this.listPageState.allSongs.length
       },
-      albumsPage: {
-        isDataLoaded: this.albumsPageState.isDataLoaded,
-        albumsCount: this.albumsPageState.albums.length
+      playlistsPage: {
+        isDataLoaded: this.playlistsPageState.isDataLoaded,
+        playlistsCount: this.playlistsPageState.playlists.length
       },      searchPage: {
         hasQuery: !!this.searchPageState.searchQuery,
         hasResults: this.searchPageState.searchResults.length > 0,

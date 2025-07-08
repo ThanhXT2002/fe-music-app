@@ -26,9 +26,9 @@ export class NavbarBottomComponent {
       label: 'Danh sách',
     },
     {
-      link: '/tabs/albums',
-      icon: 'fa-compact-disc',
-      label: 'Album',
+      link: '/tabs/playlists',
+      icon: 'fa-wave-square',
+      label: 'Playlist',
     },
     {
       link: '/tabs/downloads',

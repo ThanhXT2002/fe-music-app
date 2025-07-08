@@ -17,13 +17,13 @@ export class SearchService {
   private async initializeSearch() {
     this.allSongs = await this.databaseService.getAllSongs();
     this.setupFuseSearch();
-  }  private setupFuseSearch() {
+  }  // Thiết lập Fuse search cho tìm kiếm nâng cao
+  private setupFuseSearch() {
     const options = {
       keys: [
         { name: 'title', weight: 0.4 },
-        { name: 'artist', weight: 0.3 },
-        { name: 'album', weight: 0.2 },
-        { name: 'genre', weight: 0.1 }
+        { name: 'artist', weight: 0.4 }, // Tăng trọng số cho artist vì đây là cơ sở của playlist
+        { name: 'keywords', weight: 0.2 }
       ],
       threshold: 0.3, // Lower threshold for more strict matching
       includeScore: true,
@@ -35,35 +35,37 @@ export class SearchService {
     this.songsFuse = new Fuse(this.allSongs, options);
   }
 
+  // Cập nhật chỉ mục tìm kiếm
   async updateSearchIndex() {
     this.allSongs = await this.databaseService.getAllSongs();
     this.setupFuseSearch();
   }
 
+  // Tìm kiếm tổng hợp
   searchAll(query: string): Promise<SearchResult> {
     return new Promise(async (resolve) => {
       if (!query.trim()) {
         resolve({
           songs: [],
-          albums: [],
+          albums: [], // Giữ lại cho tương thích ngược
           artists: [],
           playlists: []
         });
         return;
       }
 
-      // Search songs
+      // Tìm kiếm bài hát
       const songs = this.searchSongs(query);
 
-      // Group songs by album and artist for additional results
-      const albums = this.groupSongsByAlbum(songs);
+      // Nhóm bài hát theo artist playlists và artists
+      const artistPlaylists = this.groupSongsIntoArtistPlaylists(songs);
       const artists = this.groupSongsByArtist(songs);
 
       resolve({
         songs,
-        albums,
+        albums: artistPlaylists, // Tương thích ngược
         artists,
-        playlists: [] // Playlists search can be implemented later
+        playlists: [] // Playlists search có thể implement sau
       });
     });
   }
@@ -83,11 +85,17 @@ export class SearchService {
     );
   }
 
-  searchByAlbum(albumName: string): Song[] {
-    // Since album field is removed, search by artist instead
+  // Tìm kiếm theo playlist (dựa trên tên artist)
+  searchByPlaylist(playlistName: string): Song[] {
+    // Tìm kiếm trong artist playlists
     return this.allSongs.filter(song =>
-      song.artist?.toLowerCase().includes(albumName.toLowerCase())
+      song.artist?.toLowerCase().includes(playlistName.toLowerCase())
     );
+  }
+
+  /** @deprecated Sử dụng searchByPlaylist thay thế */
+  searchByAlbum(albumName: string): Song[] {
+    return this.searchByPlaylist(albumName);
   }
 
   searchByGenre(genre: string): Song[] {
@@ -131,31 +139,39 @@ export class SearchService {
     return similar.slice(0, limit);
   }
 
-  private groupSongsByAlbum(songs: Song[]): Album[] {
-    const albumMap = new Map<string, Album>();
+  // Nhóm bài hát thành artist playlists
+  private groupSongsIntoArtistPlaylists(songs: Song[]): Album[] {
+    const playlistMap = new Map<string, Album>();
 
     songs.forEach(song => {
-      // Since album field is removed, group by artist as default album
-      const albumKey = song.artist;
+      // Nhóm theo artist để tạo artist playlist
+      const playlistKey = song.artist;
 
-      if (!albumMap.has(albumKey)) {
-        albumMap.set(albumKey, {
-          id: `album_${albumKey}`,
-          name: `Songs by ${song.artist}`,
+      if (!playlistMap.has(playlistKey)) {
+        playlistMap.set(playlistKey, {
+          id: `playlist_${playlistKey}`,
+          name: song.artist, // Artist name becomes playlist name
           artist: song.artist,
           thumbnail: song.thumbnail_url,
           songs: [],
           genre: 'Music', // Default genre
-          totalDuration: 0
+          totalDuration: 0,
+          isUserCreated: false, // Auto-generated from artist
+          isEditable: true
         });
       }
 
-      const album = albumMap.get(albumKey)!;
-      album.songs.push(song);
-      album.totalDuration += song.duration;
+      const playlist = playlistMap.get(playlistKey)!;
+      playlist.songs.push(song);
+      playlist.totalDuration += song.duration;
     });
 
-    return Array.from(albumMap.values());
+    return Array.from(playlistMap.values());
+  }
+
+  /** @deprecated Sử dụng groupSongsIntoArtistPlaylists thay thế */
+  private groupSongsByAlbum(songs: Song[]): Album[] {
+    return this.groupSongsIntoArtistPlaylists(songs);
   }
 
   private groupSongsByArtist(songs: Song[]): Artist[] {

@@ -11,39 +11,36 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Album, Song } from '../../interfaces/song.interface';
 import { AudioPlayerService } from '../../services/audio-player.service';
-import { AlbumsPageStateService } from '../../services/albums-page-state.service';
-import { AlbumService } from '../../services/album.service'; // ✨ New import
+import { PlaylistsPageStateService } from 'src/app/services/playlists-page-state.service';
+import { PlaylistService } from '../../services/playlist.service'; // ✨ Updated import
 import { Subject, takeUntil } from 'rxjs';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
 import { FormsModule } from '@angular/forms';
-import { routeAnimation } from 'src/app/shared/route-animation';
 import { MediaCardComponent } from "../../components/media-card/media-card.component";
 
-
 @Component({
-  selector: 'app-albums',
-  templateUrl: './albums.page.html',
-  styleUrls: ['./albums.page.scss'],
+  selector: 'app-playlists',
+  templateUrl: './playlists.page.html',
+  styleUrls: ['./playlists.page.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, MediaCardComponent],
-  animations: [routeAnimation],
+  imports: [CommonModule, RouterLink, FormsModule, MediaCardComponent]
 })
-export class AlbumsPage implements OnInit, OnDestroy {
+export class PlaylistsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
-  @ViewChild('albumNameInput') albumNameInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('playlistNameInput') playlistNameInput!: ElementRef<HTMLInputElement>;
 
-  // Track active album
-  activeAlbum = signal<string | null>(null);
+  // Track active playlist
+  activePlaylist = signal<string | null>(null);
 
   currentSong: Song | null = null;
 
   constructor(
     private audioPlayerService: AudioPlayerService,
-    public albumsState: AlbumsPageStateService,
+    public playlistsState: PlaylistsPageStateService,
     private refreshService: RefreshService,
-    private albumService: AlbumService, // ✨ Inject AlbumService
+    private playlistService: PlaylistService, // ✨ Updated to use PlaylistService
     private alertController: AlertController // ✨ Inject AlertController
   ) {
     // Setup effect to watch current song changes
@@ -53,68 +50,68 @@ export class AlbumsPage implements OnInit, OnDestroy {
   async ngOnInit() {
     // Restore scroll position if available
     setTimeout(() => {
-      if (this.scrollContainer && this.albumsState.scrollPosition > 0) {
+      if (this.scrollContainer && this.playlistsState.scrollPosition > 0) {
         this.scrollContainer.nativeElement.scrollTop =
-          this.albumsState.scrollPosition;
+          this.playlistsState.scrollPosition;
       }
     }, 100);
 
-    // Load albums if not already loaded
-    if (!this.albumsState.isDataLoaded) {
-      await this.loadAlbums();
+    // Load playlists if not already loaded
+    if (!this.playlistsState.isDataLoaded) {
+      await this.loadPlaylists();
     }
 
     // Lắng nghe tín hiệu refresh
     this.refreshService.refresh$
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        this.loadAlbums();
+        this.loadPlaylists();
       });
   }
 
   ngOnDestroy() {
     // Save scroll position when leaving the page
     if (this.scrollContainer) {
-      this.albumsState.setScrollPosition(
+      this.playlistsState.setScrollPosition(
         this.scrollContainer.nativeElement.scrollTop
       );
     }
     this.destroy$.next();
     this.destroy$.complete();
   }
-  async loadAlbums() {
+  async loadPlaylists() {
     try {
-      // ✨ Use AlbumService instead of manual grouping
-      const albums = await this.albumService.getAllAlbums();
-      this.albumsState.setAlbums(albums);
+      // ✨ Use PlaylistService instead of manual grouping
+      const playlists = await this.playlistService.getAllArtistPlaylists();
+      this.playlistsState.setPlaylists(playlists);
     } catch (error) {
-      console.error('Error loading albums:', error);
+      console.error('Error loading playlists:', error);
     }
   }
-  async playAlbum(album: Album, event: Event) {
+  async playPlaylist(playlist: Album, event: Event) {
     event.stopPropagation();
 
-    if (album.songs.length > 0) {
-      await this.audioPlayerService.setPlaylist(album.songs, 0);
+    if (playlist.songs.length > 0) {
+      await this.audioPlayerService.setPlaylist(playlist.songs, 0);
     }
   }
 
-  openAlbum(album: Album) {
-    // TODO: Navigate to album detail page
-    console.log('Open album:', album.name);
+  openPlaylist(playlist: Album) {
+    // TODO: Navigate to playlist detail page
+    console.log('Open playlist:', playlist.name);
   }
 
   // Wrapper methods for MediaCardComponent events
-  async onAlbumClick(item: any) {
-    const album = item as Album;
-    // Play album directly when clicked
-    if (album.songs.length > 0) {
-      await this.audioPlayerService.setPlaylist(album.songs, 0);
+  async onPlaylistClick(item: any) {
+    const playlist = item as Album;
+    // Play playlist directly when clicked
+    if (playlist.songs.length > 0) {
+      await this.audioPlayerService.setPlaylist(playlist.songs, 0);
     }
   }
 
-  onAlbumMenuClick(event: {item: any, event: Event}) {
-    this.showAlbumContextMenu(event.item as Album, event.event);
+  onPlaylistMenuClick(event: {item: any, event: Event}) {
+    this.showPlaylistContextMenu(event.item as Album, event.event);
   }
 
   formatDuration(seconds: number): string {
@@ -128,19 +125,19 @@ export class AlbumsPage implements OnInit, OnDestroy {
     }
   }
 
-  trackByAlbumId(index: number, album: Album): string {
-    return album.id;
+  trackByPlaylistId(index: number, playlist: Album): string {
+    return playlist.id;
   }
-  // ✨ Show create album modal
-  async showCreateAlbumModal() {
+  // ✨ Show create playlist modal
+  async showCreatePlaylistModal() {
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: 'Tạo Album Mới',
+      header: 'Tạo Playlist Mới',
       inputs: [
         {
           name: 'name',
           type: 'text',
-          placeholder: 'Album name',
+          placeholder: 'Playlist name',
           attributes: {
             required: true,
           },
@@ -155,7 +152,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
           text: 'Lưu',
           handler: async (data) => {
             if (data.name) {
-              await this.createNewAlbum(data.name, data.description);
+              await this.createNewPlaylist(data.name, data.description);
               return true;
             }
             return false;
@@ -166,72 +163,72 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
     await alert.present();
   }
-  // ✨ Create new album (artist-based)
-  private async createNewAlbum(name: string, description?: string) {
+  // ✨ Create new playlist (artist-based)
+  private async createNewPlaylist(name: string, description?: string) {
     try {
-      const newAlbum = await this.albumService.createAlbum({
-        name: name, // Artist name becomes album name
+      const newPlaylist = await this.playlistService.createArtistPlaylist({
+        name: name, // Artist name becomes playlist name
         description: description,
       });
 
-      if (newAlbum) {
-        // Refresh albums list
-        await this.loadAlbums();
-        console.log('Album created successfully:', newAlbum.name);
+      if (newPlaylist) {
+        // Refresh playlists list
+        await this.loadPlaylists();
+        console.log('Playlist created successfully:', newPlaylist.name);
 
         // Show success message
         const successAlert = await this.alertController.create({
           mode: 'ios',
           header: 'Thành Công',
-          message: `Album "${name}" đã được tạo!`,
+          message: `Playlist "${name}" đã được tạo!`,
           buttons: ['OK'],
         });
         await successAlert.present();
       } else {
-        throw new Error('Failed to create album');
+        throw new Error('Failed to create playlist');
       }
     } catch (error) {
-      console.error('Error creating album:', error);
+      console.error('Error creating playlist:', error);
 
       // Show error message
       const errorAlert = await this.alertController.create({
         mode: 'ios',
         header: 'Lỗi',
-        message: 'Không thể tạo album. Vui lòng thử lại.',
+        message: 'Không thể tạo playlist. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();
     }
   }
 
-  // ✨ Show album context menu for user-created albums
-  async showAlbumContextMenu(album: Album, event: Event) {
+  // ✨ Show playlist context menu for user-created playlists
+  async showPlaylistContextMenu(playlist: Album, event: Event) {
     event.stopPropagation();
 
-    if (!album.isUserCreated) {
-      return; // Only for user-created albums
+    if (!playlist.isUserCreated) {
+      return; // Only for user-created playlists
     }
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: album.name,
+      header: playlist.name,
       buttons: [
         {
-          text: '✏️ Chỉnh sửa Album',
+          text: '✏️ Chỉnh sửa Playlist',
           handler: () => {
-            this.editAlbum(album);
+            this.editPlaylist(playlist);
           },
         },
         {
-          text: '➕ Thêm nhạc vào Album',
+          text: '➕ Thêm nhạc vào Playlist',
           handler: () => {
-            this.showAddSongsToAlbum(album);
+            this.showAddSongsToPlaylist(playlist);
           },
         },
         {
-          text: '🗑️ Xóa Album',
+          text: '🗑️ Xóa Playlist',
           role: 'destructive',
           handler: () => {
-            this.confirmDeleteAlbum(album);
+            this.confirmDeletePlaylist(playlist);
           },
         },
         {
@@ -242,17 +239,17 @@ export class AlbumsPage implements OnInit, OnDestroy {
     });
 
     await alert.present();
-  } // ✨ Edit album information (artist-based)
-  async editAlbum(album: Album) {
+  }  // ✨ Edit playlist information (artist-based)
+  async editPlaylist(playlist: Album) {
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: 'Chỉnh sửa Album',
+      header: 'Chỉnh sửa Playlist',
       inputs: [
         {
           name: 'name',
           type: 'text',
-          placeholder: 'Tên abum',
-          value: album.name, // Album name is artist name
+          placeholder: 'Tên playlist',
+          value: playlist.name, // Playlist name is artist name
           attributes: {
             required: true,
           },
@@ -260,8 +257,8 @@ export class AlbumsPage implements OnInit, OnDestroy {
         {
           name: 'description',
           type: 'textarea',
-          placeholder: 'Album description (optional)',
-          value: album.description || '',
+          placeholder: 'Playlist description (optional)',
+          value: playlist.description || '',
         },
       ],
       buttons: [
@@ -272,10 +269,10 @@ export class AlbumsPage implements OnInit, OnDestroy {
         {
           text: 'Lưu',
           handler: async (data) => {
-            if (data.artistName) {
-              await this.updateAlbum(
-                album.id,
-                data.artistName,
+            if (data.name) {
+              await this.updatePlaylist(
+                playlist.id,
+                data.name,
                 data.description
               );
               return true;
@@ -288,65 +285,65 @@ export class AlbumsPage implements OnInit, OnDestroy {
 
     await alert.present();
   }
-  // ✨ Update album (artist-based)
-  private async updateAlbum(
-    albumId: string,
-    artistName: string,
+  // ✨ Update playlist (artist-based)
+  private async updatePlaylist(
+    playlistId: string,
+    playlistName: string,
     description?: string
   ) {
     try {
-      const success = await this.albumService.updateAlbum(albumId, {
-        name: artistName, // Artist name becomes album name
+      const success = await this.playlistService.updateArtistPlaylist(playlistId, {
+        name: playlistName, // Artist name becomes playlist name
         description: description,
       });
 
       if (success) {
-        await this.loadAlbums();
-        console.log('Album updated successfully');
+        await this.loadPlaylists();
+        console.log('Playlist updated successfully');
 
         const successAlert = await this.alertController.create({
           mode: 'ios',
           header: 'Thành Công',
-          message: 'Album đã được cập nhật thành công!',
+          message: 'Playlist đã được cập nhật thành công!',
           buttons: ['OK'],
         });
         await successAlert.present();
       } else {
-        throw new Error('Failed to update album');
+        throw new Error('Failed to update playlist');
       }
     } catch (error) {
-      console.error('Error updating album:', error);
+      console.error('Error updating playlist:', error);
 
       const errorAlert = await this.alertController.create({
         mode: 'ios',
         header: 'Lỗi',
-        message: 'Không thể cập nhật album. Vui lòng thử lại.',
+        message: 'Không thể cập nhật playlist. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();
     }
   }
 
-  // ✨ Show add songs to album
-  async showAddSongsToAlbum(album: Album) {
+  // ✨ Show add songs to playlist
+  async showAddSongsToPlaylist(playlist: Album) {
     // TODO: Implement add songs interface
     // For now, show a placeholder message
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: 'Thêm Nhạc vào Album',
+      header: 'Thêm Nhạc vào Playlist',
       message:
-        'Chức năng này sẽ sớm được cập nhật. Hiện tại bạn có thể thêm bài hát vào album thông qua trang chi tiết album.',
+        'Chức năng này sẽ sớm được cập nhật. Hiện tại bạn có thể thêm bài hát vào playlist thông qua trang chi tiết playlist.',
       buttons: ['OK'],
     });
     await alert.present();
   }
 
-  // ✨ Confirm delete album
-  async confirmDeleteAlbum(album: Album) {
+  // ✨ Confirm delete playlist
+  async confirmDeletePlaylist(playlist: Album) {
     const alert = await this.alertController.create({
       mode: 'ios',
-      header: 'Xóa Album',
-      message: `Bạn có chắc chắn muốn xóa album "${album.name}"?`,
+      header: 'Xóa Playlist',
+      message: `Bạn có chắc chắn muốn xóa playlist "${playlist.name}"?`,
       buttons: [
         {
           text: 'Hủy',
@@ -356,7 +353,7 @@ export class AlbumsPage implements OnInit, OnDestroy {
           text: 'Xóa',
           role: 'destructive',
           handler: async () => {
-            await this.deleteAlbum(album.id);
+            await this.deletePlaylist(playlist.id);
           },
         },
       ],
@@ -365,32 +362,32 @@ export class AlbumsPage implements OnInit, OnDestroy {
     await alert.present();
   }
 
-  // ✨ Delete album
-  private async deleteAlbum(albumId: string) {
+  // ✨ Delete playlist
+  private async deletePlaylist(playlistId: string) {
     try {
-      const success = await this.albumService.deleteAlbum(albumId);
+      const success = await this.playlistService.deleteArtistPlaylist(playlistId);
 
       if (success) {
-        await this.loadAlbums();
-        console.log('Album deleted successfully');
+        await this.loadPlaylists();
+        console.log('Playlist deleted successfully');
 
         const successAlert = await this.alertController.create({
           mode: 'ios',
           header: 'Thành Công',
-          message: 'Album đã được xóa thành công!',
+          message: 'Playlist đã được xóa thành công!',
           buttons: ['OK'],
         });
         await successAlert.present();
       } else {
-        throw new Error('Failed to delete album');
+        throw new Error('Failed to delete playlist');
       }
     } catch (error) {
-      console.error('Error deleting album:', error);
+      console.error('Error deleting playlist:', error);
 
       const errorAlert = await this.alertController.create({
         mode: 'ios',
         header: 'Lỗi',
-        message: 'Không thể xóa album. Vui lòng thử lại.',
+        message: 'Không thể xóa playlist. Vui lòng thử lại.',
         buttons: ['OK'],
       });
       await errorAlert.present();
@@ -406,20 +403,20 @@ export class AlbumsPage implements OnInit, OnDestroy {
     effect(() => {
       this.currentSong = this.audioPlayerService.currentSong();
       if (this.currentSong) {
-        // Find which album contains the current song
-        const currentAlbum = this.albumsState.albums.find(album =>
-          album.songs.some(song => song.id === this.currentSong?.id)
+        // Find which playlist contains the current song
+        const currentPlaylist = this.playlistsState.playlists.find((playlist: Album) =>
+          playlist.songs.some((song: Song) => song.id === this.currentSong?.id)
         );
-        this.activeAlbum.set(currentAlbum ? currentAlbum.name : null);
+        this.activePlaylist.set(currentPlaylist ? currentPlaylist.name : null);
       } else {
-        this.activeAlbum.set(null);
+        this.activePlaylist.set(null);
       }
     });
   }
 
-  // ✨ Check if album is active
-  isAlbumActive(album: Album): boolean {
-    const active = this.activeAlbum();
-    return active === album.name;
+  // ✨ Check if playlist is active
+  isPlaylistActive(playlist: Album): boolean {
+    const active = this.activePlaylist();
+    return active === playlist.name;
   }
 }
