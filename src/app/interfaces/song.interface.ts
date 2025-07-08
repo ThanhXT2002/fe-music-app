@@ -18,8 +18,8 @@ export interface Song {
 
 export interface Album {
   id: string;
-  name: string; // Will be artist name for auto-generated albums
-  artist: string; // Same as name for consistency
+  name: string; // Tên playlist (với auto-generated sẽ là tên artist)
+  artist: string; // Giống với name để nhất quán
   thumbnail?: string;
   songs: Song[];
   year?: number;
@@ -37,7 +37,7 @@ export interface Artist {
   id: string;
   name: string;
   thumbnail?: string;
-  albums: Album[];
+  playlists: Album[]; // Đổi từ albums sang playlists để nhất quán
   totalSongs: number;
   bio?: string;
 }
@@ -79,9 +79,8 @@ export interface UserPreferences {
 
 export interface SearchResult {
   songs: Song[];
-  albums: Album[];
   artists: Artist[];
-  playlists: Playlist[];
+  playlists: Album[]; // Artist playlists được hiển thị dưới dạng playlists
 }
 
 export interface YoutubeSearchResult {

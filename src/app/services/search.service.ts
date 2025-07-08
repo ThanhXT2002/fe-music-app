@@ -47,7 +47,6 @@ export class SearchService {
       if (!query.trim()) {
         resolve({
           songs: [],
-          albums: [], // Giữ lại cho tương thích ngược
           artists: [],
           playlists: []
         });
@@ -63,9 +62,8 @@ export class SearchService {
 
       resolve({
         songs,
-        albums: artistPlaylists, // Tương thích ngược
         artists,
-        playlists: [] // Playlists search có thể implement sau
+        playlists: artistPlaylists // Artist playlists được hiển thị dưới dạng playlists
       });
     });
   }
@@ -183,7 +181,7 @@ export class SearchService {
           id: `artist_${song.artist}`,
           name: song.artist,
           thumbnail: song.thumbnail_url,
-          albums: [],
+          playlists: [],
           totalSongs: 0,
           bio: undefined
         });

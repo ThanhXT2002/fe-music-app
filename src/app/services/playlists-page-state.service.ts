@@ -32,12 +32,6 @@ export class PlaylistsPageStateService {
     return this.state().scrollPosition;
   }
 
-  // Getters tương thích ngược (deprecated)
-  /** @deprecated Sử dụng playlists thay thế */
-  get albums() {
-    return this.state().playlists;
-  }
-
   // Setters để cập nhật state
   setPlaylists(playlists: Album[]) {
     this.state.update(current => ({
@@ -46,11 +40,6 @@ export class PlaylistsPageStateService {
       isDataLoaded: true
     }));
     console.log('State updated with playlists:', playlists.length);
-  }
-
-  /** @deprecated Sử dụng setPlaylists thay thế */
-  setAlbums(albums: Album[]) {
-    this.setPlaylists(albums);
   }
 
   setScrollPosition(position: number) {
@@ -78,10 +67,5 @@ export class PlaylistsPageStateService {
       )
     }));
     console.log('Playlist updated in state:', playlistId, updates);
-  }
-
-  /** @deprecated Sử dụng updatePlaylist thay thế */
-  updateAlbum(albumId: string, updates: Partial<Album>) {
-    this.updatePlaylist(albumId, updates);
   }
 }

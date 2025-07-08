@@ -10,8 +10,8 @@ import { Song, Album } from '../interfaces/song.interface';
 import { DatabaseService } from './database.service';
 
 /**
- * Service quản lý playlist operations và album operations
- * Xử lý các thao tác CRUD cho playlists và albums
+ * Service quản lý playlist operations
+ * Xử lý các thao tác CRUD cho playlists
  */
 @Injectable({
   providedIn: 'root'
@@ -382,7 +382,7 @@ export class PlaylistService {
   }
 
   // ============================
-  // CÁC PHƯƠNG THỨC ARTIST PLAYLIST (trước đây gọi là album methods)
+  // CÁC PHƯƠNG THỨC ARTIST PLAYLIST
   // ============================
 
   /**
@@ -426,8 +426,8 @@ export class PlaylistService {
       // Lấy tất cả playlists với loại 'artist playlist'
       const playlists = await this.getAllPlaylists();
       const artistPlaylistPlaylists = playlists.filter(p =>
-        p.description?.startsWith('__ALBUM__') || // Marker đặc biệt cho artist-playlists
-        p.name.includes('[Album]') // Cách nhận dạng thay thế
+        p.description?.startsWith('__PLAYLIST__') || // Marker đặc biệt cho artist-playlists
+        p.name.includes('[Playlist]') // Cách nhận dạng thay thế
       );
 
       return artistPlaylistPlaylists.map(playlist => this.convertPlaylistToArtistPlaylist(playlist));
@@ -449,7 +449,7 @@ export class PlaylistService {
     try {
       const playlist = await this.createPlaylist({
         name: playlistData.name, // Sử dụng tên artist làm tên playlist
-        description: `__ALBUM__${playlistData.name}__${playlistData.description || ''}`,
+        description: `__PLAYLIST__${playlistData.name}__${playlistData.description || ''}`,
         thumbnail: playlistData.thumbnail,
         type: 'user'
       });
@@ -485,15 +485,15 @@ export class PlaylistService {
         return false;
       }
 
-      // Chỉ cho phép cập nhật user-created playlists (có __ALBUM__ marker)
-      if (!playlist.description?.startsWith('__ALBUM__')) {
+      // Chỉ cho phép cập nhật user-created playlists (có __PLAYLIST__ marker)
+      if (!playlist.description?.startsWith('__PLAYLIST__')) {
         console.error('Cannot update non-artist playlist');
         return false;
       }
 
       const playlistUpdates: Partial<Pick<Playlist, 'name' | 'description' | 'thumbnail'>> = {
         name: updates.name, // Tên artist trở thành tên playlist
-        description: updates.description ? `__ALBUM__${updates.name || playlist.name}__${updates.description}` : playlist.description,
+        description: updates.description ? `__PLAYLIST__${updates.name || playlist.name}__${updates.description}` : playlist.description,
         thumbnail: updates.thumbnail
       };
 
@@ -567,7 +567,7 @@ export class PlaylistService {
     try {
       // Thử tìm trong user-created trước
       const playlist = await this.getPlaylistById(playlistId);
-      if (playlist && playlist.description?.startsWith('__ALBUM__')) {
+      if (playlist && playlist.description?.startsWith('__PLAYLIST__')) {
         return this.convertPlaylistToArtistPlaylist(playlist);
       }
 
@@ -621,7 +621,7 @@ export class PlaylistService {
    * Helper: Chuyển đổi Playlist thành Artist Playlist (dựa trên artist)
    */
   private convertPlaylistToArtistPlaylist(playlist: Playlist): Album {
-    // Parse artist từ description: __ALBUM__ARTIST__DESCRIPTION
+    // Parse artist từ description: __PLAYLIST__ARTIST__DESCRIPTION
     const parts = playlist.description?.split('__') || [];
     const artistName = parts[2] || playlist.name || 'Unknown Artist';
     const description = parts.slice(3).join('__') || '';
@@ -673,51 +673,6 @@ export class PlaylistService {
   // ============================
   // CÁC PHƯƠNG THỨC TƯƠNG THÍCH NGƯỢC
   // ============================
-
-  /**
-   * Phương thức tương thích ngược cho getAllAlbums
-   * @deprecated Sử dụng getAllArtistPlaylists thay thế
-   */
-  async getAllAlbums(): Promise<Album[]> {
-    return this.getAllArtistPlaylists();
-  }
-
-  /**
-   * Phương thức tương thích ngược cho createAlbum
-   * @deprecated Sử dụng createArtistPlaylist thay thế
-   */
-  async createAlbum(albumData: {
-    name: string;
-    description?: string;
-    thumbnail?: string;
-    songs?: Song[];
-  }): Promise<Album | null> {
-    return this.createArtistPlaylist(albumData);
-  }
-
-  /**
-   * Phương thức tương thích ngược cho updateAlbum
-   * @deprecated Sử dụng updateArtistPlaylist thay thế
-   */
-  async updateAlbum(albumId: string, updates: Partial<Album>): Promise<boolean> {
-    return this.updateArtistPlaylist(albumId, updates);
-  }
-
-  /**
-   * Phương thức tương thích ngược cho deleteAlbum
-   * @deprecated Sử dụng deleteArtistPlaylist thay thế
-   */
-  async deleteAlbum(albumId: string): Promise<boolean> {
-    return this.deleteArtistPlaylist(albumId);
-  }
-
-  /**
-   * Backward compatible method for getAlbumById
-   * @deprecated Use getArtistPlaylistById instead
-   */
-  async getAlbumById(albumId: string): Promise<Album | null> {
-    return this.getArtistPlaylistById(albumId);
-  }
 
   /**
    * Generate unique playlist ID
