@@ -52,19 +52,16 @@ export class DatabaseService {
   async initializeDatabase() {
     // Tránh duplicate initialization
     if (this.isInitializing || this.isDbReady) {
-      console.log('🔄 Database already initializing or ready, skipping...');
       return;
     }
 
     this.isInitializing = true;
 
     try {
-      console.log('🔄 DatabaseService: Starting IndexedDB initialization...'); // Initialize IndexedDB for all platforms
       let success = await this.indexedDB.initDB();
 
       // If initialization fails, try again with a small delay
       if (!success) {
-        console.log('⚠️ Initial database initialization failed, retrying...');
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
         success = await this.indexedDB.initDB();
       }
@@ -72,10 +69,7 @@ export class DatabaseService {
         this.isDbReady = true;
 
         // Simple data check
-        const songs = await this.indexedDB.getAll('songs');
-        if (songs.length === 0) {
-          console.log('ℹ️ Empty database - no songs found');
-        }
+        await this.indexedDB.getAll('songs');
 
         // Initialize system playlists (will be handled by PlaylistManagerService)
         setTimeout(() => {
@@ -98,10 +92,7 @@ export class DatabaseService {
    * Initialize system playlists (will be implemented by PlaylistManagerService)
    */
   private async initializeSystemPlaylists(): Promise<void> {
-    // This will be called by PlaylistManagerService
-    console.log(
-      '🎵 System playlists initialization deferred to PlaylistManagerService'
-    );
+
   }
 
   /**
@@ -259,12 +250,8 @@ export class DatabaseService {
     try {
       // Always clear cache to ensure fresh data
       this.playlistsCache = null;
-      console.log('[DatabaseService] Getting fresh playlists from IndexedDB');
 
       const playlists = await this.indexedDB.getAll('playlists');
-      console.log('[DatabaseService] Retrieved playlists:', playlists.length, playlists.map(p => ({ id: p.id, name: p.name })));
-
-      // Don't cache the results to avoid stale data
       return playlists;
     } catch (error) {
       console.error('Error getting all playlists:', error);
@@ -275,13 +262,9 @@ export class DatabaseService {
   async updatePlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
 
-    console.log('[DatabaseService] Updating playlist:', { id: playlist.id, name: playlist.name });
     const success = await this.indexedDB.put('playlists', playlist);
     if (success) {
       this.playlistsCache = null; // Clear cache
-      console.log('[DatabaseService] Playlist updated successfully and cache cleared');
-    } else {
-      console.error('[DatabaseService] Failed to update playlist');
     }
     return success;
   }
@@ -337,22 +320,16 @@ export class DatabaseService {
   // Utility methods
   async clearAllData(): Promise<boolean> {
     if (!this.isDbReady) return false;
-
     try {
-      console.log('🗑️ Clearing all IndexedDB data...');
-
       // Clear cache first
       this.playlistsCache = null;
       this.playlistsCacheTime = 0;
       this.songsCache = null;
       this.songsCacheTime = 0;
-
       // Clear all tables
       await this.indexedDB.clear('songs');
       await this.indexedDB.clear('playlists');
       await this.indexedDB.clear('search_history');
-
-      console.log('✅ All IndexedDB data cleared');
       return true;
     } catch (error) {
       console.error('❌ Error clearing IndexedDB data:', error);
@@ -375,52 +352,7 @@ export class DatabaseService {
     };
   }
 
-  // DEBUG METHODS - Remove in production
-  async debugAddTestSong(): Promise<boolean> {
-    console.log('🧪 Adding debug test song...');
-    const testSong: Song = {
-      id: 'debug-test-' + Date.now(),
-      title: 'Debug Test Song',
-      artist: 'Debug Artist',
-      duration: 180,
-      duration_formatted: '03:00',
-      audio_url: 'https://example.com/debug-test.mp3', // Use a dummy URL
-      thumbnail_url: 'https://example.com/debug-test.jpg',
-      keywords: ['debug', 'test'],
-      addedDate: new Date(),
-      isFavorite: false,
-    };
 
-    const success = await this.addSong(testSong);
-    if (success) {
-      console.log('✅ Debug test song added successfully');
-      // Test song added successfully
-    } else {
-      console.error('❌ Failed to add debug test song');
-    }
-
-    return success;
-  }
-
-  async debugCheckDatabase(): Promise<void> {
-    console.log('🔍 Database status check...');
-    console.log('Database ready:', this.isDbReady);
-    console.log('IndexedDB ready:', this.indexedDB.isReady());
-
-    const songs = await this.getAllSongs();
-    console.log(`📊 Total songs: ${songs.length}`);
-
-    const downloadedSongs = songs.filter((s) => SongConverter.isDownloaded(s));
-    console.log(`💾 Downloaded songs: ${downloadedSongs.length}`);
-
-    if (songs.length > 0) {
-      console.log('📝 Sample songs:', songs.slice(0, 3));
-    }
-
-    // Test IndexedDB directly
-    const allFromIndexedDB = await this.indexedDB.getAll('songs');
-    console.log(`📊 Songs from IndexedDB: ${allFromIndexedDB.length}`);
-  }
 
   async debugClearTestData(): Promise<void> {
     console.log('🗑️ Clearing test data...');
@@ -493,7 +425,6 @@ export class DatabaseService {
 
   async closeDatabase(): Promise<void> {
     // IndexedDB doesn't need explicit close
-    console.log('🔄 IndexedDB cleanup completed');
   }
 
   /**
@@ -504,17 +435,9 @@ export class DatabaseService {
    */
   async saveSongAudioBlob(songId: string, audioBlob: Blob): Promise<boolean> {
     try {
-      console.log('💾 Saving audio blob for song:', songId);
-
       const audioSaved = await this.indexedDB.saveAudioFile(songId, audioBlob, audioBlob.type || 'audio/mpeg');
 
-      if (audioSaved) {
-        console.log('✅ Audio blob saved successfully for song:', songId);
-        return true;
-      } else {
-        console.error('❌ Failed to save audio blob for song:', songId);
-        return false;
-      }
+      return audioSaved;
 
     } catch (error) {
       console.error('❌ Error saving audio blob:', error);
@@ -537,6 +460,5 @@ export class DatabaseService {
   clearPlaylistsCache(): void {
     this.playlistsCache = null;
     this.playlistsCacheTime = 0;
-    console.log('Playlists cache cleared');
   }
 }

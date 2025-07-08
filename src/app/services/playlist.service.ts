@@ -104,7 +104,6 @@ export class PlaylistService {
       // Kiểm tra xem bài hát đã có trong playlist chưa
       const existingSong = playlist.songs.find(s => s.id === songId);
       if (existingSong) {
-        console.log('Song already exists in playlist');
         return false;
       }
 
@@ -164,7 +163,6 @@ export class PlaylistService {
       playlist.songs = playlist.songs.filter(song => song.id !== songId);
 
       if (playlist.songs.length === initialLength) {
-        console.log('Song not found in playlist');
         return false;
       }
 
@@ -178,25 +176,19 @@ export class PlaylistService {
 
   /**
    * Cập nhật thông tin playlist
-   */
-  async updatePlaylistInfo(
+   */  async updatePlaylistInfo(
     playlistId: string,
     updates: Partial<Pick<Playlist, 'name' | 'description' | 'thumbnail'>>
   ): Promise<boolean> {
     try {
-      console.log('[PlaylistService] Starting updatePlaylistInfo:', { playlistId, updates });
-
       const playlist = await this.getPlaylistById(playlistId);
       if (!playlist) {
         console.error('[PlaylistService] Playlist not found:', playlistId);
         return false;
       }
 
-      console.log('[PlaylistService] Current playlist before update:', { id: playlist.id, name: playlist.name });
-
       // Cập nhật thông tin
       if (updates.name !== undefined) {
-        console.log('[PlaylistService] Updating name from', playlist.name, 'to', updates.name);
         playlist.name = updates.name;
       }
       if (updates.description !== undefined) playlist.description = updates.description;
@@ -204,10 +196,7 @@ export class PlaylistService {
 
       playlist.updatedDate = new Date();
 
-      console.log('[PlaylistService] Playlist after updates:', { id: playlist.id, name: playlist.name });
-
       const success = await this.databaseService.updatePlaylist(playlist);
-      console.log('[PlaylistService] Update result:', success);
 
       return success;
     } catch (error) {
@@ -401,7 +390,9 @@ export class PlaylistService {
    */
   async clearAllCache(): Promise<void> {
     this.databaseService.clearPlaylistsCache();
-    console.log('All playlist cache cleared');
+
+    // Tự động migrate dữ liệu cũ nếu cần
+    await this.migrateOldArtistPlaylists();
   }
 
   /**
@@ -409,6 +400,36 @@ export class PlaylistService {
    */
   async clearAllDatabase(): Promise<boolean> {
     return await this.databaseService.clearAllData();
+  }
+
+  /**
+   * ✨ Migrate dữ liệu cũ từ marker description sang field mới
+   */
+  async migrateOldArtistPlaylists(): Promise<void> {
+    try {
+      const allPlaylists = await this.getAllPlaylists();
+      const playlistsToMigrate = allPlaylists.filter(p =>
+        !p.isUserCreatedArtistPlaylist &&
+        (p.description?.startsWith('__ALBUM__') || p.description?.startsWith('__PLAYLIST__'))
+      );
+
+      for (const playlist of playlistsToMigrate) {
+        playlist.isUserCreatedArtistPlaylist = true;
+
+        const parts = playlist.description?.split('__') || [];
+        if (parts[1] === 'ALBUM' || parts[1] === 'PLAYLIST') {
+          const artistName = parts[2] || playlist.name;
+          playlist.name = artistName;
+
+          const realDescription = parts.slice(3).join('__');
+          playlist.description = realDescription || undefined;
+        }
+
+        await this.databaseService.updatePlaylist(playlist);
+      }
+    } catch (error) {
+      console.error('Error during migration:', error);
+    }
   }
 
   // ============================
@@ -458,17 +479,11 @@ export class PlaylistService {
 
       // Lấy tất cả playlists với loại 'artist playlist'
       const playlists = await this.getAllPlaylists();
-      console.log('All playlists from database:', playlists);
 
+      // ✨ Lọc theo field mới, nhưng vẫn hỗ trợ cả marker cũ để tương thích
       const artistPlaylistPlaylists = playlists.filter(p => {
-        const hasOldMarker = p.description?.startsWith('__ALBUM__'); // Marker cũ
-        const hasNewMarker = p.description?.startsWith('__PLAYLIST__'); // Marker mới
-        const hasNameMarker = p.name.includes('[Playlist]'); // Cách nhận dạng thay thế
-
-        return hasOldMarker || hasNewMarker || hasNameMarker;
+        return p.isUserCreatedArtistPlaylist;
       });
-
-      console.log('Filtered artist playlists:', artistPlaylistPlaylists);
 
       return artistPlaylistPlaylists.map(playlist => this.convertPlaylistToArtistPlaylist(playlist));
     } catch (error) {
@@ -489,12 +504,16 @@ export class PlaylistService {
     try {
       const playlist = await this.createPlaylist({
         name: playlistData.name, // Sử dụng tên artist làm tên playlist
-        description: `__PLAYLIST__${playlistData.name}__${playlistData.description || ''}`,
+        description: playlistData.description, // ✨ Loại bỏ marker, chỉ dùng description thông thường
         thumbnail: playlistData.thumbnail,
         type: 'user'
       });
 
       if (playlist) {
+        // ✨ Đánh dấu đây là user-created artist playlist
+        playlist.isUserCreatedArtistPlaylist = true;
+        await this.databaseService.updatePlaylist(playlist);
+
         // Thêm bài hát nếu có
         if (playlistData.songs && playlistData.songs.length > 0) {
           const songIds = playlistData.songs.map(song => song.id);
@@ -515,8 +534,6 @@ export class PlaylistService {
    */
   async updateArtistPlaylist(playlistId: string, updates: Partial<Album>): Promise<boolean> {
     try {
-      console.log('[PlaylistService] updateArtistPlaylist called:', { playlistId, updates });
-
       // Clear cache trước khi update để đảm bảo consistency
       this.databaseService.clearPlaylistsCache();
 
@@ -527,47 +544,23 @@ export class PlaylistService {
         return false;
       }
 
-      console.log('[PlaylistService] Found playlist:', { id: playlist.id, name: playlist.name, description: playlist.description });
-
-      // Chỉ cho phép cập nhật user-created playlists (có __ALBUM__ hoặc __PLAYLIST__ marker)
-      if (!playlist.description?.startsWith('__ALBUM__') && !playlist.description?.startsWith('__PLAYLIST__')) {
-        console.error('Cannot update non-artist playlist');
+      // ✨ Chỉ cho phép cập nhật user-created artist playlists (dùng field mới)
+      if (!playlist.isUserCreatedArtistPlaylist) {
+        console.error('Cannot update non-user-created artist playlist');
         return false;
       }
 
-      // Preserve existing marker type when updating name only
-      const isOldMarker = playlist.description?.startsWith('__ALBUM__');
-      const markerPrefix = isOldMarker ? '__ALBUM__' : '__PLAYLIST__';
-
-      let newDescription = playlist.description;
-      if (updates.name) {
-        // Update the description to reflect new name in marker
-        const currentDescription = playlist.description;
-        const parts = currentDescription.split('__');
-        if (parts.length >= 3) {
-          // Format: __MARKER__name__optional_description
-          const optionalDescription = parts.slice(2).join('__');
-          newDescription = `${markerPrefix}${updates.name}__${optionalDescription}`;
-        } else {
-          // Simple format: __MARKER__name
-          newDescription = `${markerPrefix}${updates.name}__`;
-        }
-      }
-
       const playlistUpdates: Partial<Pick<Playlist, 'name' | 'description' | 'thumbnail'>> = {
-        name: updates.name, // Tên artist trở thành tên playlist
-        description: updates.description ? `${markerPrefix}${updates.name || playlist.name}__${updates.description}` : newDescription,
+        name: updates.name,
+        description: updates.description,
         thumbnail: updates.thumbnail
       };
-
-      console.log('[PlaylistService] Playlist updates to apply:', playlistUpdates);
 
       const result = await this.updatePlaylistInfo(playlistId, playlistUpdates);
 
       // Clear cache sau khi update để đảm bảo lần read tiếp theo sẽ fresh
       this.databaseService.clearPlaylistsCache();
 
-      console.log('[PlaylistService] updateArtistPlaylist result:', result);
       return result;
     } catch (error) {
       console.error('Error updating artist playlist:', error);
@@ -633,7 +626,11 @@ export class PlaylistService {
     try {
       // Thử tìm trong user-created trước
       const playlist = await this.getPlaylistById(playlistId);
-      if (playlist && (playlist.description?.startsWith('__ALBUM__') || playlist.description?.startsWith('__PLAYLIST__'))) {
+      if (playlist && (
+        playlist.isUserCreatedArtistPlaylist || // ✨ Cách mới
+        playlist.description?.startsWith('__ALBUM__') || // Tương thích với marker cũ
+        playlist.description?.startsWith('__PLAYLIST__')
+      )) {
         return this.convertPlaylistToArtistPlaylist(playlist);
       }
 
@@ -687,29 +684,23 @@ export class PlaylistService {
    * Helper: Chuyển đổi Playlist thành Artist Playlist (dựa trên artist)
    */
   private convertPlaylistToArtistPlaylist(playlist: Playlist): Album {
-    // Parse artist từ description - hỗ trợ cả marker cũ và mới
-    // Format: __ALBUM__ARTIST__DESCRIPTION hoặc __PLAYLIST__ARTIST__DESCRIPTION
-    const parts = playlist.description?.split('__') || [];
-    let artistName = playlist.name || 'Unknown Artist';
-    let description = '';
+    // ✨ Đơn giản hóa: chỉ cần dùng name, không cần parse description
+    let artistName = playlist.name;
+    let description = playlist.description || '';
 
-    // Kiểm tra marker cũ hoặc mới
-    if (parts[1] === 'ALBUM' || parts[1] === 'PLAYLIST') {
-      artistName = parts[2] || playlist.name || 'Unknown Artist';
-      description = parts.slice(3).join('__') || '';
+    // Chỉ parse description nếu có marker cũ (để tương thích)
+    if (playlist.description?.startsWith('__ALBUM__') || playlist.description?.startsWith('__PLAYLIST__')) {
+      const parts = playlist.description.split('__');
+      if (parts[1] === 'ALBUM' || parts[1] === 'PLAYLIST') {
+        artistName = parts[2] || playlist.name;
+        description = parts.slice(3).join('__') || '';
+      }
     }
-
-    console.log('Converting playlist to artist playlist:', {
-      playlistId: playlist.id,
-      playlistName: playlist.name,
-      description: playlist.description,
-      parsedArtistName: artistName
-    });
 
     return {
       id: playlist.id,
-      name: artistName, // Sử dụng tên artist làm tên playlist
-      artist: artistName, // Giống với name để nhất quán
+      name: artistName,
+      artist: artistName,
       thumbnail: playlist.thumbnail,
       songs: playlist.songs,
       totalDuration: playlist.songs.reduce((sum, song) => sum + song.duration, 0),

@@ -22,6 +22,7 @@ export interface Playlist {
   thumbnail?: string;
   songs: Song[];
   isSystemPlaylist: boolean;
+  isUserCreatedArtistPlaylist?: boolean; // ✨ Thêm field để phân biệt artist playlist do user tạo
   createdDate: Date;
   updatedDate: Date;
 }

@@ -1,5 +1,5 @@
-<div class="settings-page h-full flex flex-col bg-page">
-  <div class="overflow-y-auto p-4">
+<div class="flex flex-col bg-page overflow-y-auto scrollbar-hide">
+  <div class=" p-4 space-y-4">
     <!-- Account Settings -->
     <div class="liquid-glass-panel">
       <div class="liquid-glass-bg">
@@ -38,8 +38,200 @@
         </div>
       </div>
     </div>
-  </div>
-  <div class="w-full p-4">
-    <app-install-prompt />
+    <!-- Data Management -->
+    <div class="liquid-glass-panel">
+      <div class="liquid-glass-bg">
+        <div class="liquid-glass-blur"></div>
+        <div class="liquid-glass-highlight"></div>
+      </div>
+      <div class="liquid-glass-header">
+        <h2 class="liquid-glass-title">Data Management</h2>
+      </div>
+      <div class="liquid-glass-content space-y-3">
+        <button (click)="exportData()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-download text-blue-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Export Data</p>
+              <p class="text-xs text-gray-400">
+                Backup your playlists and settings
+              </p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button (click)="importData()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-upload text-green-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Import Data</p>
+              <p class="text-xs text-gray-400">Restore your data from backup</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button (click)="clearCache()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-broom text-yellow-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Clear Cache</p>
+              <p class="text-xs text-gray-400">
+                Free up space by clearing temporary data
+              </p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button
+          (click)="clearDatabase()"
+          class="liquid-glass-button text-red-400"
+        >
+          <div class="flex items-center">
+            <i class="fas fa-trash text-red-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium">Clear All Data</p>
+              <p class="text-xs text-gray-400">
+                Delete all songs, playlists and settings
+              </p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- App Settings -->
+    <div class="liquid-glass-panel">
+      <div class="liquid-glass-bg">
+        <div class="liquid-glass-blur"></div>
+        <div class="liquid-glass-highlight"></div>
+      </div>
+      <div class="liquid-glass-header">
+        <h2 class="liquid-glass-title">App Settings</h2>
+      </div>
+      <div class="liquid-glass-content space-y-3">
+        <button class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-palette text-purple-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Theme</p>
+              <p class="text-xs text-gray-400">Customize app appearance</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <span class="text-xs text-gray-400 mr-2">Dark</span>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+          </div>
+        </button>
+
+        <button class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-volume-up text-orange-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Audio Quality</p>
+              <p class="text-xs text-gray-400">Set playback quality</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <span class="text-xs text-gray-400 mr-2">High</span>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+          </div>
+        </button>
+
+        <button class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-download text-cyan-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Auto Download</p>
+              <p class="text-xs text-gray-400">Automatically download songs</p>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <span class="text-xs text-gray-400 mr-2">WiFi Only</span>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+          </div>
+        </button>
+
+        <button class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-bell text-indigo-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Notifications</p>
+              <p class="text-xs text-gray-400">Manage notification settings</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- About & Support -->
+    <div class="liquid-glass-panel">
+      <div class="liquid-glass-bg">
+        <div class="liquid-glass-blur"></div>
+        <div class="liquid-glass-highlight"></div>
+      </div>
+      <div class="liquid-glass-header">
+        <h2 class="liquid-glass-title">About & Support</h2>
+      </div>
+      <div class="liquid-glass-content space-y-3">
+        <button (click)="showAppInfo()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-info-circle text-blue-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">App Information</p>
+              <p class="text-xs text-gray-400">Version and build details</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button (click)="showHelp()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-question-circle text-green-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Help & Support</p>
+              <p class="text-xs text-gray-400">Get help and contact support</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button (click)="showPrivacyPolicy()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-shield-alt text-emerald-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Privacy Policy</p>
+              <p class="text-xs text-gray-400">How we protect your data</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+
+        <button (click)="showTermsOfService()" class="liquid-glass-button">
+          <div class="flex items-center">
+            <i class="fas fa-file-contract text-amber-500 w-6"></i>
+            <div class="ml-3 text-left">
+              <p class="text-sm font-medium text-white">Terms of Service</p>
+              <p class="text-xs text-gray-400">Terms and conditions</p>
+            </div>
+          </div>
+          <i class="fas fa-chevron-right text-gray-400"></i>
+        </button>
+      </div>
+    </div>
+    @if(!isNative) {
+      <div class="w-full p-4">
+      <app-install-prompt />
+    </div>
+    }@else {
+      <div [ngClass]="currentSong() ? 'h-16':'hidden' ">
+
+      </div>
+    }
+
   </div>
 </div>

@@ -71,7 +71,7 @@
 @layer components {
 
   .bg-page{
-    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 20%, #000000 45%);
+    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 20%, #000000 40%);
     padding: 10px 0px;
   }
 
@@ -449,6 +449,21 @@ ion-backdrop {
   @apply space-y-2;
 }
 
+// Settings button style
+.liquid-glass-button {
+  @apply w-full p-4 rounded-xl bg-gray-800 bg-opacity-50 backdrop-blur-sm border border-gray-700
+         hover:bg-gray-700 hover:bg-opacity-60 transition-all duration-200
+         flex items-center justify-between text-left;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
 .toggle-switch .toggle-slider {
   @apply bg-gray-600 backdrop-blur-sm rounded-full transition-all duration-200 border border-purple-500;
 }
