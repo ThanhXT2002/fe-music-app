@@ -52,7 +52,7 @@ export class HomePage implements OnInit {
 
     if(Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song
-      this.pbCustom = this.isCurrentSong ? 'pb-48' : 'pb-32';
+       this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
       console.log('Native platform detected, padding set to:', this.pbCustom);
     }else{
       if(this.platform.is('pwa')) {
