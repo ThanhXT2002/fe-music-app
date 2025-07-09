@@ -1,23 +1,12 @@
-import { Injectable, signal } from '@angular/core';
-import {
-  BehaviorSubject,
-  catchError,
-  Observable,
-  firstValueFrom,
-  timeout,
-} from 'rxjs';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, firstValueFrom, timeout } from 'rxjs';
 import {
   Song,
   DataSong,
   SongsResponse,
-  AudioFile,
   SongConverter,
 } from '../interfaces/song.interface';
-import {
-  HttpClient,
-  HttpParams,
-  HttpErrorResponse,
-} from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
@@ -62,11 +51,14 @@ export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
   // Notification system to prevent duplicates
-  private completionNotificationsSubject = new BehaviorSubject<CompletionNotification | null>(null);
-  public completionNotifications$ = this.completionNotificationsSubject.asObservable();
+  private completionNotificationsSubject =
+    new BehaviorSubject<CompletionNotification | null>(null);
+  public completionNotifications$ =
+    this.completionNotificationsSubject.asObservable();
 
   // Status notifications for ready/failed states
-  private statusNotificationsSubject = new BehaviorSubject<StatusNotification | null>(null);
+  private statusNotificationsSubject =
+    new BehaviorSubject<StatusNotification | null>(null);
   public statusNotifications$ = this.statusNotificationsSubject.asObservable();
 
   // Track notifications sent to prevent duplicates (persist across app restarts)
@@ -77,7 +69,6 @@ export class DownloadService {
 
   private activeDownloads = new Map<string, any>();
   constructor(
-    private http: HttpClient,
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService,
@@ -100,7 +91,9 @@ export class DownloadService {
       }
 
       // Load ready notifications cache
-      const readyCache = localStorage.getItem(this.READY_NOTIFICATION_CACHE_KEY);
+      const readyCache = localStorage.getItem(
+        this.READY_NOTIFICATION_CACHE_KEY
+      );
       if (readyCache) {
         const readyCacheArray = JSON.parse(readyCache);
         this.readyNotificationSentCache = new Set(readyCacheArray);
@@ -116,10 +109,16 @@ export class DownloadService {
   private saveNotificationCache() {
     try {
       const cacheArray = Array.from(this.notificationSentCache);
-      localStorage.setItem(this.NOTIFICATION_CACHE_KEY, JSON.stringify(cacheArray));
+      localStorage.setItem(
+        this.NOTIFICATION_CACHE_KEY,
+        JSON.stringify(cacheArray)
+      );
 
       const readyCacheArray = Array.from(this.readyNotificationSentCache);
-      localStorage.setItem(this.READY_NOTIFICATION_CACHE_KEY, JSON.stringify(readyCacheArray));
+      localStorage.setItem(
+        this.READY_NOTIFICATION_CACHE_KEY,
+        JSON.stringify(readyCacheArray)
+      );
     } catch (error) {
       console.warn('Failed to save notification cache:', error);
     }
@@ -253,7 +252,7 @@ export class DownloadService {
         const notification: CompletionNotification = {
           songId,
           title: download.title,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
         this.completionNotificationsSubject.next(notification);
       }
@@ -378,7 +377,7 @@ export class DownloadService {
     });
 
     // Sử dụng real download thay vì simulate
-    this.realDownload(id, download.url, abortController.signal);
+    this.realDownload(id, abortController.signal);
   }
   /**
    * Download thực tế file audio và thumbnail
@@ -386,11 +385,7 @@ export class DownloadService {
    * @param audioUrl - URL của file audio (không sử dụng nữa, lấy từ songData)
    * @param signal - AbortSignal để cancel download
    */
-  private async realDownload(
-    id: string,
-    audioUrl: string,
-    signal: AbortSignal
-  ) {
+  private async realDownload(id: string, signal: AbortSignal) {
     try {
       const download = this.getDownload(id);
       if (!download || !download.songData) return;
@@ -409,141 +404,124 @@ export class DownloadService {
    * @param id - ID của download task
    * @param signal - AbortSignal
    */
-  private async handleWebDownload(id: string, signal: AbortSignal) {
+  private async handleWebDownload(
+    id: string,
+    signal: AbortSignal,
+    duration?: number
+  ) {
     const download = this.getDownload(id);
     if (!download || !download.songData) return;
 
     const { songData } = download;
+    // Ưu tiên lấy duration truyền vào, nếu không có thì lấy từ songData
+    const songDuration = duration ?? download.songData.duration;
+
+    let timeoutMs = 120000; // 2 phút mặc định
+    let progressDuration = 15000; // 15 giây mặc định
+    if (songDuration && songDuration > 1800) {
+      // 1800 giây = 30 phút
+      timeoutMs = 600000; // 10 phút cho bài hát dài
+      progressDuration = 60000;
+    }
 
     try {
-      // Step 1: Start with initial progress
+      // Bước 1: Khởi tạo tiến trình tải (5%)
       this.updateDownloadProgress(id, 5, 'downloading');
 
-      // Step 2: Download audio file (0-70% of total progress)
-      console.log('🎵 Downloading audio for song ID:', songData.id);
-
-      // Start audio download with progress simulation
+      // Bước 2: Tải file audio (0-70% tiến trình)
+      // Tạo promise tải file audio với timeout 2 phút
       const audioDownloadPromise = firstValueFrom(
-        this.musicApiService.downloadSongAudio(songData.id, true).pipe(
-          timeout(120000) // 2 minutes timeout for mobile
-        )
+        this.musicApiService
+          .downloadSongAudio(songData.id, true)
+          .pipe(timeout(timeoutMs))
       );
+      // Tạo hiệu ứng tiến trình từ 5% đến 70%
+      const progressPromise = this.animateProgress(id, 5, 70, progressDuration);
 
-      // Animate progress from 5% to 70% over 15 seconds while downloading
-      // This provides better UX while waiting for actual download
-      const progressPromise = this.animateProgress(id, 5, 70, 15000);
-
-      // Wait for both audio download and progress animation
-      const [audioBlob] = await Promise.all([audioDownloadPromise, progressPromise]);
+      // Đợi cả hai promise hoàn thành (tải file và hiệu ứng tiến trình)
+      const [audioBlob] = await Promise.all([
+        audioDownloadPromise,
+        progressPromise,
+      ]);
 
       if (signal.aborted) return;
-      console.log('✅ Audio downloaded successfully');
+      // Đã tải xong file audio
 
-      // Step 3: Download thumbnail (70-75% of total progress) - optional
+      // Bước 3: Tải thumbnail (70-75% tiến trình) - không bắt buộc
       this.updateDownloadProgress(id, 75, 'downloading');
-
       let thumbnailBlob: Blob | null = null;
       try {
-        console.log('🖼️ Downloading thumbnail for song ID:', songData.id);
-        // Use MusicApiService for consistent API calls
+        // Tải thumbnail, timeout 30 giây
         thumbnailBlob = await firstValueFrom(
-          this.musicApiService.downloadThumbnail(songData.id).pipe(
-            timeout(30000) // 30 seconds timeout for thumbnail
-          )
+          this.musicApiService
+            .downloadThumbnail(songData.id)
+            .pipe(timeout(30000))
         );
-        console.log('✅ Thumbnail downloaded successfully');
       } catch (thumbError) {
+        // Nếu lỗi (CORS, mạng...), chỉ cảnh báo và tiếp tục
         console.warn(
-          '⚠️ Thumbnail download failed (CORS or network error), continuing without thumbnail:',
+          'Không tải được thumbnail, tiếp tục tải audio:',
           thumbError
         );
-        // Continue without thumbnail - this is not critical
       }
 
-      // Step 4: Save audio to IndexedDB (75-95% of total progress)
+      // Bước 4: Lưu file audio vào IndexedDB (75-95% tiến trình)
       this.updateDownloadProgress(id, 85, 'downloading');
-
       if (signal.aborted) return;
-      console.log('💾 Saving audio to IndexedDB...');
-      console.log('📊 Audio blob info:', {
-        size: audioBlob.size,
-        type: audioBlob.type,
-        songId: songData.id,
-      });
 
       try {
-        // Double check IndexedDB is ready
+        // Đảm bảo IndexedDB đã sẵn sàng
         const isReady = await this.indexedDBService.initDB();
-        if (!isReady) {
-          throw new Error('IndexedDB initialization failed');
-        }
+        if (!isReady) throw new Error('Không khởi tạo được IndexedDB');
 
+        // Lưu file audio vào IndexedDB
         const audioSaved = await this.indexedDBService.saveAudioFile(
           songData.id,
           audioBlob,
           audioBlob.type || 'audio/mpeg'
         );
-        if (!audioSaved) {
-          throw new Error('Failed to save audio file to IndexedDB');
-        }
-        console.log('✅ Audio saved to IndexedDB successfully');
-        // Audio saved to IndexedDB successfully
+        if (!audioSaved)
+          throw new Error('Lưu file audio vào IndexedDB thất bại');
       } catch (saveError) {
-        console.error('❌ Error saving audio to IndexedDB:', saveError);
-
-        // Try one more time after a delay if save fails
-        console.log('🔄 Retrying save after delay...');
+        // Nếu lưu lỗi, thử lại sau 2 giây
         await new Promise((resolve) => setTimeout(resolve, 2000));
-
         const retrySuccess = await this.indexedDBService.saveAudioFile(
           songData.id,
           audioBlob,
           audioBlob.type || 'audio/mpeg'
         );
-
         if (!retrySuccess) {
           throw new Error(
-            `Failed to save audio file after retry: ${saveError}`
+            `Lưu file audio thất bại sau khi thử lại: ${saveError}`
           );
         }
-
-        console.log('✅ Audio file saved successfully on retry');
-        // Audio file saved successfully on retry
       }
 
-      // Step 5: Final steps (95-100% of total progress)
+      // Bước 5: Hoàn tất (95-100% tiến trình)
       this.updateDownloadProgress(id, 95, 'downloading');
       await this.animateProgress(id, 95, 100, 500);
 
-      // Note: Thumbnail is now converted to base64 and saved directly in song table
-      // No longer saving to separate thumbnailFiles store
-      console.log('✅ Download workflow completed (thumbnail handled by caller)');
-
-      this.updateDownloadProgress(id, 100); // Ensure hits 100%
+      this.updateDownloadProgress(id, 100); // Đảm bảo tiến trình đạt 100%
       await this.completeDownload(id);
     } catch (error) {
       if (signal.aborted) {
-        console.log('ℹ️ Download was aborted by user');
-        return; // Don't throw error for user-initiated abort
+        // Nếu người dùng hủy, chỉ log và dừng, không throw lỗi
+        console.log('Download đã bị hủy bởi người dùng');
+        return;
       }
 
-      // Handle HTTP errors
+      // Xử lý lỗi HTTP
       if (error instanceof HttpErrorResponse) {
         if (error.status === 0) {
-          console.error('❌ CORS or network error during download:', error);
           throw new Error(
-            'Download blocked by CORS policy or network error. Please check your connection.'
+            'Lỗi CORS hoặc mạng khi tải. Vui lòng kiểm tra kết nối.'
           );
         } else {
-          console.error(
-            `❌ HTTP error during download: ${error.status}`,
-            error
-          );
-          throw new Error(`HTTP error ${error.status}: ${error.message}`);
+          throw new Error(`Lỗi HTTP ${error.status}: ${error.message}`);
         }
       }
 
-      console.error('❌ Web download error:', error);
+      // Lỗi khác
       throw error;
     }
   }
@@ -568,9 +546,10 @@ export class DownloadService {
 
         // Use exponential easing for more realistic progress feel
         const progress = currentStep / steps;
-        const easedProgress = progress < 0.5
-          ? 2 * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        const easedProgress =
+          progress < 0.5
+            ? 2 * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
         const current = from + (to - from) * easedProgress;
 
@@ -642,8 +621,6 @@ export class DownloadService {
       reader.readAsDataURL(blob);
     });
   }
-
-
 
   private generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -739,31 +716,28 @@ export class DownloadService {
    * @param url - YouTube URL
    * @returns Promise<string> - Song ID
    */
-  async addSongFromUrl(url: string): Promise<string> {
-    try {
-      // Step 1: Get song info từ API
-      console.log('🔍 Getting song info from URL:', url);
-      const response = await firstValueFrom(this.getSongInfo(url));
+  // async addSongFromUrl(url: string): Promise<string> {
+  //   try {
+  //     // Step 1: Get song info từ API
+  //     const response = await firstValueFrom(this.getSongInfo(url));
 
-      if (!response.success || !response.data) {
-        throw new Error(response.message || 'Failed to get song info');
-      }
+  //     if (!response.success || !response.data) {
+  //       throw new Error(response.message || 'Failed to get song info');
+  //     }
 
-      const songData = response.data;
-      console.log('✅ Song info received:', songData);
+  //     const songData = response.data;
+  //     // Step 2: Save song info ngay lập tức vào database
+  //     await this.saveSongToDatabase(songData);
 
-      // Step 2: Save song info ngay lập tức vào database
-      await this.saveSongToDatabase(songData);
+  //     // Step 3: Create download task để track progress
+  //     const downloadId = await this.downloadSong(songData);
 
-      // Step 3: Create download task để track progress
-      const downloadId = await this.downloadSong(songData);
-
-      return songData.id;
-    } catch (error) {
-      console.error('❌ Error adding song from URL:', error);
-      throw error;
-    }
-  }
+  //     return songData.id;
+  //   } catch (error) {
+  //     console.error('❌ Error adding song from URL:', error);
+  //     throw error;
+  //   }
+  // }
 
   /**
    * NEW: Poll song status và tự động download khi ready
@@ -771,56 +745,61 @@ export class DownloadService {
    * @param maxAttempts - Số lần poll tối đa
    * @returns Promise<boolean> - Success status
    */
-  async pollAndDownload(songId: string, maxAttempts: number = 30): Promise<boolean> {
-    console.log(`🔄 Starting status polling for song: ${songId}`);
+  // async pollAndDownload(
+  //   songId: string,
+  //   maxAttempts: number = 60
+  // ): Promise<boolean> {
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const statusResponse = await firstValueFrom(this.getSongStatus(songId));
+  //   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  //     try {
+  //       const statusResponse = await firstValueFrom(this.getSongStatus(songId));
 
-        if (!statusResponse.success) {
-          console.warn(`⚠️ Status check failed (${attempt}/${maxAttempts}):`, statusResponse.message);
-          continue;
-        }
+  //       if (!statusResponse.success) {
+  //         console.warn(
+  //           `⚠️ Status check failed (${attempt}/${maxAttempts}):`,
+  //           statusResponse.message
+  //         );
+  //         continue;
+  //       }
 
-        const status = statusResponse.data;
-        console.log(`📊 Status check (${attempt}/${maxAttempts}):`, status);
+  //       const status = statusResponse.data;
 
-        if (this.musicApiService.isSongReadyForDownload(status)) {
-          console.log('✅ Song is ready for download!');
+  //       if (this.musicApiService.isSongReadyForDownload(status)) {
 
-          // Find the download task and trigger actual download
-          const downloadTask = this.getDownloadBySongId(songId);
-          if (downloadTask) {
-            this.startDownload(downloadTask.id);
-            return true;
-          } else {
-            console.warn('⚠️ Download task not found for song:', songId);
-            return false;
-          }
-        } else if (status.status === 'failed') {
-          console.error('❌ Song processing failed:', status.error_message);
-          return false;
-        }
+  //         // Find the download task and trigger actual download
+  //         const downloadTask = this.getDownloadBySongId(songId);
+  //         if (downloadTask) {
+  //           this.startDownload(downloadTask.id);
+  //           return true;
+  //         } else {
+  //           console.warn('⚠️ Download task not found for song:', songId);
+  //           return false;
+  //         }
+  //       } else if (status.status === 'failed') {
+  //         console.error('❌ Song processing failed:', status.error_message);
+  //         return false;
+  //       }
 
-        // Wait 2 seconds before next poll
-        await new Promise(resolve => setTimeout(resolve, 2000));
+  //       // Wait 2 seconds before next poll
+  //       await new Promise((resolve) => setTimeout(resolve, 2000));
+  //     } catch (error) {
+  //       console.error(
+  //         `❌ Error polling status (${attempt}/${maxAttempts}):`,
+  //         error
+  //       );
 
-      } catch (error) {
-        console.error(`❌ Error polling status (${attempt}/${maxAttempts}):`, error);
+  //       if (attempt === maxAttempts) {
+  //         throw error;
+  //       }
 
-        if (attempt === maxAttempts) {
-          throw error;
-        }
+  //       // Wait before retry
+  //       await new Promise((resolve) => setTimeout(resolve, 3000));
+  //     }
+  //   }
 
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 3000));
-      }
-    }
-
-    console.warn('⚠️ Max polling attempts reached, song may not be ready');
-    return false;
-  }
+  //   console.warn('⚠️ Max polling attempts reached, song may not be ready');
+  //   return false;
+  // }
 
   /**
    * Clear notification cache (useful for testing or reset)
@@ -878,14 +857,18 @@ export class DownloadService {
 
   // Song status polling - move from page to service
   private pollingIntervals = new Map<string, any>();
-  private songStatusMap = new Map<string, { status: string; progress: number; ready: boolean }>();
+  private songStatusMap = new Map<
+    string,
+    { status: string; progress: number; ready: boolean }
+  >();
 
   /**
-   * Start polling song status - centralized in service
+   * Bắt đầu quá trình kiểm tra trạng thái bài hát (polling) - tập trung xử lý tại service
    * @param songId - ID của bài hát
    */
-  startStatusPolling(songId: string): void {
-    // Don't start polling if already exists or song is ready
+  startStatusPolling(songData: DataSong): void {
+    const songId = songData.id;
+    // Không bắt đầu polling nếu đã tồn tại hoặc bài hát đã sẵn sàng
     if (this.pollingIntervals.has(songId)) {
       return;
     }
@@ -896,18 +879,20 @@ export class DownloadService {
 
         if (statusResponse.success) {
           const status = statusResponse.data;
-          const isReady = status.status === 'completed' && status.progress === 1;
+          const isReady =
+            status.status === 'completed' && status.progress === 1;
 
-          // Update status map
+          // Cập nhật trạng thái vào map
           this.songStatusMap.set(songId, {
             status: status.status,
             progress: Math.round(status.progress * 100),
-            ready: isReady
+            ready: isReady,
           });
 
           if (isReady) {
             this.stopStatusPolling(songId);
-            // Emit ready notification only once per song
+            this.downloadSong(songData);
+            // Chỉ gửi thông báo "sẵn sàng" một lần cho mỗi bài hát
             if (!this.readyNotificationSentCache.has(songId)) {
               this.readyNotificationSentCache.add(songId);
               this.saveNotificationCache();
@@ -916,19 +901,19 @@ export class DownloadService {
                 songId,
                 message: 'Bài hát đã sẵn sàng để tải xuống!',
                 type: 'success',
-                timestamp: Date.now()
+                timestamp: Date.now(),
               };
               this.statusNotificationsSubject.next(readyNotification);
             }
           } else if (status.status === 'failed') {
             console.error('❌ Song processing failed:', status.error_message);
             this.stopStatusPolling(songId);
-            // Emit error notification
+            // Gửi thông báo lỗi
             const errorNotification: StatusNotification = {
               songId,
               message: `Xử lý thất bại: ${status.error_message}`,
               type: 'error',
-              timestamp: Date.now()
+              timestamp: Date.now(),
             };
             this.statusNotificationsSubject.next(errorNotification);
           }
@@ -937,11 +922,11 @@ export class DownloadService {
         }
       } catch (error) {
         console.error('❌ Error polling status:', error);
-        // Continue polling, don't stop on single error
+        // Tiếp tục polling, không dừng lại khi gặp lỗi đơn lẻ
       }
     };
 
-    // Poll immediately, then every 2 seconds
+    // Kiểm tra trạng thái ngay lập tức, sau đó lặp lại mỗi 2 giây
     pollStatus();
     const interval = setInterval(pollStatus, 2000);
     this.pollingIntervals.set(songId, interval);
@@ -987,5 +972,4 @@ export class DownloadService {
     });
     this.pollingIntervals.clear();
   }
-
 }

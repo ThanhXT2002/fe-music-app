@@ -107,7 +107,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
           const finalUrl = validation.cleanUrl || result.content;
           this.searchQuery.set(finalUrl);
           await this.processYouTubeUrl(finalUrl);
-          await this.toastService.success(
+          this.toastService.success(
             'Đã tự động dán link YouTube từ clipboard!'
           );
         }
@@ -158,7 +158,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
         if (this.isDownloaded(songData.id)) {
           // Show song info nhưng không start polling
           this.showSongInfo(songData);
-          await this.toastService.success('Bài hát đã được tải về!');
+          this.toastService.success('Bài hát đã được tải về!');
           return;
         }
 
@@ -169,22 +169,22 @@ export class DownloadsPage implements OnInit, OnDestroy {
         this.showSongInfo(songData);
 
         // Step 5: Start polling status in background để check khi nào ready
-        this.downloadService.startStatusPolling(songData.id);
+        this.downloadService.startStatusPolling(songData);
 
         // Reload search history to show the new item
         await this.loadSearchHistory();
 
-        await this.toastService.success(
-          'Đã lấy thông tin bài hát thành công! Bấm Download để tải xuống.'
+        this.toastService.success(
+          'Đã lấy thông tin bài hát thành công! Đang chuẩn bị dữ liệu.'
         );
       } else {
         console.error('API returned error:', response.message);
-        await this.toastService.error(`Lỗi: ${response.message}`);
+        this.toastService.error(`Lỗi: ${response.message}`);
         this.searchResults.set([]);
       }
     } catch (error) {
       console.error('Error processing YouTube URL:', error);
-      await this.toastService.error(
+      this.toastService.error(
         `Lỗi: ${error instanceof Error ? error.message : 'Không thể xử lý URL'}`
       );
       this.searchResults.set([]);
@@ -217,18 +217,18 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       // Step 1: Kiểm tra xem bài hát có ready không
       if (!this.downloadService.isSongReadyForDownload(songData.id)) {
-        await this.toastService.warning('Bài hát chưa sẵn sàng để tải xuống!');
+        this.toastService.warning('Bài hát chưa sẵn sàng để tải xuống!');
         return;
       }
 
       // Step 2: Kiểm tra xem đã download chưa
       if (this.isDownloaded(songData.id)) {
-        await this.toastService.warning('Bài hát đã được tải xuống!');
+        this.toastService.warning('Bài hát đã được tải xuống!');
         return;
       }
 
       // Step 3: Sử dụng downloadService để tạo download task với progress tracking
-      await this.toastService.info(`Đang tải "${songData.title}"...`);
+      this.toastService.info(`Đang tải "${songData.title}"...`);
 
       // Tạo download task bằng downloadService
       const downloadTaskId = await this.downloadService.downloadSong(songData);
@@ -237,7 +237,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       // UI sẽ tự động update thông qua reactive streams
     } catch (error) {
       console.error('Download error:', error);
-      await this.toastService.error(
+      this.toastService.error(
         `Lỗi khi tải bài hát: ${
           error instanceof Error ? error.message : 'Unknown error'
         }`
@@ -253,44 +253,49 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       // Kiểm tra xem đã download chưa
       if (this.isDownloaded(historyItem.songId)) {
-        await this.toastService.warning('Bài hát đã được tải xuống!');
+        this.toastService.warning('Bài hát đã được tải xuống!');
         return;
       }
+
+      const songData: DataSong = {
+        id: historyItem.songId,
+        title: historyItem.title,
+        artist: historyItem.artist,
+        thumbnail_url: historyItem.thumbnail_url,
+        duration: historyItem.duration,
+        duration_formatted: historyItem.duration_formatted,
+        keywords: historyItem.keywords,
+        original_url: '', // Will be fetched if needed
+        created_at: new Date().toISOString(), // Default value
+      };
 
       // Check if we need to poll status first
       const songStatus = this.downloadService.getSongStatusSync(
         historyItem.songId
       );
+
       if (!songStatus) {
         // Start status polling first
-        this.downloadService.startStatusPolling(historyItem.songId);
-        await this.toastService.info('Đang kiểm tra trạng thái bài hát...');
+        this.downloadService.startStatusPolling(songData);
+        this.toastService.info('Đang kiểm tra trạng thái bài hát...');
         return;
       }
 
       // If song is ready, proceed with download
       if (songStatus.ready) {
-        const songData: DataSong = {
-          id: historyItem.songId,
-          title: historyItem.title,
-          artist: historyItem.artist,
-          thumbnail_url: historyItem.thumbnail_url,
-          duration: historyItem.duration,
-          duration_formatted: historyItem.duration_formatted,
-          keywords: historyItem.keywords,
-          original_url: '', // Will be fetched if needed
-          created_at: new Date().toISOString(), // Default value
-        };
-
+        if (!this.isDownloaded(historyItem.songId)) {
         await this.downloadSong(songData);
       } else {
-        await this.toastService.warning(
+        this.toastService.warning(`Bài hát ${historyItem.title} đã được tải xuống!`);
+      }
+      } else {
+        this.toastService.warning(
           `Bài hát đang xử lý (${songStatus.progress}%)...`
         );
       }
     } catch (error) {
       console.error('Download error:', error);
-      await this.toastService.error('Lỗi khi tải bài hát!');
+      this.toastService.error('Lỗi khi tải bài hát!');
     }
   }
 
@@ -335,7 +340,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
    * Show completion notification (one-time only)
    */
   private async showCompletedNotification(songTitle: string) {
-    await this.toastService.success(
+    this.toastService.success(
       `Bài hát "${songTitle}" đã được tải xuống thành công!`
     );
   }
@@ -386,7 +391,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       this.filterSearchHistory(query);
     } catch (error) {
       console.error('❌ Error searching in history:', error);
-      await this.toastService.error('Lỗi khi tìm kiếm trong lịch sử.');
+      this.toastService.error('Lỗi khi tìm kiếm trong lịch sử.');
     } finally {
       this.isSearching.set(false);
     }
@@ -443,18 +448,13 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
         if (result.success && result.content) {
           clipboardText = result.content;
-
-          // Hiển thị thông báo thành công
-          if (result.method === 'web') {
-            await this.toastService.success('Đã đọc clipboard thành công!');
-          }
         } else if (result.error) {
           if (result.error === 'PERMISSION_DENIED') {
             await this.showPermissionDeniedInstructions();
           } else if (result.error === 'NOT_SUPPORTED') {
             await this.showManualPasteInstructions();
           } else {
-            await this.toastService.warning(
+            this.toastService.warning(
               'Không thể đọc clipboard. Vui lòng paste thủ công.'
             );
             this.focusSearchInput();
@@ -469,10 +469,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
 
         // Nếu là YouTube URL, tự động xử lý
         if (this.downloadService.validateYoutubeUrl(clipboardText.trim())) {
-          await this.toastService.success('Đã dán link YouTube!');
+          this.toastService.success('Đã dán link YouTube!');
         }
       } else {
-        await this.toastService.warning(
+        this.toastService.warning(
           'Clipboard trống hoặc không có nội dung hợp lệ'
         );
       }
@@ -646,19 +646,19 @@ Hoặc paste thủ công:
         // Hiển thị thông báo thành công với suggestion
         const message =
           result.suggestion || 'Đã tự động dán và xử lý link YouTube!';
-        await this.toastService.success(message);
+        this.toastService.success(message);
       } else if (result.needsManualPaste) {
         await this.showManualPasteInstructions();
       } else {
         // Hiển thị lỗi với suggestion từ service
         const errorMessage =
           result.suggestion || result.error || 'Không thể đọc clipboard';
-        await this.toastService.warning(errorMessage);
+        this.toastService.warning(errorMessage);
         this.focusSearchInput();
       }
     } catch (error) {
       console.error('Smart paste failed:', error);
-      await this.toastService.error('Lỗi khi đọc clipboard');
+      this.toastService.error('Lỗi khi đọc clipboard');
       await this.showManualPasteInstructions();
     } finally {
       this.isClipboardLoading.set(false);

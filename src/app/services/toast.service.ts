@@ -27,31 +27,24 @@ export interface ToastOptions {
 })
 export class ToastService {
   private currentToast: HTMLIonToastElement | null = null;
-  private toastQueue: ToastOptions[] = [];
-  private isProcessing = false;
 
   constructor(private toastController: ToastController) {
     addIcons({
-    'checkmark-circle': checkmarkCircle,
-    'alert-circle': alertCircle,
-    'warning': warning,
-    'information-circle': informationCircle,
-    'hourglass': hourglass,
-  });
+      'checkmark-circle': checkmarkCircle,
+      'alert-circle': alertCircle,
+      'warning': warning,
+      'information-circle': informationCircle,
+      'hourglass': hourglass,
+    });
   }
 
   /**
-   * Show a toast, automatically dismissing any current toast
+   * Show a toast, always dismissing any current toast and showing the new one immediately
    * @param options Toast configuration
    */
   async show(options: ToastOptions): Promise<void> {
-    // Add to queue
-    this.toastQueue.push(options);
-
-    // Process queue if not already processing
-    if (!this.isProcessing) {
-      await this.processQueue();
-    }
+    await this.dismiss();
+    await this.showSingleToast(options);
   }
 
   /**
@@ -67,7 +60,7 @@ export class ToastService {
   }
 
   error(message: string, duration: number = 3000) {
-   this.show({
+    this.show({
       message,
       color: 'danger',
       duration,
@@ -75,8 +68,8 @@ export class ToastService {
     });
   }
 
-   warning(message: string, duration: number = 3000) {
-     this.show({
+  warning(message: string, duration: number = 3000) {
+    this.show({
       message,
       color: 'warning',
       duration,
@@ -84,7 +77,7 @@ export class ToastService {
     });
   }
 
-   info(message: string, duration: number = 3000) {
+  info(message: string, duration: number = 3000) {
     this.show({
       message,
       color: 'primary',
@@ -96,10 +89,10 @@ export class ToastService {
   /**
    * Dismiss current toast immediately
    */
-   dismiss() {
+  async dismiss() {
     if (this.currentToast) {
       try {
-         this.currentToast.dismiss();
+        await this.currentToast.dismiss();
         this.currentToast = null;
       } catch (error) {
         console.warn('Error dismissing toast:', error);
@@ -109,38 +102,10 @@ export class ToastService {
   }
 
   /**
-   * Clear all queued toasts
-   */
-  clearQueue(): void {
-    this.toastQueue = [];
-  }
-
-  /**
-   * Process the toast queue one by one
-   */
-  private async processQueue(): Promise<void> {
-    if (this.isProcessing || this.toastQueue.length === 0) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    while (this.toastQueue.length > 0) {
-      const options = this.toastQueue.shift()!;
-      await this.showSingleToast(options);
-    }
-
-    this.isProcessing = false;
-  }
-
-  /**
    * Show a single toast
    */
   private async showSingleToast(options: ToastOptions): Promise<void> {
     try {
-      // Dismiss current toast if exists
-      await this.dismiss();
-
       // Create new toast
       const toast = await this.toastController.create({
         message: options.message,
@@ -165,7 +130,6 @@ export class ToastService {
       if (this.currentToast === toast) {
         this.currentToast = null;
       }
-
     } catch (error) {
       console.error('Error showing toast:', error);
       this.currentToast = null;
