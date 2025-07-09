@@ -45,7 +45,7 @@ export class AccountPanelComponent implements OnInit {
     try {
       await this.authService.logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error:', error); 
     }
   }
 
