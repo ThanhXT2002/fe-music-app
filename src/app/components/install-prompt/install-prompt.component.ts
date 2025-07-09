@@ -7,7 +7,7 @@ import { InstallService } from '../../services/install.service';
 @Component({
   selector: 'app-install-prompt',
   template: `
-    <div class="liquid-glass-panel" *ngIf="shouldShowInstallPrompt()">
+    <div class="liquid-glass-panel mb-4" *ngIf="shouldShowInstallPrompt()">
       <div class="liquid-glass-bg">
         <div class="liquid-glass-blur"></div>
         <div class="liquid-glass-highlight"></div>

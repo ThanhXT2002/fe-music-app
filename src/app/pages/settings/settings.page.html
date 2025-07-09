@@ -1,43 +1,12 @@
 <div class="flex flex-col bg-page overflow-y-auto scrollbar-hide">
-  <div class=" p-4 space-y-4">
+  <div class="p-4 space-y-4"
+  [ngClass]="currentSong() ? 'pb-16':'pb-4' ">
+    @if(!isNative) {
+      <app-install-prompt/>
+    }
     <!-- Account Settings -->
-    <div class="liquid-glass-panel">
-      <div class="liquid-glass-bg">
-        <div class="liquid-glass-blur"></div>
-        <div class="liquid-glass-highlight"></div>
-      </div>
-      <div class="liquid-glass-header">
-        <h2 class="liquid-glass-title">Account</h2>
-      </div>
-      <div class="liquid-glass-content">
-        <div class="liquid-glass-row">
-          <img
-            [src]="getUserAvatar()"
-            [alt]="user()?.displayName || 'User'"
-            (error)="onImageError($event)"
-            class="liquid-glass-avatar"
-          />
-          <div>
-            <p class="liquid-glass-subtitle">
-              {{ user()?.displayName || 'Guest User' }}
-            </p>
-            <p class="liquid-glass-description">
-              {{ user()?.email || 'No email' }}
-            </p>
-          </div>
-        </div>
-        <div class="liquid-glass-action-group" *ngIf="user()">
-          <button (click)="logout()" class="btn btn-primary w-full">
-            Log Out
-          </button>
-        </div>
-        <div class="liquid-glass-action-group" *ngIf="!user()">
-          <button (click)="navigateToLogin()" class="btn btn-primary w-full">
-            Log In
-          </button>
-        </div>
-      </div>
-    </div>
+    <app-account-panel />
+
     <!-- Data Management -->
     <div class="liquid-glass-panel">
       <div class="liquid-glass-bg">
@@ -223,15 +192,7 @@
         </button>
       </div>
     </div>
-    @if(!isNative) {
-      <div class="w-full p-4">
-      <app-install-prompt />
-    </div>
-    }@else {
-      <div [ngClass]="currentSong() ? 'h-16':'hidden' ">
 
-      </div>
-    }
 
   </div>
 </div>

@@ -1,0 +1,53 @@
+<div class="liquid-glass-panel">
+  <div class="liquid-glass-bg">
+    <div class="liquid-glass-blur"></div>
+    <div class="liquid-glass-highlight"></div>
+  </div>
+  <div class="liquid-glass-header">
+    <h2 class="liquid-glass-title">Account</h2>
+  </div>
+  <div class="liquid-glass-content">
+    <div class="liquid-glass-row">
+      <img
+        [src]="getUserAvatar()"
+        [alt]="user()?.displayName || 'User'"
+        (error)="onImageError($event)"
+        class="liquid-glass-avatar"
+      />
+      <div>
+        <p class="liquid-glass-subtitle">
+          {{ user()?.displayName || "Guest User" }}
+        </p>
+        <p class="liquid-glass-description">
+          {{ user()?.email || "" }}
+        </p>
+      </div>
+    </div>
+    @if(user()){
+    <div class="liquid-glass-action-group">
+      <button (click)="logout()" class="btn btn-primary w-full">Log Out</button>
+    </div>
+    }@else{
+    <div class="liquid-glass-action-group">
+      <div class="rounded-lg p-2 bg-gray-50 relative">
+        <button class="h-full w-full text-black font-medium">
+          <img src="assets/images/icon-google.webp" class="h-5 absolute left-5 top-1/2 -translate-y-1/2" alt="">
+          <span style="background: linear-gradient(90deg, #4285F4 0%, #34A853 25%, #FBBC05 50%, #EA4335 75%, #4285F4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;">
+            Đăng nhập với google
+          </span>
+        </button>
+      </div>
+      <div class="rounded-lg p-2 bg-gray-50 relative opacity-50 ">
+        <button class="h-full w-full  font-medium text-blue-700" (click)="onLoginWithFacebook()">
+          <img src="assets/images/icon-facebook.webp" class="h-5 absolute left-5 top-1/2 -translate-y-1/2" alt="">
+          {{textFB}}
+        </button>
+      </div>
+    </div>
+    }
+  </div>
+</div>

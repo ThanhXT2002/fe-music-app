@@ -1,27 +1,23 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
 import { PlaylistService } from '../../services/playlist.service';
 import { AlertController } from '@ionic/angular';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
-import { User } from '@angular/fire/auth';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { Capacitor } from '@capacitor/core';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { DownloadService } from '../../services/download.service';
+import { AccountPanelComponent } from "src/app/components/account-panel/account-panel.component";
 
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, InstallPromptComponent],
+  imports: [CommonModule, FormsModule, InstallPromptComponent, AccountPanelComponent],
   templateUrl: './settings.page.html',
   animations: [routeAnimation],
 })
 export class SettingsPage implements OnInit {
-  private authService = inject(AuthService);
-  private router = inject(Router);
   private playlistService = inject(PlaylistService);
   private alertController = inject(AlertController);
   private audioPlayerService = inject(AudioPlayerService);
@@ -29,40 +25,9 @@ export class SettingsPage implements OnInit {
   currentSong = this.audioPlayerService.currentSong;
   isNative = Capacitor.isNativePlatform();
 
-  // Sử dụng signal để track user state
-  user = signal<User | null>(null);
 
   ngOnInit() {
-    // Subscribe to user changes
-    this.authService.user$.subscribe((user) => {
-      console.log('User updated in settings:', user);
-      this.user.set(user);
-    });
-  }
-  async logout() {
-    try {
-      await this.authService.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }
 
-  navigateToLogin() {
-    this.router.navigate(['/login']);
-  }
-
-  // Lấy URL avatar với fallback
-  getUserAvatar(): string {
-    const user = this.user();
-    if (user?.photoURL) {
-      return user.photoURL;
-    }
-    return 'assets/images/default-avatar.svg';
-  }
-
-  // Xử lý lỗi khi load ảnh avatar
-  onImageError(event: any): void {
-    event.target.src = 'assets/images/default-avatar.svg';
   }
 
   // Database Management
