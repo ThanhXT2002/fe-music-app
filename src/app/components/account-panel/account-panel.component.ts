@@ -11,6 +11,7 @@ import { AuthService } from 'src/app/services/auth.service';
   styleUrls: ['./account-panel.component.scss'],
 })
 export class AccountPanelComponent implements OnInit {
+  isLoading = signal(false);
   private authService = inject(AuthService);
   private router = inject(Router);
   textFB= 'Đăng nhập với Facebook';
@@ -45,12 +46,25 @@ export class AccountPanelComponent implements OnInit {
     try {
       await this.authService.logout();
     } catch (error) {
-      console.error('Logout error:', error); 
+      console.error('Logout error:', error);
     }
   }
 
   navigateToLogin() {
     this.router.navigate(['/login']);
+  }
+  async loginWithGoogle() {
+    try {
+      this.isLoading.set(true);
+      await this.authService.loginWithGoogle();
+      await this.router.navigate(['/tabs/settings'], {
+        replaceUrl: true,
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      this.isLoading.set(false);
+    }
   }
 
   onLoginWithFacebook() {
