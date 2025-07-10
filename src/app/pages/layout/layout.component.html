@@ -57,7 +57,7 @@
     <div class="flex items-center space-x-3">
       <!-- Player Controls -->
       <div class="flex items-center space-x-4">
-        <button (click)="previousSong()" class="text-gray-300">
+        <button (click)="previousSong()" class="text-gray-00">
           <i class="fas fa-step-backward"></i>
         </button>
 
@@ -81,7 +81,7 @@
           ></i>
         </button>
 
-        <button (click)="nextSong()" class="text-gray-300">
+        <button (click)="nextSong()" class="text-gray-100">
           <i class="fas fa-step-forward"></i>
         </button>
       </div>
@@ -97,7 +97,7 @@
         >
           {{ currentSong.title }}
         </marquee>
-        <p class="text-xs text-gray-400 truncate">
+        <p class="text-xs text-gray-200 truncate">
           {{ currentSong.artist }}
         </p>
       </div>

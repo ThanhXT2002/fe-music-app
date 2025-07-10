@@ -101,7 +101,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     event.stopPropagation();
 
     if (playlist.songs.length > 0) {
-      await this.audioPlayerService.setPlaylist(playlist.songs, 0);
+      await this.audioPlayerService.setPlaylist(playlist.songs, 0, playlist.id);
     }
   }
 
@@ -115,7 +115,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     const playlist = item as Album;
     // Play playlist directly when clicked
     if (playlist.songs.length > 0) {
-      await this.audioPlayerService.setPlaylist(playlist.songs, 0);
+      await this.audioPlayerService.setPlaylist(playlist.songs, 0, playlist.id);
     }
   }
 
@@ -383,21 +383,41 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   private setupCurrentSongWatcher() {
     effect(() => {
       this.currentSong = this.audioPlayerService.currentSong();
+      const playlists = this.playlists();
+      let activeId: string | null = null;
+
       if (this.currentSong) {
-        // Find which playlist contains the current song
-        const currentPlaylist = this.playlists().find((playlist: Album) =>
-          playlist.songs.some((song: Song) => song.id === this.currentSong?.id)
-        );
-        this.activePlaylist.set(currentPlaylist ? currentPlaylist.name : null);
-      } else {
-        this.activePlaylist.set(null);
+        // 1. Try last played playlist by id
+        const lastPlaylistId = this.audioPlayerService.lastPlaylistId;
+        if (lastPlaylistId) {
+          const lastPlaylist = playlists.find(p => p.id === lastPlaylistId);
+          if (lastPlaylist && lastPlaylist.songs.some(s => s.id === this.currentSong?.id)) {
+            activeId = lastPlaylist.id;
+          }
+        }
+        // 2. If not found, try dynamic playlist
+        if (!activeId) {
+          const dynamic = playlists.find(p => (p as any).type === 'dynamic' && p.songs.some(s => s.id === this.currentSong?.id));
+          if (dynamic) activeId = dynamic.id;
+        }
+        // 3. If not found, try user playlist
+        if (!activeId) {
+          const user = playlists.find(p => (p as any).type === 'user' && p.songs.some(s => s.id === this.currentSong?.id));
+          if (user) activeId = user.id;
+        }
+        // 4. If not found, any playlist containing the song
+        if (!activeId) {
+          const anyPlaylist = playlists.find(p => p.songs.some(s => s.id === this.currentSong?.id));
+          if (anyPlaylist) activeId = anyPlaylist.id;
+        }
       }
+      this.activePlaylist.set(activeId);
     });
   }
 
   // ✨ Check if playlist is active
   isPlaylistActive(playlist: Album): boolean {
     const active = this.activePlaylist();
-    return active === playlist.name;
+    return active === playlist.id;
   }
 }

@@ -39,6 +39,11 @@ export class AudioPlayerService {
   queue = signal<Song[]>([]);
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
+  private _lastPlaylistId: string | null = null;
+
+  get lastPlaylistId(): string | null {
+  return this._lastPlaylistId;
+}
 
   constructor(private indexedDBService: IndexedDBService) {
     this.setupAudioEventListeners();
@@ -640,12 +645,19 @@ export class AudioPlayerService {
       console.error('❌ Error loading saved settings:', error);
     }
   }
-  async setPlaylist(playlist: Song[], startIndex: number = 0) {
+  async setPlaylist(playlist: Song[], startIndex: number = 0, playlistId?: string) {
     this.updatePlaybackState((state) => ({
       ...state,
       currentPlaylist: playlist,
       currentIndex: startIndex,
     }));
+
+    // Gán lastPlaylistId nếu có id truyền vào, hoặc lấy id từ playlist nếu có
+    if (playlistId) {
+      this.setLastPlaylistId(playlistId);
+    } else if ((playlist as any).id) {
+      this.setLastPlaylistId((playlist as any).id);
+    }
 
     if (playlist.length > 0 && playlist[startIndex]) {
       await this.playSong(playlist[startIndex], playlist, startIndex);
@@ -890,4 +902,7 @@ export class AudioPlayerService {
   getAudioElement(): HTMLAudioElement {
     return this.audio;
   }
+  private setLastPlaylistId(playlistId: string) {
+  this._lastPlaylistId = playlistId;
+}
 }
