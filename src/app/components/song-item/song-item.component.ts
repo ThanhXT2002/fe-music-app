@@ -11,7 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Song } from '../../interfaces/song.interface';
-import { IonIcon, IonReorder } from '@ionic/angular/standalone';
+import { IonIcon, IonReorder, IonCheckbox } from '@ionic/angular/standalone';
 
 import { addIcons } from 'ionicons';
 import { apps, reorderThreeOutline } from 'ionicons/icons';
@@ -22,18 +22,23 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
   selector: 'app-song-item',
   templateUrl: './song-item.component.html',
   styleUrls: ['./song-item.component.scss'],
-  imports: [IonReorder, CommonModule, IonIcon, LottieEqualizerComponent],
+  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SongItemComponent implements OnInit {
-  @Input() modePage: 'list-page' | 'current-play' | 'down-page' = 'list-page';
+  @Input() modePage: 'list-page' | 'current-play' | 'down-page' |'edit-playlist' = 'list-page';
   @Input() song!: any;
   @Input() showAlbum: boolean = true;
   @Input() showArtist: boolean = true;
   @Input() playlist: Song[] = [];
   @Input() index: number = 0;
   @Input() showRemoveButton: boolean = false; // ✨ Enable remove button
+  @Input() checked: boolean = false;
+
+  // @Input() isSelected!: string;
+  // @Input() showRemoveButton: boolean = false;
+
   @Output() play = new EventEmitter<{
     song: Song;
     playlist: Song[];
@@ -43,6 +48,12 @@ export class SongItemComponent implements OnInit {
   @Output() toggleFavorite = new EventEmitter<Song>();
   @Output() openPlayer = new EventEmitter<void>();
   @Output() removeSong = new EventEmitter<Song>(); // ✨ Remove song event
+  @Output() download = new EventEmitter<any>();
+  @Output() pauseDownload = new EventEmitter<any>();
+  @Output() resumeDownload = new EventEmitter<any>();
+  @Output() cancelDownload = new EventEmitter<any>();
+  @Output() checkedChange = new EventEmitter<boolean>();
+
   currentSong: Song | null = null;
   isPlaying = false;
 
@@ -53,10 +64,6 @@ export class SongItemComponent implements OnInit {
   @Input() isPolling: boolean = false; // 🆕 Đang polling status
   @Input() pollProgress: number = 0; // 🆕 Progress polling
   @Input() isReady: boolean = false; // 🆕 Sẵn sàng download
-  @Output() download = new EventEmitter<any>();
-  @Output() pauseDownload = new EventEmitter<any>();
-  @Output() resumeDownload = new EventEmitter<any>();
-  @Output() cancelDownload = new EventEmitter<any>();
 
   get isCurrentPlayPage(): boolean {
     return this.modePage === 'current-play';
@@ -66,6 +73,9 @@ export class SongItemComponent implements OnInit {
   }
   get isListPage(): boolean {
     return this.modePage === 'list-page';
+  }
+  get isEditPlaylistPage(): boolean {
+    return this.modePage === 'edit-playlist';
   }
 
   constructor(
@@ -141,5 +151,9 @@ export class SongItemComponent implements OnInit {
 
   onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
+  }
+
+  onSongCheckboxChange(event: any) {
+    this.checkedChange.emit(event.detail.checked);
   }
 }

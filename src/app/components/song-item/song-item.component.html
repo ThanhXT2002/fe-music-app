@@ -3,8 +3,8 @@
   (contextmenu)="onShowMenu($event)"
   class="song-item-container bg-gray-100/10"
   [ngClass]="{
-        'song-item-active': isCurrentSong
-      }"
+    'song-item-active': isCurrentSong
+  }"
 >
   <div class="flex items-center space-x-3 px-3 py-2">
     <!-- Thumbnail -->
@@ -16,7 +16,7 @@
       "
       [alt]="song.title"
       (error)="onImageError($event)"
-      class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 "
+      class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2"
       [ngClass]="{
         'spin-with-fill border-lime-500': isThisSongPlaying,
         'spin-paused border-purple-500': !isThisSongPlaying
@@ -64,8 +64,7 @@
           size="large"
         ></ion-icon>
       </ion-reorder>
-      } @else if (isDownPage) {
-        @if (isDownloaded) {
+      } @else if (isDownPage) { @if (isDownloaded) {
       <!-- ✅ Downloaded - Show green check -->
       <div class="text-green-600">
         <i class="fa-solid fa-check-circle text-lg"></i>
@@ -87,31 +86,37 @@
       </div>
       } @else if (isReady) {
       <!-- 📥 Ready to download - Show download button -->
-      <button
-        (click)="download.emit(song)"
-      >
-        <i class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent"></i>
+      <button (click)="download.emit(song)">
+        <i
+          class="fa-solid fa-cloud-arrow-down bg-gradient-to-r from-pink-400 to-pink-600 bg-clip-text text-transparent"
+        ></i>
       </button>
       } @else {
       <!-- ⏳ Default - Not ready yet, show disabled state -->
       <div class="text-gray-500">
         <i class="fa-solid fa-clock text-lg opacity-50"></i>
       </div>
-      } } @else if (isListPage) {
+      }
+    } @else if (isListPage) {
       <button
         (click)="onShowMenu($event)"
         class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors text-gray-500"
       >
         @if (isThisSongPlaying) {
         <app-lottie-equalizer
-            [width]="20"
-            [height]="20"
-            cssClass="playing"
-          ></app-lottie-equalizer>
+          [width]="20"
+          [height]="20"
+          cssClass="playing"
+        ></app-lottie-equalizer>
         } @else {
         <ion-icon name="apps"></ion-icon>
         }
       </button>
+      }@else if(isEditPlaylistPage){
+        <ion-checkbox
+          [checked]="checked"
+          (ionChange)="onSongCheckboxChange($event)"
+        ></ion-checkbox>
       }
     </div>
   </div>

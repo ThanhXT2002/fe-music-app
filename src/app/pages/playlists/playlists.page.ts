@@ -8,7 +8,7 @@ import {
   effect, // Add effect import
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Album, Song } from '../../interfaces/song.interface';
 import { AudioPlayerService } from '../../services/audio-player.service';
 import { PlaylistService } from '../../services/playlist.service'; // ✨ Updated import
@@ -17,13 +17,15 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
 import { FormsModule } from '@angular/forms';
 import { MediaCardComponent } from "../../components/media-card/media-card.component";
+import { ToastService } from '../../services/toast.service';
+
 
 @Component({
   selector: 'app-playlists',
   templateUrl: './playlists.page.html',
   styleUrls: ['./playlists.page.scss'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, MediaCardComponent]
+  imports: [CommonModule, FormsModule, MediaCardComponent]
 })
 export class PlaylistsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -41,10 +43,12 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   currentSong: Song | null = null;
 
   constructor(
+    private router: Router,
     private audioPlayerService: AudioPlayerService,
     private refreshService: RefreshService,
-    private playlistService: PlaylistService, // ✨ Updated to use PlaylistService
-    private alertController: AlertController // ✨ Inject AlertController
+    private playlistService: PlaylistService,
+    private alertController: AlertController,
+    private toastService: ToastService
   ) {
     // Setup effect to watch current song changes
     this.setupCurrentSongWatcher();
@@ -177,27 +181,24 @@ export class PlaylistsPage implements OnInit, OnDestroy {
 
       if (newPlaylist) {
         await this.loadPlaylists();
-
-        const successAlert = await this.alertController.create({
-          mode: 'ios',
-          header: 'Thành Công',
+        this.toastService.show({
           message: `Playlist "${name}" đã được tạo!`,
-          buttons: ['OK'],
+          color: 'success',
+          duration: 2000,
+          icon: 'checkmark-circle'
         });
-        await successAlert.present();
       } else {
         throw new Error('Failed to create playlist');
       }
     } catch (error) {
       console.error('Error creating playlist:', error);
 
-      const errorAlert = await this.alertController.create({
-        mode: 'ios',
-        header: 'Lỗi',
+      this.toastService.show({
         message: `Không thể tạo playlist: ${error}`,
-        buttons: ['OK'],
+        color: 'danger',
+        duration: 3000,
+        icon: 'alert-circle'
       });
-      await errorAlert.present();
     }
   }
 
@@ -219,7 +220,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
           },
         },
         {
-          text: '➕ Thêm nhạc vào Playlist',
+          text: '➕ Chỉnh sửa Playlist',
           handler: () => {
             this.showAddSongsToPlaylist(playlist);
           },
@@ -297,41 +298,30 @@ export class PlaylistsPage implements OnInit, OnDestroy {
           await this.loadPlaylists();
         }, 100);
 
-        const successAlert = await this.alertController.create({
-          mode: 'ios',
-          header: 'Thành Công',
-          message: 'Tên playlist đã được cập nhật!',
-          buttons: ['OK'],
+         this.toastService.show({
+          message: `Tên playlist đã được cập nhật!`,
+          color: 'success',
+          duration: 3000,
+          icon: 'checkmark-circle'
         });
-        await successAlert.present();
       } else {
         throw new Error('Failed to update playlist name');
       }
     } catch (error) {
       console.error('Error updating playlist name:', error);
 
-      const errorAlert = await this.alertController.create({
-        mode: 'ios',
-        header: 'Lỗi',
+      this.toastService.show({
         message: `Không thể cập nhật tên playlist: ${error}`,
-        buttons: ['OK'],
+        color: 'danger',
+        duration: 3000,
+        icon: 'alert-circle'
       });
-      await errorAlert.present();
     }
   }
 
   // ✨ Show add songs to playlist
   async showAddSongsToPlaylist(playlist: Album) {
-    // TODO: Implement add songs interface
-    // For now, show a placeholder message
-    const alert = await this.alertController.create({
-      mode: 'ios',
-      header: 'Thêm Nhạc vào Playlist',
-      message:
-        'Chức năng này sẽ sớm được cập nhật. Hiện tại bạn có thể thêm bài hát vào playlist thông qua trang chi tiết playlist.',
-      buttons: ['OK'],
-    });
-    await alert.present();
+    this.router.navigate(['/edit-playlist', playlist.id]);
   }
 
   // ✨ Confirm delete playlist
@@ -365,27 +355,23 @@ export class PlaylistsPage implements OnInit, OnDestroy {
 
       if (success) {
         await this.loadPlaylists();
-
-        const successAlert = await this.alertController.create({
-          mode: 'ios',
-          header: 'Thành Công',
+        this.toastService.show({
           message: 'Playlist đã được xóa thành công!',
-          buttons: ['OK'],
+          color: 'success',
+          duration: 2000,
+          icon: 'checkmark-circle'
         });
-        await successAlert.present();
       } else {
         throw new Error('Failed to delete playlist');
       }
     } catch (error) {
       console.error('Error deleting playlist:', error);
-
-      const errorAlert = await this.alertController.create({
-        mode: 'ios',
-        header: 'Lỗi',
-        message: 'Không thể xóa playlist. Vui lòng thử lại.',
-        buttons: ['OK'],
+      this.toastService.show({
+        message: `Không thể xóa playlist: ${error}`,
+        color: 'danger',
+        duration: 3000,
+        icon: 'alert-circle'
       });
-      await errorAlert.present();
     }
   }
 

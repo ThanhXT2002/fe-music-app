@@ -75,6 +75,12 @@ export const routes: Routes = [
         (m) => m.TermsOfServicePage
       ),
   },
+  {
+    path: 'edit-playlist/:playlistId',
+    loadComponent: () => import('./pages/playlists/edit-playlist/edit-playlist.page').then( m => m.EditPlaylistPage)
+  },
+
+
 
 
 ];
