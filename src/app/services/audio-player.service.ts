@@ -40,10 +40,7 @@ export class AudioPlayerService {
   currentIndex = signal<number>(-1);
   bufferProgress = signal<number>(0);
 
-
-  constructor(
-    private indexedDBService: IndexedDBService
-  ) {
+  constructor(private indexedDBService: IndexedDBService) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
@@ -68,8 +65,16 @@ export class AudioPlayerService {
         return audioObjectUrl;
       } else {
         // 3. Nếu không tìm thấy trong DB, báo lỗi -> không fallback
-        console.error('❌ Audio not found in IndexedDB for song:', song.title);
-        throw new Error(`Audio for '${song.title}' not found offline.`);
+        if (song.audio_url) {
+          // Có thể cache lại nếu muốn
+          this.audioCache.set(cacheKey, song.audio_url);
+          return song.audio_url;
+        } else {
+          console.error('❌ Audio not found anywhere for song:', song.title);
+          throw new Error(
+            `Audio for '${song.title}' not found offline or online.`
+          );
+        }
       }
     } catch (error) {
       console.error('❌ Failed to load audio from database:', error);
@@ -291,7 +296,8 @@ export class AudioPlayerService {
     } catch (error) {
       console.warn('Buffer progress update failed:', error);
     }
-  }  private setupSignalUpdates() {
+  }
+  private setupSignalUpdates() {
     // Initial sync to ensure signals are up to date
     this.syncSignalsWithPlaybackState();
 
@@ -326,10 +332,12 @@ export class AudioPlayerService {
     this.syncSignalsWithPlaybackState();
 
     // 🆕 Auto-save settings if related properties changed
-    if (oldState.volume !== newState.volume ||
-        oldState.isMuted !== newState.isMuted ||
-        oldState.repeatMode !== newState.repeatMode ||
-        oldState.isShuffled !== newState.isShuffled) {
+    if (
+      oldState.volume !== newState.volume ||
+      oldState.isMuted !== newState.isMuted ||
+      oldState.repeatMode !== newState.repeatMode ||
+      oldState.isShuffled !== newState.isShuffled
+    ) {
       this.saveSettingsDebounced();
     }
   }
@@ -531,13 +539,14 @@ export class AudioPlayerService {
       case 'all':
         await this.playNext();
         break;
-      case 'none':        if (state.currentIndex < state.currentPlaylist.length - 1) {
+      case 'none':
+        if (state.currentIndex < state.currentPlaylist.length - 1) {
           await this.playNext();
         } else {
-          this.updatePlaybackState(state => ({
+          this.updatePlaybackState((state) => ({
             ...state,
             isPlaying: false,
-            isPaused: false
+            isPaused: false,
           }));
         }
         break;
@@ -560,12 +569,13 @@ export class AudioPlayerService {
         // - Mỗi 10 giây thay vì 30 giây (responsive hơn)
         // - Lưu ở những thời điểm quan trọng: 5s, 15s, 30s, 60s...
         const currentTime = Math.floor(this.audio.currentTime);
-        if (currentTime > 0 && (
-          currentTime % 10 === 0 ||  // Mỗi 10 giây
-          currentTime === 5 ||       // 5 giây đầu
-          currentTime === 15 ||      // 15 giây
-          currentTime === 45         // 45 giây
-        )) {
+        if (
+          currentTime > 0 &&
+          (currentTime % 10 === 0 || // Mỗi 10 giây
+            currentTime === 5 || // 5 giây đầu
+            currentTime === 15 || // 15 giây
+            currentTime === 45) // 45 giây
+        ) {
           this.savePlaybackStateDebounced();
         }
       }
@@ -616,7 +626,7 @@ export class AudioPlayerService {
       if (saved) {
         const settings = JSON.parse(saved);
 
-        this.updatePlaybackState(state => ({
+        this.updatePlaybackState((state) => ({
           ...state,
           volume: settings.volume || 1,
           isMuted: settings.isMuted || false,
@@ -805,14 +815,14 @@ export class AudioPlayerService {
           keywords: [],
           isFavorite: false,
           addedDate: new Date(),
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
         }));
 
         // 🔧 Get current settings from audioPlayerSettings (priority)
         const currentState = this._playbackState();
 
         // Update state - KHÔNG ghi đè settings từ audioPlayerSettings
-        this.updatePlaybackState(state => ({
+        this.updatePlaybackState((state) => ({
           ...state,
           currentSong: {
             id: savedState.currentSong!.id,
@@ -825,17 +835,17 @@ export class AudioPlayerService {
             keywords: [],
             isFavorite: false,
             addedDate: new Date(),
-            lastUpdated: new Date()
+            lastUpdated: new Date(),
           },
           currentPlaylist: playlist,
           currentIndex: savedState.currentIndex,
           currentTime: savedState.currentTime,
           isPlaying: false, // Không tự động play
           // 🔧 GIỮ NGUYÊN settings từ audioPlayerSettings
-          volume: currentState.volume,        // From audioPlayerSettings
-          isMuted: currentState.isMuted,      // From audioPlayerSettings
+          volume: currentState.volume, // From audioPlayerSettings
+          isMuted: currentState.isMuted, // From audioPlayerSettings
           repeatMode: currentState.repeatMode, // From audioPlayerSettings
-          isShuffled: currentState.isShuffled // From audioPlayerSettings
+          isShuffled: currentState.isShuffled, // From audioPlayerSettings
         })); // Load audio source nhưng không play
         try {
           // Tạo Song object tạm thời để sử dụng loadAudioWithBypass
@@ -850,7 +860,7 @@ export class AudioPlayerService {
             keywords: [],
             isFavorite: false,
             addedDate: new Date(),
-            lastUpdated: new Date()
+            lastUpdated: new Date(),
           };
 
           const audioUrl = await this.loadAudioWithBypass(tempSong);

@@ -22,8 +22,9 @@
               @for (song of songGroup; track song.id) {
                 <app-song-item-home
                   [song]="song"
+                  [sectionPlaylist]="songs"
+                  [playerState]="playerState"
                   (songClick)="onSongClick($event)"
-                  (songPlay)="onSongPlay($event)"
                   (songOptions)="onSongOptions($event)"
                 />
               }

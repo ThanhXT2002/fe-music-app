@@ -1,39 +1,47 @@
-<div class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 transition-colors duration-200"
-     (click)="onSongClick()">
+<div
+  class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 transition-colors duration-200"
+  (click)="onSongClick()"
+>
   <!-- Thumbnail -->
-  <div class="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 relative group shadow shadow-rose-300">
+  <div
+    class="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 relative group shadow shadow-rose-300"
+  >
     <img
       [src]="song.thumbnail_url"
       [alt]="song.title"
       class="w-full h-full object-cover"
       loading="lazy"
+    />
+
+    <div
+      class="absolute inset-0 flex items-center justify-center transition-all duration-200"
     >
-    <!-- Play button overlay -->
-    <div class="absolute inset-0 flex items-center justify-center transition-all duration-200">
-      <button
-        class="w-8 h-8 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all duration-200"
-        (click)="onPlayClick($event)"
-      >
-        <i class="fa-solid fa-play text-xl text-purple-500 ml-1"></i>
-      </button>
+      @if (playerState.currentSong && song.id === playerState.currentSong.id &&
+      sectionPlaylist === playerState.currentPlaylist) {
+      <app-lottie-equalizer
+        [width]="20"
+        [height]="20"
+        cssClass="playing"
+      ></app-lottie-equalizer>
+      }
     </div>
   </div>
 
   <!-- Song Info -->
   <div class="flex-1 min-w-0">
-    <h3 class="text-white text-sm font-medium truncate leading-tight">{{ song.title }}</h3>
+    <h3 class="text-white text-sm font-medium truncate leading-tight">
+      {{ song.title }}
+    </h3>
     @if (showArtist || showDuration) {
-      <p class="text-gray-400 text-xs truncate mt-0.5">
-        @if (showArtist) {
-          {{ song.artist }}
-        }
-        @if (showArtist && showDuration) {
-          <span class="text-gray-500"> • </span>
-        }
-        @if (showDuration) {
-          <span class="text-gray-500">{{ song.duration_formatted }}</span>
-        }
-      </p>
+    <p class="text-gray-400 text-xs truncate mt-0.5">
+      @if (showArtist) {
+      {{ song.artist }}
+      } @if (showArtist && showDuration) {
+      <span class="text-gray-500"> • </span>
+      } @if (showDuration) {
+      <span class="text-gray-500">{{ song.duration_formatted }}</span>
+      }
+    </p>
     }
   </div>
 

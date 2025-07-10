@@ -6,8 +6,8 @@
     <app-song-section
       title="Mọi người cùng nghe"
       [songs]="listEveryoneToListens"
+     [playerState]="audioPlayerService.playbackState()"
       (songClick)="onSongClick($event)"
-      (songPlay)="onSongPlay($event)"
       (songOptions)="onSongOptions($event)"
     />
 
@@ -15,8 +15,8 @@
     <app-song-section
       title="Nhạc Remix"
       [songs]="listRemixSongs"
+     [playerState]="audioPlayerService.playbackState()"
       (songClick)="onSongClick($event)"
-      (songPlay)="onSongPlay($event)"
       (songOptions)="onSongOptions($event)"
     />
 
@@ -24,8 +24,8 @@
     <app-song-section
       title="Nhạc Không Lời"
       [songs]="listInstrumentalSongs"
+     [playerState]="audioPlayerService.playbackState()"
       (songClick)="onSongClick($event)"
-      (songPlay)="onSongPlay($event)"
       (songOptions)="onSongOptions($event)"
     />
 
@@ -33,8 +33,9 @@
     <app-song-section
       title="Nhạc TikTok Hot"
       [songs]="listTikTokSongs"
+     [playerState]="audioPlayerService.playbackState()"
       (songClick)="onSongClick($event)"
-      (songPlay)="onSongPlay($event)"
+
       (songOptions)="onSongOptions($event)"
     />
   </div>

@@ -103,13 +103,11 @@
         class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors text-gray-500"
       >
         @if (isThisSongPlaying) {
-        <div class="text-blue-500">
-          <app-lottie-equalizer
+        <app-lottie-equalizer
             [width]="20"
             [height]="20"
             cssClass="playing"
           ></app-lottie-equalizer>
-        </div>
         } @else {
         <ion-icon name="apps"></ion-icon>
         }

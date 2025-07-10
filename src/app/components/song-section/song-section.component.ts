@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Platform } from '@ionic/angular/standalone';
-import { Song } from 'src/app/interfaces/song.interface';
+import { PlaybackState, Song } from 'src/app/interfaces/song.interface';
 import { SongItemHomeComponent } from '../song-item-home/song-item-home.component';
 
 @Component({
@@ -19,8 +19,9 @@ export class SongSectionComponent {
   @Input() songs: Song[] = [];
   @Input() loading: boolean = false;
   @Input() loadingText: string = 'Đang tải...';
+  @Input() playerState!: PlaybackState;
 
-  @Output() songClick = new EventEmitter<Song>();
+@Output() songClick = new EventEmitter<{ song: Song, playlist: Song[] }>();
   @Output() songPlay = new EventEmitter<Song>();
   @Output() songOptions = new EventEmitter<Song>();
 
@@ -51,13 +52,9 @@ export class SongSectionComponent {
     return skeletonGroups;
   }
 
-  onSongClick(song: Song) {
-    this.songClick.emit(song);
-  }
-
-  onSongPlay(song: Song) {
-    this.songPlay.emit(song);
-  }
+onSongClick(song: Song) {
+  this.songClick.emit({ song, playlist: this.songs });
+}
 
   onSongOptions(song: Song) {
     this.songOptions.emit(song);

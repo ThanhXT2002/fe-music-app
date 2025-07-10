@@ -42,7 +42,7 @@ export class HomePage implements OnInit {
 
   constructor(
     private homeService: HomeService,
-    private audioPlayerService: AudioPlayerService,
+    public audioPlayerService: AudioPlayerService,
     private platform: Platform
   ) {
     this.isCurrentSong = !!this.audioPlayerService.currentSong();
@@ -186,15 +186,14 @@ export class HomePage implements OnInit {
   }
 
   // Event handlers for song interactions
-  onSongClick(song: Song) {
-    console.log('Song clicked:', song.title);
-    // TODO: Navigate to song detail or add to queue
+onSongClick(event: { song: Song, playlist: Song[] }) {
+  const { song, playlist } = event;
+  const index = playlist.findIndex(s => s.id === song.id);
+  if (index !== -1) {
+    this.audioPlayerService.setPlaylist(playlist, index);
   }
+}
 
-  onSongPlay(song: Song) {
-    console.log('Play song:', song.title);
-    // TODO: Start playing the song
-  }
 
   onSongOptions(song: Song) {
     console.log('Song options:', song.title);
