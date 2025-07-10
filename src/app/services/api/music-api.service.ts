@@ -99,8 +99,6 @@ export class MusicApiService {
     thumbnailBlob: Blob | null;
   }> {
     try {
-      console.log('🎵 Starting download for song:', songId);
-
       // Download audio (bắt buộc)
       const audioBlob = await firstValueFrom(this.downloadSongAudio(songId, true));
 
@@ -108,13 +106,10 @@ export class MusicApiService {
       let thumbnailBlob: Blob | null = null;
       try {
         thumbnailBlob = await firstValueFrom(this.downloadThumbnail(songId));
-        console.log('✅ Thumbnail downloaded successfully');
       } catch (thumbnailError) {
         console.warn('⚠️ Thumbnail download failed:', thumbnailError);
         // Continue without thumbnail - this is not critical
       }
-
-      console.log('✅ Audio downloaded successfully');
       return {
         audioBlob,
         thumbnailBlob

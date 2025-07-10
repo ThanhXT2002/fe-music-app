@@ -114,7 +114,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
       }
       // Không hiển thị lỗi cho auto-paste để tránh làm phiền user
     } catch (error) {
-      console.log('Auto-paste failed silently:', error);
       // Silent fail cho auto-paste
     }
   }

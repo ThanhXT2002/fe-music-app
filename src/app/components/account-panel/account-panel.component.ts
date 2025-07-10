@@ -23,7 +23,6 @@ export class AccountPanelComponent implements OnInit {
   ngOnInit() {
     // Subscribe to user changes
     this.authService.user$.subscribe((user) => {
-      console.log('User updated in settings:', user);
       this.user.set(user);
     });
   }

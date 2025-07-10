@@ -126,8 +126,6 @@ export class DownloadService {
 
   private async initializeDownloads() {
     try {
-      console.log('🔄 Initializing DownloadService...');
-
       // Đảm bảo IndexedDB được khởi tạo trước khi load downloads
       const isInitialized = await this.indexedDBService.initDB();
 
@@ -505,8 +503,6 @@ export class DownloadService {
       await this.completeDownload(id);
     } catch (error) {
       if (signal.aborted) {
-        // Nếu người dùng hủy, chỉ log và dừng, không throw lỗi
-        console.log('Download đã bị hủy bởi người dùng');
         return;
       }
 

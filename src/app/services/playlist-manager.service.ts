@@ -28,8 +28,6 @@ export class PlaylistManagerService {
    */
   async initializeSystemPlaylists(): Promise<void> {
     try {
-      console.log('🎵 Initializing system playlists...');
-
       // Tạo các system playlists cơ bản
       await this.createSystemPlaylistIfNotExists(SYSTEM_PLAYLISTS.FAVORITES);
       await this.createSystemPlaylistIfNotExists(SYSTEM_PLAYLISTS.DOWNLOADED);
@@ -37,7 +35,6 @@ export class PlaylistManagerService {
       await this.createSystemPlaylistIfNotExists(SYSTEM_PLAYLISTS.POPULAR);
       await this.createSystemPlaylistIfNotExists(SYSTEM_PLAYLISTS.ALL_SONGS);
 
-      console.log('✅ System playlists initialized');
     } catch (error) {
       console.error('❌ Error initializing system playlists:', error);
     }
@@ -48,8 +45,6 @@ export class PlaylistManagerService {
    */
   async updateAllSystemPlaylists(): Promise<void> {
     try {
-      console.log('🔄 Updating system playlists...');
-
       await Promise.all([
         this.updateFavoritesPlaylist(),
         this.updateDownloadedPlaylist(),
@@ -57,8 +52,6 @@ export class PlaylistManagerService {
         this.updatePopularPlaylist(),
         this.updateAllSongsPlaylist()
       ]);
-
-      console.log('✅ System playlists updated');
     } catch (error) {
       console.error('❌ Error updating system playlists:', error);
     }

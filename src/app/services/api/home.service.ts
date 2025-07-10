@@ -52,8 +52,6 @@ export class HomeService {
     const url = `${this.apiUrl}/songs/completed?limit=${limit}&key=${key}`;
     return this.http.get<any>(url).pipe(
       map((response: any) => {
-        console.log('API Response:', response);
-
         // Handle different API response formats
         if (response.success && response.data) {
           // If data is already an array of songs
@@ -124,7 +122,6 @@ export class HomeService {
           this.cachedData.set(cacheKey, data);
           this.getDataSubject(cacheKey).next(data);
           this.setLoading(cacheKey, false);
-          console.log(`Home data cached successfully for key: ${key}, limit: ${limit}`);
         },
         error: (error) => {
           console.error(`Error loading home data for key: ${key}`, error);

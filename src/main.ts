@@ -26,21 +26,11 @@ import { ThemeService } from './app/services/theme.service';
 import { authInterceptor } from './app/interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
 import { SafeAreaService } from './app/services/safe-area.service';
-import { DebugService } from './app/services/debug.service';
-import { APP_INITIALIZER } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
 import { register as registerSwiperElements } from 'swiper/element/bundle';
 
-function initializeFirebaseAuth() {
-  return async () => {
-    if (Capacitor.isNativePlatform()) {
-      // Firebase Authentication sẽ tự động initialize từ google-services.json
-      console.log('Firebase Authentication ready from google-services.json');
-    }
-  };
-}
+
 registerSwiperElements()
 bootstrapApplication(AppComponent, {
 
@@ -55,15 +45,6 @@ bootstrapApplication(AppComponent, {
     provideAuth(() => getAuth()),
     ThemeService,
     SafeAreaService,
-    ...(Capacitor.isNativePlatform()
-      ? [
-          {
-            provide: APP_INITIALIZER,
-            useFactory: initializeFirebaseAuth,
-            multi: true,
-          },
-        ]
-      : []),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',

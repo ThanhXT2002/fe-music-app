@@ -53,10 +53,8 @@ export class HomePage implements OnInit {
     if(Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song
        this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
-      console.log('Native platform detected, padding set to:', this.pbCustom);
     }else{
       if(this.platform.is('pwa')) {
-        console.log('iOS PWA detected');
          this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
       }
       else if(this.platform.is('desktop')) {
@@ -78,7 +76,6 @@ export class HomePage implements OnInit {
     this.homeService.getHomeData().subscribe({
       next: (res) => {
         if (res && res.data) {
-          console.log('Home page received cached data:', res.data);
           // Ensure data is an array
           if (Array.isArray(res.data)) {
             this.listEveryoneToListens = res.data;
@@ -87,7 +84,6 @@ export class HomePage implements OnInit {
             this.listEveryoneToListens = [];
           }
         } else {
-          console.log('Data is still loading...');
           this.listEveryoneToListens = [];
         }
       },
@@ -102,20 +98,16 @@ export class HomePage implements OnInit {
     this.homeService.getHomeData('remix', 25).subscribe({
       next: (res) => {
         if (res && res.data) {
-          console.log('Remix songs loaded:', res.data);
           if (Array.isArray(res.data)) {
             this.listRemixSongs = res.data;
           } else {
-            console.warn('Expected array but got:', typeof res.data);
             this.listRemixSongs = [];
           }
         } else {
-          console.log('Remix songs are still loading...');
           this.listRemixSongs = [];
         }
       },
       error: (error) => {
-        console.error('Error loading remix songs:', error);
         this.listRemixSongs = [];
       },
     });
@@ -125,15 +117,12 @@ export class HomePage implements OnInit {
     this.homeService.getHomeData('Không Lời', 25).subscribe({
       next: (res) => {
         if (res && res.data) {
-          console.log('Instrumental songs loaded:', res.data);
           if (Array.isArray(res.data)) {
             this.listInstrumentalSongs = res.data;
           } else {
-            console.warn('Expected array but got:', typeof res.data);
             this.listInstrumentalSongs = [];
           }
         } else {
-          console.log('Instrumental songs are still loading...');
           this.listInstrumentalSongs = [];
         }
       },
@@ -148,20 +137,16 @@ export class HomePage implements OnInit {
     this.homeService.getHomeData('tik', 25).subscribe({
       next: (res) => {
         if (res && res.data) {
-          console.log('TikTok songs loaded:', res.data);
           if (Array.isArray(res.data)) {
             this.listTikTokSongs = res.data;
           } else {
-            console.warn('Expected array but got:', typeof res.data);
             this.listTikTokSongs = [];
           }
         } else {
-          console.log('TikTok songs are still loading...');
           this.listTikTokSongs = [];
         }
       },
       error: (error) => {
-        console.error('Error loading TikTok songs:', error);
         this.listTikTokSongs = [];
       },
     });
@@ -171,7 +156,6 @@ export class HomePage implements OnInit {
   refreshRemixSongs() {
     this.homeService.refreshData('remix', 25).subscribe({
       next: (res) => {
-        console.log('Remix songs refreshed:', res.data);
         this.listRemixSongs = res.data;
       },
       error: (error) => {
@@ -183,7 +167,6 @@ export class HomePage implements OnInit {
   refreshInstrumentalSongs() {
     this.homeService.refreshData('khong loi', 25).subscribe({
       next: (res) => {
-        console.log('Instrumental songs refreshed:', res.data);
         this.listInstrumentalSongs = res.data;
       },
       error: (error) => {
@@ -194,7 +177,6 @@ export class HomePage implements OnInit {
   refreshTikTokSongs() {
     this.homeService.refreshData('tik', 25).subscribe({
       next: (res) => {
-        console.log('TikTok songs refreshed:', res.data);
         this.listTikTokSongs = res.data;
       },
       error: (error) => {

@@ -216,11 +216,8 @@ export class ClipboardService {
     error?: string;
     method?: 'native' | 'web' | 'user-action-required';
   }> {
-    console.log('📋 Attempting smart clipboard read...');
-
     // For web, clipboard read requires user interaction
     if (!Capacitor.isNativePlatform()) {
-      console.log('🌐 Web platform detected - clipboard needs user interaction');
       return {
         success: false,
         error: 'USER_ACTION_REQUIRED',
@@ -380,7 +377,6 @@ export class ClipboardService {
     needsManualPaste?: boolean;
   }> {
     try {
-      console.log('🔄 Starting auto-paste with validation...');
 
       // Try smart read
       const readResult = await this.smartRead();
@@ -406,7 +402,6 @@ export class ClipboardService {
       const validation = this.validateClipboardContent(readResult.content!);
 
       if (validation.isValid && validation.isYouTubeUrl) {
-        console.log('✅ Valid YouTube URL found in clipboard');
         return {
           success: true,
           content: readResult.content,
@@ -414,7 +409,6 @@ export class ClipboardService {
           suggestion: validation.suggestion
         };
       } else {
-        console.log('❌ Invalid clipboard content');
         return {
           success: false,
           content: readResult.content,

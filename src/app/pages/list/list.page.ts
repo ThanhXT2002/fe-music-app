@@ -321,7 +321,6 @@ export class ListPage implements OnInit, OnDestroy {
       // ✅ Kiểm tra nếu artist này đang được phát
       if (this.isArtistActive(artist.name)) {
         this.openPlaylist();
-        console.log('đang phát rồi');
         return;
       }
 

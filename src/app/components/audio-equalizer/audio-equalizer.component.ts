@@ -203,7 +203,6 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
           AudioEqualizerComponent.sharedAudioContext &&
           AudioEqualizerComponent.sharedAnalyser) {
 
-        console.log('🔊 Reusing existing audio analysis setup');
         this.audioContext = AudioEqualizerComponent.sharedAudioContext;
         this.analyser = AudioEqualizerComponent.sharedAnalyser;
         this.source = AudioEqualizerComponent.sharedSource;
@@ -234,8 +233,6 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
 
         // Track the connected element
         AudioEqualizerComponent.connectedElement = audioElement;
-
-        console.log('✅ Created new audio analysis setup');
       }
 
       // Create frequency data array
@@ -354,7 +351,6 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
     animateDown();
   }
   private fallbackToSmartAnimation() {
-    console.log('🔄 Using optimized center-focused fallback animation');
 
     if (!this.isPlaying) return;
 

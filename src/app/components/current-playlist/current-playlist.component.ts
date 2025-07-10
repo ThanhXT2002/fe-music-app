@@ -98,7 +98,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
     addIcons({ reorderThreeOutline });
   }
-  
+
   ngOnInit() {
 
   }
@@ -225,23 +225,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       // Force UI update
       this.cdr.detectChanges();
 
-      console.log(`Song ${song.title} favorite status: ${newFavoriteStatus}`);
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
-  }
-
-  // Debug method to manually check signals
-  debugSignals() {
-    console.log('🔍 Debug signals:', {
-      currentSong: this.currentSong()?.title,
-      isPlaying: this.isPlaying(),
-      isShuffling: this.isShuffling(),
-      currentTime: this.currentTime(),
-      duration: this.duration(),
-      progressPercentage: this.progressPercentage(),
-      playbackState: this.playbackState(),
-    });
   }
 
   // Force UI refresh method

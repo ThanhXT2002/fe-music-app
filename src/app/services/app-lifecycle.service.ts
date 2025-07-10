@@ -58,13 +58,7 @@ export class AppLifecycleService {
    */
   private async handleAppPause() {
     try {
-      console.log('📱 App pausing - saving state...');      // Lưu playback state
       this.audioPlayerService.savePlaybackState();
-
-      // IndexedDB doesn't need explicit close
-      console.log('🔄 IndexedDB cleanup completed');
-
-      // App state saved successfully
     } catch (error) {
       console.error('❌ Error saving app state:', error);
     }
@@ -75,12 +69,8 @@ export class AppLifecycleService {
    */
   private async handleAppResume() {
     try {
-      console.log('📱 App resuming - restoring state...');
-
       // Khởi tạo lại database connection
       await this.databaseService.initializeDatabase();
-
-      // App state restored successfully
     } catch (error) {
       console.error('❌ Error restoring app state:', error);
     }

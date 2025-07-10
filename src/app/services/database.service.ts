@@ -355,7 +355,6 @@ export class DatabaseService {
 
 
   async debugClearTestData(): Promise<void> {
-    console.log('🗑️ Clearing test data...');
 
     const songs = await this.getAllSongs();
     const testSongs = songs.filter(
@@ -364,10 +363,7 @@ export class DatabaseService {
 
     for (const song of testSongs) {
       await this.deleteSong(song.id);
-      console.log('🗑️ Deleted test song:', song.title);
     }
-
-    console.log(`✅ Cleared ${testSongs.length} test songs`);
   }
 
   // Missing methods for compatibility
