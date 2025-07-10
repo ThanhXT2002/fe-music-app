@@ -6,6 +6,7 @@ import {
   ElementRef,
   signal,
   effect, // Add effect import
+  EffectRef // <-- Thêm dòng này
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -41,6 +42,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   activePlaylist = signal<string | null>(null);
 
   currentSong: Song | null = null;
+  private currentSongEffectDispose?: EffectRef;
 
   constructor(
     private router: Router,
@@ -78,6 +80,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     if (this.scrollContainer) {
       this.scrollPosition = this.scrollContainer.nativeElement.scrollTop;
     }
+    this.currentSongEffectDispose?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -381,7 +384,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
 
   // ✅ Setup effect to watch current song changes
   private setupCurrentSongWatcher() {
-    effect(() => {
+    this.currentSongEffectDispose = effect(() => {
       this.currentSong = this.audioPlayerService.currentSong();
       const playlists = this.playlists();
       let activeId: string | null = null;
