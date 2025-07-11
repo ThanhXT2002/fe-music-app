@@ -131,17 +131,55 @@ export class EditPlaylistPage implements OnInit {
 
   async onSongCheckboxChange(songId: string, checked: boolean) {
     if (!this.playlistId) return;
+
+    // Optimistic update UI trước
     if (checked) {
-      await this.playlistService.addSongToPlaylist(this.playlistId, songId);
       this.selectedSongIds.add(songId);
+      // Tìm song data từ nguồn hiện có (searchResults, etc.)
+      const songData = this.findSongData(songId);
+      if (songData) {
+        this.detailList.push(songData);
+      }
     } else {
-      await this.playlistService.removeSongFromPlaylist(
-        this.playlistId,
-        songId
-      );
       this.selectedSongIds.delete(songId);
+      this.detailList = this.detailList.filter((song) => song.id !== songId);
     }
-    this.refreshService.triggerRefresh(); // Trigger refresh ngay khi update playlist
+
+    try {
+      // Cập nhật server
+      if (checked) {
+        await this.playlistService.addSongToPlaylist(this.playlistId, songId);
+      } else {
+        await this.playlistService.removeSongFromPlaylist(
+          this.playlistId,
+          songId
+        );
+      }
+
+      this.refreshService.triggerRefresh();
+    } catch (error) {
+      // Rollback nếu lỗi
+      if (checked) {
+        this.selectedSongIds.delete(songId);
+        this.detailList = this.detailList.filter((song) => song.id !== songId);
+      } else {
+        this.selectedSongIds.add(songId);
+        const songData = this.findSongData(songId);
+        if (songData) {
+          this.detailList.push(songData);
+        }
+      }
+      console.error('Error updating playlist:', error);
+    }
+  }
+
+  // Helper method
+  private findSongData(songId: string) {
+    // Tìm từ searchResults hoặc nguồn data khác
+    return (
+      this.filteredSongs?.find((song) => song.id === songId) ||
+      this.allSongs?.find((song) => song.id === songId)
+    );
   }
 
   onSearchInput(event: any) {
