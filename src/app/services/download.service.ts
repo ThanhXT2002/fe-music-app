@@ -448,6 +448,7 @@ export class DownloadService {
       // Bước 3: Tải thumbnail (70-75% tiến trình) - không bắt buộc
       this.updateDownloadProgress(id, 75, 'downloading');
       let thumbnailBlob: Blob | null = null;
+      let thumbnailBase64: string | null = null;
       try {
         // Tải thumbnail, timeout 30 giây
         thumbnailBlob = await firstValueFrom(
@@ -455,6 +456,14 @@ export class DownloadService {
             .downloadThumbnail(songData.id)
             .pipe(timeout(30000))
         );
+        if (thumbnailBlob) {
+          // Xác định mime type (webp/png/jpg)
+          const mimeType = thumbnailBlob.type || 'image/webp';
+          const base64 = await this.blobToBase64(thumbnailBlob);
+          thumbnailBase64 = `data:${mimeType};base64,${base64}`;
+          // Gán vào songData để lưu vào database
+          download.songData.thumbnail_url = thumbnailBase64;
+        }
       } catch (thumbError) {
         // Nếu lỗi (CORS, mạng...), chỉ cảnh báo và tiếp tục
         console.warn(
@@ -572,6 +581,11 @@ export class DownloadService {
       song.addedDate = new Date();
       song.isFavorite = false;
       song.keywords = songData.keywords || [];
+
+      // Gán thumbnail_url nếu có
+      if (songData.thumbnail_url) {
+        song.thumbnail_url = songData.thumbnail_url;
+      }
 
       // Lưu vào database
       const success = await this.databaseService.addSong(song);
