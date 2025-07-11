@@ -12,6 +12,7 @@ import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
 import { MusicApiService } from './api/music-api.service';
 import { environment } from 'src/environments/environment';
+import { ToastService } from './toast.service';
 
 // Define DownloadTask interface directly in this file
 export interface DownloadTask {
@@ -50,17 +51,6 @@ export class DownloadService {
 
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
-  // Notification system to prevent duplicates
-  private completionNotificationsSubject =
-    new BehaviorSubject<CompletionNotification | null>(null);
-  public completionNotifications$ =
-    this.completionNotificationsSubject.asObservable();
-
-  // Status notifications for ready/failed states
-  private statusNotificationsSubject =
-    new BehaviorSubject<StatusNotification | null>(null);
-  public statusNotifications$ = this.statusNotificationsSubject.asObservable();
-
   // Track notifications sent to prevent duplicates (persist across app restarts)
   private notificationSentCache = new Set<string>();
   private readyNotificationSentCache = new Set<string>(); // For ready notifications
@@ -72,7 +62,8 @@ export class DownloadService {
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
     private refreshService: RefreshService,
-    private musicApiService: MusicApiService
+    private musicApiService: MusicApiService,
+    private toastService: ToastService
   ) {
     this.initializeDownloads();
     this.loadNotificationCache();
@@ -246,13 +237,9 @@ export class DownloadService {
       if (!this.notificationSentCache.has(songId)) {
         this.notificationSentCache.add(songId);
         this.saveNotificationCache();
-
-        const notification: CompletionNotification = {
-          songId,
-          title: download.title,
-          timestamp: Date.now(),
-        };
-        this.completionNotificationsSubject.next(notification);
+        this.toastService.success(
+          `Bài hát ${download.title} đã được tải xuống thành công!`
+        );
       }
     }
 
@@ -906,26 +893,14 @@ export class DownloadService {
             if (!this.readyNotificationSentCache.has(songId)) {
               this.readyNotificationSentCache.add(songId);
               this.saveNotificationCache();
-
-              const readyNotification: StatusNotification = {
-                songId,
-                message: 'Bài hát đã sẵn sàng để tải xuống!',
-                type: 'success',
-                timestamp: Date.now(),
-              };
-              this.statusNotificationsSubject.next(readyNotification);
+              this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
             }
           } else if (status.status === 'failed') {
             console.error('❌ Song processing failed:', status.error_message);
             this.stopStatusPolling(songId);
             // Gửi thông báo lỗi
-            const errorNotification: StatusNotification = {
-              songId,
-              message: `Xử lý thất bại: ${status.error_message}`,
-              type: 'error',
-              timestamp: Date.now(),
-            };
-            this.statusNotificationsSubject.next(errorNotification);
+
+            this.toastService.success(`Xử lý thất bại: ${status.error_message}`);
           }
         } else {
           console.warn('⚠️ Status check failed:', statusResponse.message);

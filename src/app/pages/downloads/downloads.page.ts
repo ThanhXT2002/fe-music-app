@@ -15,7 +15,7 @@ import { DataSong, SearchHistoryItem } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { ToastService } from 'src/app/services/toast.service';
 import { AlertController } from '@ionic/angular/standalone';
-import { firstValueFrom, takeUntil } from 'rxjs';
+import { firstValueFrom, skip, takeUntil } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { SongItemComponent } from '../../components/song-item/song-item.component';
 import { Subject } from 'rxjs';
@@ -62,28 +62,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((downloads) => {
         this.downloads.set(downloads);
-      });
-
-    // Subscribe to completion notifications from service
-    this.downloadService.completionNotifications$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((notification: CompletionNotification | null) => {
-        if (notification) {
-          this.showCompletedNotification(notification.title);
-        }
-      });
-
-    // Subscribe to status notifications from service (ready/failed)
-    this.downloadService.statusNotifications$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((notification: StatusNotification | null) => {
-        if (notification) {
-          if (notification.type === 'error') {
-            this.toastService.error(notification.message);
-          } else {
-            this.toastService.success(notification.message);
-          }
-        }
       });
 
     // Auto-paste from clipboard on load
