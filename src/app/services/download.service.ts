@@ -1,12 +1,23 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, firstValueFrom, timeout } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  firstValueFrom,
+  fromEvent,
+  takeUntil,
+  timeout,
+} from 'rxjs';
 import {
   Song,
   DataSong,
   SongsResponse,
   SongConverter,
 } from '../interfaces/song.interface';
-import { HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpErrorResponse,
+  HttpEvent,
+  HttpEventType,
+} from '@angular/common/http';
 import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
@@ -389,6 +400,7 @@ export class DownloadService {
    * @param id - ID của download task
    * @param signal - AbortSignal
    */
+  // Main handler - clean and readable
   private async handleWebDownload(
     id: string,
     signal: AbortSignal,
@@ -398,124 +410,232 @@ export class DownloadService {
     if (!download || !download.songData) return;
 
     const { songData } = download;
-    // Ưu tiên lấy duration truyền vào, nếu không có thì lấy từ songData
-    const songDuration = duration ?? download.songData.duration;
-
-    let timeoutMs = 120000; // 2 phút mặc định
-    let progressDuration = 15000; // 15 giây mặc định
-    if (songDuration && songDuration > 1800) {
-      // 1800 giây = 30 phút
-      timeoutMs = 600000; // 10 phút cho bài hát dài
-      progressDuration = 60000;
-    }
+    const timeoutMs = this.calculateTimeout(duration ?? songData.duration);
 
     try {
-      // Bước 1: Khởi tạo tiến trình tải (5%)
-      this.updateDownloadProgress(id, 5, 'downloading');
+      // Bước 1: Khởi tạo (1%)
+      this.updateDownloadProgress(id, 1, 'downloading');
 
-      // Bước 2: Tải file audio (0-70% tiến trình)
-      // Tạo promise tải file audio với timeout 2 phút
-      const audioDownloadPromise = firstValueFrom(
-        this.musicApiService
-          .downloadSongAudio(songData.id, true)
-          .pipe(timeout(timeoutMs))
+      // Bước 2: Tải audio (1-91%)
+      const audioBlob = await this.downloadAudio(
+        songData.id,
+        id,
+        signal,
+        timeoutMs
       );
-      // Tạo hiệu ứng tiến trình từ 5% đến 70%
-      const progressPromise = this.animateProgress(id, 5, 70, progressDuration);
-
-      // Đợi cả hai promise hoàn thành (tải file và hiệu ứng tiến trình)
-      const [audioBlob] = await Promise.all([
-        audioDownloadPromise,
-        progressPromise,
-      ]);
-
-      if (signal.aborted) return;
-      // Đã tải xong file audio
-
-      // Bước 3: Tải thumbnail (70-75% tiến trình) - không bắt buộc
-      this.updateDownloadProgress(id, 75, 'downloading');
-      let thumbnailBlob: Blob | null = null;
-      let thumbnailBase64: string | null = null;
-      try {
-        // Tải thumbnail, timeout 30 giây
-        thumbnailBlob = await firstValueFrom(
-          this.musicApiService
-            .downloadThumbnail(songData.id)
-            .pipe(timeout(30000))
-        );
-        if (thumbnailBlob) {
-          // Xác định mime type (webp/png/jpg)
-          const mimeType = thumbnailBlob.type || 'image/webp';
-          const base64 = await this.blobToBase64(thumbnailBlob);
-          thumbnailBase64 = `data:${mimeType};base64,${base64}`;
-          // Gán vào songData để lưu vào database
-          download.songData.thumbnail_url = thumbnailBase64;
-        }
-      } catch (thumbError) {
-        // Nếu lỗi (CORS, mạng...), chỉ cảnh báo và tiếp tục
-        console.warn(
-          'Không tải được thumbnail, tiếp tục tải audio:',
-          thumbError
-        );
-      }
-
-      // Bước 4: Lưu file audio vào IndexedDB (75-95% tiến trình)
-      this.updateDownloadProgress(id, 85, 'downloading');
       if (signal.aborted) return;
 
-      try {
-        // Đảm bảo IndexedDB đã sẵn sàng
-        const isReady = await this.indexedDBService.initDB();
-        if (!isReady) throw new Error('Không khởi tạo được IndexedDB');
+      // Bước 3: Tải thumbnail (91-93%)
+      await this.downloadThumbnail(songData, download, id);
 
-        // Lưu file audio vào IndexedDB
-        const audioSaved = await this.indexedDBService.saveAudioFile(
-          songData.id,
-          audioBlob,
-          audioBlob.type || 'audio/mpeg'
-        );
-        if (!audioSaved)
-          throw new Error('Lưu file audio vào IndexedDB thất bại');
-      } catch (saveError) {
-        // Nếu lưu lỗi, thử lại sau 2 giây
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        const retrySuccess = await this.indexedDBService.saveAudioFile(
-          songData.id,
-          audioBlob,
-          audioBlob.type || 'audio/mpeg'
-        );
-        if (!retrySuccess) {
-          throw new Error(
-            `Lưu file audio thất bại sau khi thử lại: ${saveError}`
-          );
-        }
-      }
+      // Bước 4: Lưu vào IndexedDB (93-97%)
+      await this.saveToIndexedDB(songData.id, audioBlob, id, signal);
 
-      // Bước 5: Hoàn tất (95-100% tiến trình)
-      this.updateDownloadProgress(id, 95, 'downloading');
-      await this.animateProgress(id, 95, 100, 500);
-
-      this.updateDownloadProgress(id, 100); // Đảm bảo tiến trình đạt 100%
-      await this.completeDownload(id);
+      // Bước 5: Hoàn tất (97-100%)
+      await this.finalizeDownload(id);
     } catch (error) {
-      if (signal.aborted) {
-        return;
-      }
-
-      // Xử lý lỗi HTTP
-      if (error instanceof HttpErrorResponse) {
-        if (error.status === 0) {
-          throw new Error(
-            'Lỗi CORS hoặc mạng khi tải. Vui lòng kiểm tra kết nối.'
-          );
-        } else {
-          throw new Error(`Lỗi HTTP ${error.status}: ${error.message}`);
-        }
-      }
-
-      // Lỗi khác
-      throw error;
+      if (signal.aborted) return;
+      throw this.handleDownloadError(error);
     }
+  }
+
+  // Tính toán timeout dựa vào duration
+  private calculateTimeout(duration?: number): number {
+    const DEFAULT_TIMEOUT = 120000; // 2 phút
+    const LONG_SONG_TIMEOUT = 600000; // 10 phút
+    const LONG_SONG_THRESHOLD = 1800; // 30 phút
+
+    return duration && duration > LONG_SONG_THRESHOLD
+      ? LONG_SONG_TIMEOUT
+      : DEFAULT_TIMEOUT;
+  }
+
+  // Tải audio với real progress
+  private async downloadAudio(
+    songId: string,
+    downloadId: string,
+    signal: AbortSignal,
+    timeoutMs: number
+  ): Promise<Blob> {
+    return await this.downloadAudioWithRealProgress(
+      songId,
+      downloadId,
+      signal,
+      timeoutMs,
+      1, // startProgress
+      91 // endProgress
+    );
+  }
+
+  // Tải thumbnail
+  private async downloadThumbnail(
+    songData: any,
+    download: any,
+    downloadId: string
+  ): Promise<void> {
+    this.updateDownloadProgress(downloadId, 91, 'downloading');
+
+    try {
+      const thumbnailBlob = await firstValueFrom(
+        this.musicApiService.downloadThumbnail(songData.id).pipe(timeout(30000))
+      );
+
+      if (thumbnailBlob) {
+        const thumbnailBase64 = await this.processThumbnail(thumbnailBlob);
+        download.songData.thumbnail_url = thumbnailBase64;
+      }
+    } catch (thumbError) {
+      console.warn('Không tải được thumbnail, tiếp tục tải audio:', thumbError);
+    }
+  }
+
+  // Xử lý thumbnail blob thành base64
+  private async processThumbnail(thumbnailBlob: Blob): Promise<string> {
+    const mimeType = thumbnailBlob.type || 'image/webp';
+    const base64 = await this.blobToBase64(thumbnailBlob);
+    return `data:${mimeType};base64,${base64}`;
+  }
+
+  // Lưu file vào IndexedDB
+  private async saveToIndexedDB(
+    songId: string,
+    audioBlob: Blob,
+    downloadId: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    this.updateDownloadProgress(downloadId, 93, 'downloading');
+    if (signal.aborted) return;
+
+    try {
+      await this.attemptSaveToIndexedDB(songId, audioBlob);
+    } catch (saveError) {
+      // Retry logic
+      await this.retrySaveToIndexedDB(songId, audioBlob, saveError);
+    }
+  }
+
+  // Thử lưu vào IndexedDB
+  private async attemptSaveToIndexedDB(
+    songId: string,
+    audioBlob: Blob
+  ): Promise<void> {
+    const isReady = await this.indexedDBService.initDB();
+    if (!isReady) throw new Error('Không khởi tạo được IndexedDB');
+
+    const audioSaved = await this.indexedDBService.saveAudioFile(
+      songId,
+      audioBlob,
+      audioBlob.type || 'audio/mpeg'
+    );
+
+    if (!audioSaved) {
+      throw new Error('Lưu file audio vào IndexedDB thất bại');
+    }
+  }
+
+  // Retry save logic
+  private async retrySaveToIndexedDB(
+    songId: string,
+    audioBlob: Blob,
+    originalError: any
+  ): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const retrySuccess = await this.indexedDBService.saveAudioFile(
+      songId,
+      audioBlob,
+      audioBlob.type || 'audio/mpeg'
+    );
+
+    if (!retrySuccess) {
+      throw new Error(
+        `Lưu file audio thất bại sau khi thử lại: ${originalError}`
+      );
+    }
+  }
+
+  // Hoàn tất download
+  private async finalizeDownload(downloadId: string): Promise<void> {
+    this.updateDownloadProgress(downloadId, 97, 'downloading');
+    await this.animateProgress(downloadId, 97, 100, 500);
+    this.updateDownloadProgress(downloadId, 100);
+    await this.completeDownload(downloadId);
+  }
+
+  // Xử lý lỗi download
+  private handleDownloadError(error: any): Error {
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return new Error(
+          'Lỗi CORS hoặc mạng khi tải. Vui lòng kiểm tra kết nối.'
+        );
+      } else {
+        return new Error(`Lỗi HTTP ${error.status}: ${error.message}`);
+      }
+    }
+    return error;
+  }
+
+  // Hàm helper để xử lý real progress
+  private async downloadAudioWithRealProgress(
+    songId: string,
+    downloadId: string,
+    signal: AbortSignal,
+    timeoutMs: number,
+    startProgress: number,
+    endProgress: number
+  ): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const subscription = this.musicApiService
+        .downloadSongAudio(songId, true)
+        .pipe(
+          timeout(timeoutMs),
+          takeUntil(fromEvent(signal, 'abort')) // Hủy khi signal abort
+        )
+        .subscribe({
+          next: (event: HttpEvent<Blob>) => {
+            if (signal.aborted) {
+              subscription.unsubscribe();
+              return;
+            }
+
+            if (event.type === HttpEventType.DownloadProgress) {
+              // Tính toán progress thực
+              if (event.total) {
+                const percentLoaded = Math.round(
+                  (event.loaded / event.total) * 100
+                );
+                // Map từ 0-100% của download sang startProgress-endProgress
+                const mappedProgress =
+                  startProgress +
+                  (percentLoaded * (endProgress - startProgress)) / 100;
+                this.updateDownloadProgress(
+                  downloadId,
+                  Math.round(mappedProgress),
+                  'downloading'
+                );
+              }
+            } else if (event.type === HttpEventType.Response) {
+              // Download hoàn thành
+              this.updateDownloadProgress(
+                downloadId,
+                endProgress,
+                'downloading'
+              );
+              resolve(event.body as Blob);
+            }
+          },
+          error: (error) => {
+            subscription.unsubscribe();
+            reject(error);
+          },
+        });
+
+      // Cleanup khi signal abort
+      signal.addEventListener('abort', () => {
+        subscription.unsubscribe();
+      });
+    });
   }
 
   /**
@@ -900,7 +1020,9 @@ export class DownloadService {
             this.stopStatusPolling(songId);
             // Gửi thông báo lỗi
 
-            this.toastService.success(`Xử lý thất bại: ${status.error_message}`);
+            this.toastService.success(
+              `Xử lý thất bại: ${status.error_message}`
+            );
           }
         } else {
           console.warn('⚠️ Status check failed:', statusResponse.message);

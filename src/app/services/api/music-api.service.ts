@@ -1,11 +1,18 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpParams,
+  HttpErrorResponse,
+  HttpRequest,
+  HttpEvent,
+  HttpEventType,
+} from '@angular/common/http';
 import { Observable, catchError, throwError, firstValueFrom } from 'rxjs';
 import {
   SongsResponse,
   SongStatusResponse,
   DataSong,
-  SongStatus
+  SongStatus,
 } from '../../interfaces/song.interface';
 import { environment } from '../../../environments/environment';
 
@@ -14,7 +21,7 @@ import { environment } from '../../../environments/environment';
  * Implement 4 API endpoints chính cho Download Page
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class MusicApiService {
   private apiUrl = environment.apiUrl;
@@ -32,8 +39,6 @@ export class MusicApiService {
     return this.http.post<SongsResponse>(url, body);
   }
 
-
-
   /**
    * 2. GET /api/v3/songs/status/{song_id} - Get Song Status
    * Kiểm tra trạng thái xử lý của bài hát
@@ -41,11 +46,9 @@ export class MusicApiService {
    * @returns Observable<SongStatusResponse>
    */
   getSongStatus(songId: string): Observable<SongStatusResponse> {
-    return this.http.get<SongStatusResponse>(
-      `${this.apiUrl}/songs/status/${songId}`
-    ).pipe(
-      catchError(this.handleError('getSongStatus'))
-    );
+    return this.http
+      .get<SongStatusResponse>(`${this.apiUrl}/songs/status/${songId}`)
+      .pipe(catchError(this.handleError('getSongStatus')));
   }
 
   /**
@@ -55,23 +58,25 @@ export class MusicApiService {
    * @param downloadParam - Thêm parameter download=true để download file
    * @returns Observable<Blob>
    */
-  downloadSongAudio(songId: string, downloadParam: boolean = true): Observable<Blob> {
+  downloadSongAudio(
+    songId: string,
+    downloadParam: boolean = true
+  ): Observable<HttpEvent<Blob>> {
     let url = `${this.apiUrl}/songs/download/${songId}`;
-
+    let params = undefined;
     if (downloadParam) {
-      const params = new HttpParams().set('download', 'true');
-      return this.http.get(url, {
-        responseType: 'blob',
-        params
-      }).pipe(
-        catchError(this.handleError('downloadSongAudio'))
-      );
+      params = new HttpParams().set('download', 'true');
     }
+    const req = new HttpRequest<any>('GET', url, null, {
+      // Add generic type and null body
+      params,
+      responseType: 'blob',
+      reportProgress: true,
+    });
 
-    return this.http.get(url, {
-      responseType: 'blob'
-    }).pipe(
-      catchError(this.handleError('downloadSongAudio'))
+    return this.http.request<Blob>(req).pipe(
+      // Add generic type to request
+      catchError(this.handleError('downloadSongAudioWithProgress'))
     );
   }
 
@@ -82,43 +87,11 @@ export class MusicApiService {
    * @returns Observable<Blob>
    */
   downloadThumbnail(songId: string): Observable<Blob> {
-    return this.http.get(`${this.apiUrl}/songs/thumbnail/${songId}`, {
-      responseType: 'blob'
-    }).pipe(
-      catchError(this.handleError('downloadThumbnail'))
-    );
-  }
-
-  /**
-   * Download both audio and thumbnail for a song
-   * @param songId - ID của bài hát
-   * @returns Promise<{audioBlob: Blob, thumbnailBlob: Blob | null}>
-   */
-  async downloadSongWithThumbnail(songId: string): Promise<{
-    audioBlob: Blob;
-    thumbnailBlob: Blob | null;
-  }> {
-    try {
-      // Download audio (bắt buộc)
-      const audioBlob = await firstValueFrom(this.downloadSongAudio(songId, true));
-
-      // Download thumbnail (optional, không fail toàn bộ nếu lỗi)
-      let thumbnailBlob: Blob | null = null;
-      try {
-        thumbnailBlob = await firstValueFrom(this.downloadThumbnail(songId));
-      } catch (thumbnailError) {
-        console.warn('⚠️ Thumbnail download failed:', thumbnailError);
-        // Continue without thumbnail - this is not critical
-      }
-      return {
-        audioBlob,
-        thumbnailBlob
-      };
-
-    } catch (error) {
-      console.error('❌ Download failed:', error);
-      throw error;
-    }
+    return this.http
+      .get(`${this.apiUrl}/songs/thumbnail/${songId}`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError('downloadThumbnail')));
   }
 
   /**
@@ -236,7 +209,9 @@ export class MusicApiService {
       case 'completed':
         return 'Sẵn sàng tải xuống';
       case 'failed':
-        return `Xử lý thất bại: ${status.error_message || 'Lỗi không xác định'}`;
+        return `Xử lý thất bại: ${
+          status.error_message || 'Lỗi không xác định'
+        }`;
       default:
         return 'Trạng thái không xác định';
     }

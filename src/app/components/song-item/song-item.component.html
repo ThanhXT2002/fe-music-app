@@ -93,7 +93,7 @@
       </button>
       } @else {
       <!-- ⏳ Default - Not ready yet, show disabled state -->
-      <div class="text-gray-500">
+      <div class="text-yellow-500" (click)="download.emit(song)">
         <i class="fa-solid fa-clock text-lg opacity-50"></i>
       </div>
       }
