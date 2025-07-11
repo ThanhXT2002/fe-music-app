@@ -1,6 +1,6 @@
 <!-- Main Player Container -->
 <div
-#modalContent
+  #modalContent
   class="player-container h-screen text-white relative overflow-hidden bg-gradient-to-br from-purple-600 from-[20%] via-indigo-600 to-pink-600 ptAreanSave"
 >
   <!-- Background Album Art -->
@@ -9,7 +9,7 @@
     <img
       [src]="currentSong()!.thumbnail_url"
       [alt]="currentSong()!.title"
-       (error)="onImageError($event)"
+      (error)="onImageError($event)"
       class="w-full h-full object-cover blur-md scale-110"
     />
     }
@@ -30,7 +30,7 @@
     </div>
 
     <button
-    (click)="openPlaylist()"
+      (click)="openPlaylist()"
       class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
     >
       <i class="fa-solid fa-bars text-xl"></i>
@@ -54,7 +54,7 @@
         <img
           [src]="currentSong()!.thumbnail_url"
           [alt]="currentSong()!.title"
-           (error)="onImageError($event)"
+          (error)="onImageError($event)"
           class="w-full h-full object-cover"
         />
         } @else {
@@ -68,7 +68,9 @@
     </div>
 
     <!-- Song Info -->
-    <div class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end">
+    <div
+      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
+    >
       <h1 class="font-medium mb-2 text-white">
         {{ currentSong()?.title || 'No song selected' }}
       </h1>
@@ -89,16 +91,35 @@
         [barCount]="35"
         [sensitivity]="3.0">
       </app-audio-equalizer> -->
+
+        @let downloadTask = currentDownloadTask; @if (downloadTask &&
+        (downloadTask.status === 'downloading' || downloadTask.status ===
+        'pending')) {
+        <div class="text-right -mb-3">
+          <div
+            class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"
+          ></div>
+          <p class="text-xs border-white mt-1">
+            {{ downloadTask.progress }}%
+          </p>
+        </div>
+        } @else if (isDownloaded(currentSong()?.id || '')) {
         <button (click)="toggleFavorite()">
           <i
             class="fa-solid fa-heart text-xl"
             [ngClass]="currentSong()?.isFavorite ? 'text-red-500' : 'text-white/70'"
           ></i>
         </button>
+        } @else {
+        <button (click)="toggleDownload(currentSong())">
+          <i class="fa-solid fa-circle-down text-xl"></i>
+        </button>
+        }
       </div>
       <!-- Enhanced Progress Bar -->
       <div class="relative px-2 enhanced-progress-bar">
-        <!-- Main Progress Container -->        <div
+        <!-- Main Progress Container -->
+        <div
           #progressContainer
           data-progress-container
           class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none"

@@ -22,7 +22,8 @@ import {
 } from '@ionic/angular';
 import { ThemeService } from 'src/app/services/theme.service';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-
+import { DownloadService } from 'src/app/services/download.service';
+import { DataSong } from '../../interfaces/song.interface';
 
 @Component({
   selector: 'app-player',
@@ -40,6 +41,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private themeService = inject(ThemeService);
   private gestureCtrl = inject(GestureController);
   private playlistModalService = inject(GlobalPlaylistModalService);
+  private downloadService = inject(DownloadService);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -56,6 +58,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   hoverProgress = signal(-1); // -1 means not hovering
   isHoveringProgress = signal(false);
   bufferProgress = this.audioPlayerService.bufferProgress;
+  public downloads$ = this.downloadService.downloads$;
 
   @ViewChild('modalContent', { read: ElementRef }) modalContent!: ElementRef;
 
@@ -81,8 +84,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   durationTime = computed(() => this.formatTime(this.duration()));
 
   ngOnInit() {
-    this.setPlayerThemeColor();
-    this.setupBufferTracking();
+    console.log('currentSong', this.currentSong());
   }
 
   ngAfterViewInit() {
@@ -99,7 +101,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       this.swipeGesture.destroy();
     }
   }
-
 
   private createSwipeGesture() {
     if (!this.modalContent?.nativeElement) {
@@ -122,7 +123,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-
   private onSwipeMove(ev: any) {
     // Chỉ theo dõi khoảng cách kéo, không có hiệu ứng visual
     if (ev.deltaY > 0 && ev.startY < 100) {
@@ -139,15 +139,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       this.closeModal();
     }
     // Không cần else case vì không có animation để reset
-  }
-
-  private setupBufferTracking() {
-    // Theo dõi buffer progress thông qua audio service
-    // Sẽ được cập nhật qua signals từ audio service
-  }
-
-  private setPlayerThemeColor() {
-    this.themeService.setHeaderThemeColor('#312e81');
   }
 
   openPlaylist() {
@@ -525,7 +516,46 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     return this.isShuffling() ? 'text-purple-500' : 'text-white';
   }
 
-    onImageError(event: any): void {
+  onImageError(event: any): void {
     event.target.src = 'assets/images/musical-note.webp';
+  }
+
+  isDownloaded(songId: string): boolean {
+    return this.downloadService.isSongDownloaded(songId);
+  }
+
+  async toggleDownload(currentSong: any): Promise<void> {
+    const song: DataSong = {
+      id: currentSong.id,
+      title: currentSong.title,
+      artist: currentSong.artist,
+      thumbnail_url: currentSong.thumbnail_url,
+      duration: currentSong.duration,
+      duration_formatted: currentSong.duration_formatted,
+      keywords: currentSong.keywords,
+      original_url: '',
+      created_at: new Date().toISOString(),
+    };
+
+    console.table(song);
+    if (!song) return;
+    if (this.isDownloaded(song.id)) {
+      // Có thể show thông báo đã tải rồi
+      return;
+    }
+    try {
+      await this.downloadService.downloadSong(song);
+      // Có thể show thông báo "Đã thêm vào danh sách tải"
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Có thể show thông báo lỗi
+    }
+  }
+
+  get currentDownloadTask() {
+    const song = this.currentSong();
+    if (!song) return null;
+    const downloads = this.downloadService.currentDownloads;
+    return downloads.find((d) => d.songData?.id === song.id);
   }
 }

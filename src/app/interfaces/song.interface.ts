@@ -130,7 +130,7 @@ export interface DataSong {
   duration: number;
   duration_formatted: string;
   keywords: string[];
-  original_url: string;
+  original_url?: string;
   created_at: string;
   // NOTE: audio_url sẽ được construct từ API endpoint
 }
