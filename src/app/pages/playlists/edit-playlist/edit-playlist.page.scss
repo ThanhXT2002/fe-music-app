@@ -2,3 +2,16 @@
 ion-toolbar{
   padding: 5px 2px;
 }
+
+
+.block {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+}
+
+ion-modal {
+  --height: auto;
+}

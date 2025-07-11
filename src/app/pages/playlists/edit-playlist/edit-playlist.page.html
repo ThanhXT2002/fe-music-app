@@ -1,18 +1,23 @@
 <ion-header [translucent]="true" mode="ios">
-  <ion-toolbar >
-    <ion-buttons slot="start" >
-     <ion-button (click)="onBack()">
-      <i class="fa-solid fa-chevron-left fa-lg"></i>
-     </ion-button>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="onBack()">
+        <i class="fa-solid fa-chevron-left fa-lg"></i>
+      </ion-button>
     </ion-buttons>
     <ion-title>
       <span class="text-xl">Chỉnh sửa Playlist</span>
     </ion-title>
+    <ion-buttons slot="end">
+      <ion-button id="open-modal" expand="block">
+        <i class="fa-solid fa-bars fa-lg"></i
+      ></ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="bg-black">
-  <div class="px-4 mt-2 sticky top-0 z-10 ">
+  <div class="px-4 mt-2 sticky top-0 z-10">
     <div class="relative my-4">
       <input
         id="searchInput"
@@ -22,18 +27,19 @@
         placeholder="Tìm kiếm theo tên, tác giả hoặc từ khóa..."
         class="input w-full pl-4 pr-10 bg-gray-700"
       />
-      <button *ngIf="searchQuery.length > 0"
+      <button
+        *ngIf="searchQuery.length > 0"
         (click)="clearSearch()"
         class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
       >
-         <i class="fa-solid fa-close  text-gray-400"></i>
+        <i class="fa-solid fa-close text-gray-400"></i>
       </button>
     </div>
   </div>
   <div *ngIf="isLoading" class="ion-padding">Đang tải danh sách bài hát...</div>
   <ion-list *ngIf="!isLoading" class="0">
     <ion-item *ngFor="let song of filteredSongs; let i = index" class="w-full">
-      <div class="w-full ">
+      <div class="w-full">
         <app-song-item
           [song]="song"
           [index]="i"
@@ -49,4 +55,49 @@
       </div>
     </ion-item>
   </ion-list>
+
+  <ion-modal
+mode="md"
+    trigger="open-modal"
+    [initialBreakpoint]="1"
+    [breakpoints]="[0, 1]"
+  >
+    <ng-template>
+      <div class="block">
+        <ion-content class="h-full">
+          <div class="sticky top-0 z-10">
+            <ion-header mode="ios" class="">
+            <ion-toolbar>
+              <ion-title>
+                <span class="text-xl">Playlist hiện tại</span>
+              </ion-title>
+            </ion-toolbar>
+          </ion-header>
+          </div>
+
+          <div *ngIf="detailList.length > 0" class="space-y-1 w-full h-full ">
+            <ion-reorder-group
+              [disabled]="false"
+              (ionItemReorder)="onIonReorder($event)"
+              no-haptics
+            >
+              <ion-item
+                *ngFor="let song of detailList; let i = index"
+                class="reorder-item-wrapper"
+              >
+                <app-song-item
+                  [song]="song"
+                  [playlist]="detailList"
+                  [index]="i"
+                  [modePage]="'current-play'"
+                  class="w-full"
+                >
+                </app-song-item>
+              </ion-item>
+            </ion-reorder-group>
+          </div>
+        </ion-content>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>

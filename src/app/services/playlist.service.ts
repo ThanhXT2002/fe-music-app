@@ -751,4 +751,38 @@ export class PlaylistService {
   private generatePlaylistId(): string {
     return `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  /**
+   * Reorder songs in playlist based on new order IDs
+   * @param playlistId ID của playlist cần sắp xếp lại
+   * @param newOrderIds Mảng các ID bài hát theo thứ tự mới
+   */
+
+  async reorderSongsInPlaylist(playlistId: string, newOrderIds: string[]): Promise<boolean> {
+  try {
+    const playlist = await this.getPlaylistById(playlistId);
+    if (!playlist) return false;
+
+    // Tạo map để tra cứu nhanh song theo id
+    const songMap = new Map(playlist.songs.map(song => [song.id, song]));
+
+    // Sắp xếp lại mảng songs theo newOrderIds
+    const newSongs: Song[] = [];
+    for (const id of newOrderIds) {
+      const song = songMap.get(id);
+      if (song) newSongs.push(song);
+    }
+
+    // Nếu số lượng không khớp, không update
+    if (newSongs.length !== playlist.songs.length) return false;
+
+    playlist.songs = newSongs;
+    playlist.updatedDate = new Date();
+
+    return await this.databaseService.updatePlaylist(playlist);
+  } catch (error) {
+    console.error('Error reordering songs in playlist:', error);
+    return false;
+  }
+}
 }
