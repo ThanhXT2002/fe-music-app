@@ -91,9 +91,7 @@ export class DatabaseService {
   /**
    * Initialize system playlists (will be implemented by PlaylistManagerService)
    */
-  private async initializeSystemPlaylists(): Promise<void> {
-
-  }
+  private async initializeSystemPlaylists(): Promise<void> {}
 
   /**
    * Thêm bài hát mới vào database
@@ -352,10 +350,7 @@ export class DatabaseService {
     };
   }
 
-
-
   async debugClearTestData(): Promise<void> {
-
     const songs = await this.getAllSongs();
     const testSongs = songs.filter(
       (s) => s.id.includes('debug-test') || s.id.includes('test-')
@@ -381,23 +376,24 @@ export class DatabaseService {
   }
 
   async getRecentlyPlayedSongs(limit: number = 50): Promise<Song[]> {
-    // For now, return all songs sorted by addedDate (newest first)
-    const songs = await this.getAllSongs();
-    return songs
-      .sort(
-        (a, b) =>
-          new Date(b.addedDate).getTime() - new Date(a.addedDate).getTime()
-      )
-      .slice(0, limit);
-  }
+  const songs = await this.getAllSongs();
+  return [...songs] // clone mảng, không ảnh hưởng cache
+    .sort(
+      (a, b) =>
+        (b.lastPlayedDate ? new Date(b.lastPlayedDate).getTime() : 0) -
+        (a.lastPlayedDate ? new Date(a.lastPlayedDate).getTime() : 0)
+    )
+    .slice(0, limit);
+}
 
   async addToSearchHistory(song: Song): Promise<boolean>;
   async addToSearchHistory(song: DataSong): Promise<boolean>;
   async addToSearchHistory(song: Song | DataSong): Promise<boolean> {
     // Use SongConverter for proper conversion
-    const searchItem: SearchHistoryItem = 'thumbnail_url' in song
-      ? SongConverter.apiDataToSearchHistory(song as DataSong)
-      : SongConverter.toSearchHistory(song as Song);
+    const searchItem: SearchHistoryItem =
+      'thumbnail_url' in song
+        ? SongConverter.apiDataToSearchHistory(song as DataSong)
+        : SongConverter.toSearchHistory(song as Song);
 
     return await this.addSearchHistory(searchItem);
   }
@@ -410,7 +406,10 @@ export class DatabaseService {
     };
   }
 
-  async markAsDownloaded(songId: string, audioBlobUrl: string): Promise<boolean> {
+  async markAsDownloaded(
+    songId: string,
+    audioBlobUrl: string
+  ): Promise<boolean> {
     const song = await this.getSongById(songId);
     if (!song) return false;
 
@@ -431,10 +430,13 @@ export class DatabaseService {
    */
   async saveSongAudioBlob(songId: string, audioBlob: Blob): Promise<boolean> {
     try {
-      const audioSaved = await this.indexedDB.saveAudioFile(songId, audioBlob, audioBlob.type || 'audio/mpeg');
+      const audioSaved = await this.indexedDB.saveAudioFile(
+        songId,
+        audioBlob,
+        audioBlob.type || 'audio/mpeg'
+      );
 
       return audioSaved;
-
     } catch (error) {
       console.error('❌ Error saving audio blob:', error);
       return false;
