@@ -1,10 +1,10 @@
 <div class="p-4">
   <h2 class="text-lg font-bold mb-4">Thêm vào danh sách phát</h2>
 
-  <form (submit)="$event.preventDefault(); createPlaylist();" class="flex gap-2 mb-4">
-    <input type="text" [(ngModel)]="newPlaylistName" name="newPlaylistName" placeholder="Tên playlist mới..." class="flex-1 border rounded px-2 py-1" [disabled]="creating">
-    <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded" [disabled]="creating || !newPlaylistName.trim()">Tạo</button>
-  </form>
+
+  <div class="flex gap-2 mb-4">
+    <button (click)="showCreatePlaylistAlert()" class="bg-blue-500 text-white px-3 py-1 rounded flex-1">Tạo playlist mới</button>
+  </div>
 
   <div *ngIf="loading" class="text-center py-4">Đang tải danh sách...</div>
   <div *ngIf="!loading && playlists.length === 0" class="text-center py-4 text-gray-500">Chưa có playlist nào.</div>

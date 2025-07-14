@@ -1,10 +1,11 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ModalController } from '@ionic/angular';
+import { ModalController, AlertController } from '@ionic/angular';
 import { PlaylistService } from 'src/app/services/playlist.service';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Playlist } from 'src/app/interfaces/playlist.interface';
 import { CommonModule } from '@angular/common';
+import { RefreshService } from 'src/app/services/refresh.service';
 
 @Component({
   selector: 'app-playlist-select-modal',
@@ -17,18 +18,20 @@ export class PlaylistSelectModalComponent implements OnInit {
   playlists: Playlist[] = [];
   currentSongId: string | null = null;
   loading = false;
-  newPlaylistName = '';
-  creating = false;
+
 
   constructor(
     private modalCtrl: ModalController,
     private playlistService: PlaylistService,
-    private audioPlayerService: AudioPlayerService
+    private audioPlayerService: AudioPlayerService,
+    private alertController: AlertController,
+    private refreshService: RefreshService
   ) {}
 
   async ngOnInit() {
     this.currentSongId = this.audioPlayerService.currentSong()?.id || null;
     await this.loadPlaylists();
+    this.refreshService.triggerRefresh();
   }
 
   async loadPlaylists() {
@@ -53,19 +56,45 @@ export class PlaylistSelectModalComponent implements OnInit {
       await this.playlistService.removeSongFromPlaylist(playlist.id, this.currentSongId);
     }
     await this.loadPlaylists();
+    this.refreshService.triggerRefresh();
   }
 
-  async createPlaylist() {
-    if (!this.newPlaylistName.trim()) return;
-    this.creating = true;
-    await this.playlistService.createPlaylist({
-      name: this.newPlaylistName.trim(),
-      type: 'user',
+
+  async showCreatePlaylistAlert() {
+    const alert = await this.alertController.create({
+      mode: 'ios',
+      header: 'Tạo Playlist Mới',
+      inputs: [
+        {
+          name: 'name',
+          type: 'text',
+          placeholder: 'Tên playlist',
+          attributes: { required: true },
+        },
+      ],
+      buttons: [
+        { text: 'Hủy', role: 'cancel' },
+        {
+          text: 'Lưu',
+          handler: async (data) => {
+            if (data.name && data.name.trim()) {
+              await this.createArtistPlaylist(data.name.trim());
+              return true;
+            }
+            return false;
+          },
+        },
+      ],
     });
-    this.newPlaylistName = '';
-    this.creating = false;
+    await alert.present();
+  }
+
+  private async createArtistPlaylist(name: string) {
+    await this.playlistService.createArtistPlaylist({ name });
     await this.loadPlaylists();
   }
+
+
 
   close() {
     this.modalCtrl.dismiss();

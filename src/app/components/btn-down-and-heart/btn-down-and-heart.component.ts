@@ -4,6 +4,7 @@ import { DataSong } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { DatabaseService } from 'src/app/services/database.service';
 import { DownloadService } from 'src/app/services/download.service';
+import { RefreshService } from 'src/app/services/refresh.service';
 
 @Component({
   selector: 'app-btn-down-and-heart',
@@ -16,6 +17,7 @@ export class BtnDownAndHeartComponent implements OnInit {
   private audioPlayerService = inject(AudioPlayerService);
   private downloadService = inject(DownloadService);
   private databaseService = inject(DatabaseService);
+  private refreshService = inject(RefreshService);
 
   currentSong = this.audioPlayerService.currentSong;
 
@@ -35,6 +37,7 @@ export class BtnDownAndHeartComponent implements OnInit {
         // Update the song object
         song.isFavorite = !song.isFavorite;
         this.audioPlayerService.updateCurrentSong(song);
+        this.refreshService.triggerRefresh();
       } catch (error) {
         console.error('Error toggling favorite:', error);
       }
@@ -61,6 +64,7 @@ export class BtnDownAndHeartComponent implements OnInit {
     }
     try {
       await this.downloadService.downloadSong(song);
+      this.refreshService.triggerRefresh();
     } catch (error) {
       console.error('Download failed:', error);
     }
