@@ -24,8 +24,8 @@ export class BtnAddPlaylistComponent implements OnInit {
     // this.toggleAddPlaylist();
   }
 
-    isDownloaded(): boolean {
-    return this.downloadService.isSongDownloaded(this.currentSong()?.id || '');
+    isDownloaded(songId:string): boolean {
+    return this.downloadService.isSongDownloaded(songId);
   }
 
   async toggleAddPlaylist() {

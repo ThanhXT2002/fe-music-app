@@ -6,7 +6,7 @@
   ></div>
   <p class="text-xs border-white mt-1">{{ downloadTask.progress }}%</p>
 </div>
-} @else if (isDownloaded(currentSong()?.id || '')) {
+} @else if (isDownloaded(currentSong()?.id ?? '')) {
 <button (click)="toggleFavorite()">
   <i
     class="fa-solid fa-heart text-xl"

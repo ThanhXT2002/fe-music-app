@@ -1,4 +1,4 @@
-@if(isDownloaded()){
+@if(isDownloaded(currentSong()?.id ?? '')) {
     <button  (click)="toggleAddPlaylist()"
           >
   <i class="fa-solid fa-list-check text-xl text-white"></i>
