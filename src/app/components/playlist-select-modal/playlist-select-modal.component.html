@@ -1,3 +1,24 @@
-<p>
-  playlist-select-modal works!
-</p>
+<div class="p-4">
+  <h2 class="text-lg font-bold mb-4">Thêm vào danh sách phát</h2>
+
+  <form (submit)="$event.preventDefault(); createPlaylist();" class="flex gap-2 mb-4">
+    <input type="text" [(ngModel)]="newPlaylistName" name="newPlaylistName" placeholder="Tên playlist mới..." class="flex-1 border rounded px-2 py-1" [disabled]="creating">
+    <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded" [disabled]="creating || !newPlaylistName.trim()">Tạo</button>
+  </form>
+
+  <div *ngIf="loading" class="text-center py-4">Đang tải danh sách...</div>
+  <div *ngIf="!loading && playlists.length === 0" class="text-center py-4 text-gray-500">Chưa có playlist nào.</div>
+
+  <ul *ngIf="!loading && playlists.length > 0" class="space-y-2 overflow-y-auto h-full scrollbar-hide">
+    <li *ngFor="let playlist of playlists" class="flex items-center gap-2 p-2 border rounded">
+      <input #cb type="checkbox"
+             [checked]="isSongInPlaylist(playlist)"
+             (change)="onTogglePlaylist(playlist, cb.checked)"
+             [disabled]="!currentSongId"
+      >
+      <span class="font-medium">{{ playlist.name }}</span>
+      <span class="text-xs text-gray-500">({{ playlist.songs?.length || 0 }} bài hát)</span>
+    </li>
+  </ul>
+
+</div>
