@@ -96,8 +96,7 @@
       <div class="text-yellow-500" (click)="download.emit(song)">
         <i class="fa-solid fa-clock text-lg opacity-50"></i>
       </div>
-      }
-    } @else if (isListPage) {
+      } } @else if (isListPage) {
       <button
         (click)="onShowMenu($event)"
         class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors text-gray-500"
@@ -113,10 +112,20 @@
         }
       </button>
       }@else if(isEditPlaylistPage){
-        <ion-checkbox
-          [checked]="checked"
-          (ionChange)="onSongCheckboxChange($event)"
-        ></ion-checkbox>
+      <ion-checkbox
+        [checked]="checked"
+        (ionChange)="onSongCheckboxChange($event)"
+      ></ion-checkbox>
+
+      }@else if(isFavoriteTab){
+      <button (click)="toggleFavorite.emit(song)">
+        <i
+          class="fa-solid fa-heart text-xl"
+          [ngClass]="
+            song.isFavorite ? 'text-red-500' : 'text-white/70'
+          "
+        ></i>
+      </button>
       }
     </div>
   </div>

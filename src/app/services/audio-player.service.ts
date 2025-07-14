@@ -146,6 +146,11 @@ export class AudioPlayerService {
       // Now safely play the audio
       await this.audio.play();
 
+      song.lastPlayedDate = new Date();
+      await this.indexedDBService.put('songs', song);
+
+
+
       // Preload next song (optional optimization)
       this.preloadNextSong();
     } catch (error) {

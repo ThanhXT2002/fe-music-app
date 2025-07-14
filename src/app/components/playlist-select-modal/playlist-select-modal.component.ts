@@ -6,14 +6,14 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Playlist } from 'src/app/interfaces/playlist.interface';
 import { CommonModule } from '@angular/common';
 import { RefreshService } from 'src/app/services/refresh.service';
-import { IonContent, IonList, IonItem } from "@ionic/angular/standalone";
+import { IonContent, IonList } from "@ionic/angular/standalone";
 
 @Component({
   selector: 'app-playlist-select-modal',
   templateUrl: './playlist-select-modal.component.html',
   styleUrls: ['./playlist-select-modal.component.scss'],
   standalone: true,
-  imports: [IonItem, IonList, IonContent, FormsModule, CommonModule],
+  imports: [IonList, IonContent, FormsModule, CommonModule],
 })
 export class PlaylistSelectModalComponent implements OnInit {
   playlists: Playlist[] = [];

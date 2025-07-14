@@ -27,7 +27,7 @@ import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.c
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SongItemComponent implements OnInit {
-  @Input() modePage: 'list-page' | 'current-play' | 'down-page' |'edit-playlist' = 'list-page';
+  @Input() modePage: 'list-page' | 'current-play' | 'down-page' |'edit-playlist' |'favorite' = 'list-page';
   @Input() song!: any;
   @Input() showAlbum: boolean = true;
   @Input() showArtist: boolean = true;
@@ -76,6 +76,10 @@ export class SongItemComponent implements OnInit {
   }
   get isEditPlaylistPage(): boolean {
     return this.modePage === 'edit-playlist';
+  }
+
+  get isFavoriteTab(): boolean {
+    return this.modePage === 'favorite';
   }
 
   constructor(
