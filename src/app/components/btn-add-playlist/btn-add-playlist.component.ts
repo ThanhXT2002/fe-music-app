@@ -1,23 +1,32 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { ModalController } from '@ionic/angular';
+import { ModalController, IonicModule } from '@ionic/angular';
+import { DownloadService } from 'src/app/services/download.service';
 
 @Component({
   selector: 'app-btn-add-playlist',
-  imports: [CommonModule],
+  imports: [CommonModule,IonicModule],
   templateUrl: './btn-add-playlist.component.html',
   styleUrls: ['./btn-add-playlist.component.scss'],
 })
 export class BtnAddPlaylistComponent implements OnInit {
   private audioPlayerService = inject(AudioPlayerService);
   private modalCtrl = inject(ModalController);
+    private downloadService = inject(DownloadService);
+
 
   currentSong = this.audioPlayerService.currentSong;
 
   constructor() {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    // this.toggleAddPlaylist();
+  }
+
+    isDownloaded(): boolean {
+    return this.downloadService.isSongDownloaded(this.currentSong()?.id || '');
+  }
 
   async toggleAddPlaylist() {
     if (!this.currentSong() || !this.currentSong()?.id) {

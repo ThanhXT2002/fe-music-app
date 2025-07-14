@@ -1,24 +1,40 @@
-<div class="p-4">
-  <h2 class="text-lg font-bold mb-4">Thêm vào danh sách phát</h2>
-
-
-  <div class="flex gap-2 mb-4">
-    <button (click)="showCreatePlaylistAlert()" class="bg-blue-500 text-white px-3 py-1 rounded flex-1">Tạo playlist mới</button>
+<div class="bg-gray-800 h-full">
+  <div class="flex items-center justify-between p-4">
+    <h2 class="text-lg font-semibold">Thêm vào danh sách phát</h2>
+    <button
+      (click)="showCreatePlaylistAlert()"
+      class="h-10 w-10 text-white rounded-full bg-gray-500/10 flex items-center justify-center"
+    >
+      <i class="fa fa-plus text-xl"></i>
+    </button>
   </div>
-
-  <div *ngIf="loading" class="text-center py-4">Đang tải danh sách...</div>
-  <div *ngIf="!loading && playlists.length === 0" class="text-center py-4 text-gray-500">Chưa có playlist nào.</div>
-
-  <ul *ngIf="!loading && playlists.length > 0" class="space-y-2 overflow-y-auto h-full scrollbar-hide">
-    <li *ngFor="let playlist of playlists" class="flex items-center gap-2 p-2 border rounded">
-      <input #cb type="checkbox"
-             [checked]="isSongInPlaylist(playlist)"
-             (change)="onTogglePlaylist(playlist, cb.checked)"
-             [disabled]="!currentSongId"
+  <ion-content>
+    @if (playlists.length === 0) {
+    <div class="text-center py-4 text-gray-500">Chưa có playlist nào.</div>
+    } @else {
+    <ion-list
+      class="space-y-3 overflow-y-auto h-full scrollbar-hide px-4 bg-gray-800"
+    >
+      @for (playlist of playlists; track playlist.id) {
+      <label
+        class="flex items-center gap-2 p-3 border rounded cursor-pointer select-none"
+        (click)="cb.click()"
       >
-      <span class="font-medium">{{ playlist.name }}</span>
-      <span class="text-xs text-gray-500">({{ playlist.songs?.length || 0 }} bài hát)</span>
-    </li>
-  </ul>
-
+        <input
+          #cb
+          type="checkbox"
+          [checked]="isSongInPlaylist(playlist)"
+          (change)="onTogglePlaylist(playlist, cb.checked)"
+          [disabled]="!currentSongId"
+          (click)="$event.stopPropagation()"
+        />
+        <span class="font-medium">{{ playlist.name }}</span>
+        <span class="text-xs text-gray-500"
+          >({{ playlist.songs.length || 0 }} bài hát)</span
+        >
+      </label>
+      }
+    </ion-list>
+    }
+  </ion-content>
 </div>

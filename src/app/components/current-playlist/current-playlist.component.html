@@ -21,7 +21,9 @@
             {{ getCurrentSongIndex() + 1 }}/{{ currentPlaylist().length }}
           </p>
         </div>
-        <div class="flex items-center space-x-5">
+        <div class="flex items-center space-x-5 pr-3">
+
+          <app-btn-add-playlist/>
           <!-- Shuffle Button -->
           <button
             (click)="toggleShuffle()"
