@@ -24,11 +24,13 @@ import { ThemeService } from 'src/app/services/theme.service';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
 import { DownloadService } from 'src/app/services/download.service';
 import { DataSong } from '../../interfaces/song.interface';
+import { BtnDownAndHeartComponent } from "src/app/components/btn-down-and-heart/btn-down-and-heart.component";
+import { BtnAddPlaylistComponent } from "src/app/components/btn-add-playlist/btn-add-playlist.component";
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, IonicModule, BtnDownAndHeartComponent, BtnAddPlaylistComponent],
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss'],
 })
@@ -84,7 +86,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   durationTime = computed(() => this.formatTime(this.duration()));
 
   ngOnInit() {
-    console.log('currentSong', this.currentSong());
   }
 
   ngAfterViewInit() {

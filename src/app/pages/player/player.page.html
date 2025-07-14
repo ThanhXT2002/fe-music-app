@@ -84,37 +84,15 @@
       <div
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
-        <button><i class="fa-solid fa-share-nodes text-xl"></i></button>
+        <app-btn-add-playlist/>
         <!-- <app-audio-equalizer
         width="200px"
         height="40px"
         [barCount]="35"
         [sensitivity]="3.0">
       </app-audio-equalizer> -->
+      <app-btn-down-and-heart/>
 
-        @let downloadTask = currentDownloadTask; @if (downloadTask &&
-        (downloadTask.status === 'downloading' || downloadTask.status ===
-        'pending')) {
-        <div class="text-right -mb-3">
-          <div
-            class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"
-          ></div>
-          <p class="text-xs border-white mt-1">
-            {{ downloadTask.progress }}%
-          </p>
-        </div>
-        } @else if (isDownloaded(currentSong()?.id || '')) {
-        <button (click)="toggleFavorite()">
-          <i
-            class="fa-solid fa-heart text-xl"
-            [ngClass]="currentSong()?.isFavorite ? 'text-red-500' : 'text-white/70'"
-          ></i>
-        </button>
-        } @else {
-        <button (click)="toggleDownload(currentSong())">
-          <i class="fa-solid fa-circle-down text-xl"></i>
-        </button>
-        }
       </div>
       <!-- Enhanced Progress Bar -->
       <div class="relative px-2 enhanced-progress-bar">

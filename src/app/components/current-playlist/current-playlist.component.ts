@@ -23,13 +23,14 @@ import {
 import { addIcons } from 'ionicons';
 import { reorderThreeOutline } from 'ionicons/icons';
 import { SongItemComponent } from "../song-item/song-item.component";
+import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
 
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [ IonItem,  IonReorderGroup, IonContent, CommonModule, SongItemComponent],
+  imports: [IonItem, IonReorderGroup, IonContent, CommonModule, SongItemComponent, BtnDownAndHeartComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
