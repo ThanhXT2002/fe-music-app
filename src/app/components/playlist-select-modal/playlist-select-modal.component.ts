@@ -16,23 +16,21 @@ import { IonContent, IonList } from "@ionic/angular/standalone";
   imports: [IonList, IonContent, FormsModule, CommonModule],
 })
 export class PlaylistSelectModalComponent implements OnInit {
+  @Input() songId!: string;
   playlists: Playlist[] = [];
-  currentSongId: string | null = null;
   loading = false;
 
 
   constructor(
     private modalCtrl: ModalController,
     private playlistService: PlaylistService,
-    private audioPlayerService: AudioPlayerService,
     private alertController: AlertController,
     private refreshService: RefreshService
   ) {}
 
   async ngOnInit() {
-    this.currentSongId = this.audioPlayerService.currentSong()?.id || null;
     await this.loadPlaylists();
-    this.refreshService.triggerRefresh();
+    // this.refreshService.triggerRefresh();
   }
 
   async loadPlaylists() {
@@ -43,18 +41,16 @@ export class PlaylistSelectModalComponent implements OnInit {
   }
 
   isSongInPlaylist(playlist: Playlist): boolean {
-    if (!this.currentSongId) return false;
-    return playlist.songs?.some(s => s.id === this.currentSongId);
+    if (!this.songId) return false;
+    return playlist.songs?.some(s => s.id === this.songId);
   }
 
   async onTogglePlaylist(playlist: Playlist, checked: boolean) {
-    if (!this.currentSongId) return;
+    if (!this.songId) return;
     if (checked) {
-      // Thêm bài hát vào playlist
-      await this.playlistService.addSongToPlaylist(playlist.id, this.currentSongId);
+      await this.playlistService.addSongToPlaylist(playlist.id, this.songId);
     } else {
-      // Xóa bài hát khỏi playlist
-      await this.playlistService.removeSongFromPlaylist(playlist.id, this.currentSongId);
+      await this.playlistService.removeSongFromPlaylist(playlist.id, this.songId);
     }
     await this.loadPlaylists();
     this.refreshService.triggerRefresh();

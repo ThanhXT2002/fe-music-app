@@ -1,20 +1,22 @@
-@let downloadTask = currentDownloadTask; @if (downloadTask &&
-(downloadTask.status === 'downloading' || downloadTask.status === 'pending')) {
-<div class="text-right -mb-3">
-  <div
-    class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"
-  ></div>
-  <p class="text-xs border-white mt-1">{{ downloadTask.progress }}%</p>
-</div>
-} @else if (isDownloaded(currentSong()?.id ?? '')) {
-<button (click)="toggleFavorite()">
-  <i
-    class="fa-solid fa-heart text-xl"
-    [ngClass]="currentSong()?.isFavorite ? 'text-red-500' : 'text-white/70'"
-  ></i>
-</button>
+@let downloads = downloadService.downloads$ | async;
+@let downloadTask = getDownloadTask(downloads);
+
+@if (downloadTask && (downloadTask.status === 'downloading' || downloadTask.status === 'pending')) {
+  <div class="text-right -mb-3">
+    <div
+      class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"
+    ></div>
+    <p class="text-xs border-white mt-1">{{ downloadTask.progress }}%</p>
+  </div>
+} @else if (downloadTask && downloadTask.status === 'completed') {
+  <button (click)="toggleFavorite(); $event.stopPropagation()">
+    <i
+      class="fa-solid fa-heart text-xl"
+      [ngClass]="song.isFavorite ? 'text-red-500' : 'text-white/70'"
+    ></i>
+  </button>
 } @else {
-<button (click)="toggleDownload(currentSong())">
-  <i class="fa-solid fa-circle-down text-xl"></i>
-</button>
+  <button (click)="toggleDownload(); $event.stopPropagation()">
+    <i class="fa-solid fa-circle-down text-xl"></i>
+  </button>
 }

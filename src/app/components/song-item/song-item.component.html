@@ -1,12 +1,15 @@
 <div
-  (click)="onPlay()"
-  (contextmenu)="onShowMenu($event)"
   class="song-item-container bg-gray-100/10"
   [ngClass]="{
-    'song-item-active': isCurrentSong
+    'song-item-active': isCurrentSong,
+
   }"
 >
-  <div class="flex items-center space-x-3 px-3 py-2">
+  <div
+    class="flex items-center space-x-3 px-3 py-2"
+    (click)="onPlay()"
+    (contextmenu)="onShowMenu($event)"
+  >
     <!-- Thumbnail -->
     <img
       [src]="
@@ -96,7 +99,7 @@
       <div class="text-yellow-500" (click)="download.emit(song)">
         <i class="fa-solid fa-clock text-lg opacity-50"></i>
       </div>
-      } } @else if (isListPage) {
+      } } @else if (isListPage && !isShowBoxFunction) {
       <button
         (click)="onShowMenu($event)"
         class="w-10 h-10 flex items-center justify-center hover:bg-gray-700 rounded-full transition-colors text-gray-500"
@@ -108,7 +111,11 @@
           cssClass="playing"
         ></app-lottie-equalizer>
         } @else {
-        <ion-icon name="apps"></ion-icon>
+        <span
+          (click)="toogleShowBoxFunction(song.id); $event.stopPropagation()"
+        >
+          <ion-icon name="apps"></ion-icon>
+        </span>
         }
       </button>
       }@else if(isEditPlaylistPage){
@@ -118,15 +125,30 @@
       ></ion-checkbox>
 
       }@else if(isFavoriteTab){
-      <button (click)="toggleFavorite.emit(song)">
+      <button (click)="toggleFavorite.emit(song); $event.stopPropagation()">
         <i
           class="fa-solid fa-heart text-xl"
-          [ngClass]="
-            song.isFavorite ? 'text-red-500' : 'text-white/70'
-          "
+          [ngClass]="song.isFavorite ? 'text-red-500' : 'text-white/70'"
         ></i>
       </button>
       }
     </div>
   </div>
+  @if(isShowBoxFunction){
+  <div
+    class="flex justify-end items-center gap-x-5 absolute top-1/2 transform -translate-y-1/2 bg-gray-800/50 h-full w-full pr-5"
+  >
+    <button
+      class="grow text-start"
+      (click)="toogleShowBoxFunction(song.id); $event.stopPropagation()"
+    >
+      <i class="fa fa-close text-xl ml-7"></i>
+    </button>
+    <div class="flex items-center gap-x-5" (click)="$event.stopPropagation()"
+    >
+      <app-btn-add-playlist [songId]="song.id" />
+      <app-btn-down-and-heart [song]="song"  />
+    </div>
+  </div>
+  }
 </div>

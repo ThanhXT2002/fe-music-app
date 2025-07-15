@@ -25,7 +25,7 @@
           type="checkbox"
           [checked]="isSongInPlaylist(playlist)"
           (change)="onTogglePlaylist(playlist, cb.checked)"
-          [disabled]="!currentSongId"
+          [disabled]="!songId"
           (click)="$event.stopPropagation()"
         />
         <span class="font-medium">{{ playlist.name }}</span>

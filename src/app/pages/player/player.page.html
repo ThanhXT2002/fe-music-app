@@ -84,14 +84,18 @@
       <div
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
-        <app-btn-add-playlist/>
+        <ng-container *ngIf="currentSong() as song">
+            <app-btn-add-playlist [songId]="song.id" />
+          </ng-container>
         <!-- <app-audio-equalizer
         width="200px"
         height="40px"
         [barCount]="35"
         [sensitivity]="3.0">
       </app-audio-equalizer> -->
-      <app-btn-down-and-heart/>
+     <ng-container *ngIf="currentSong() as song">
+           <app-btn-down-and-heart [song]="song"/>
+      </ng-container>
 
       </div>
       <!-- Enhanced Progress Bar -->

@@ -1,11 +1,13 @@
 <div class="current-playlist-container h-full flex flex-col bg-black">
   <!-- Header -->
-  <div class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600">
+  <div
+    class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600"
+  >
     <div class="absolute inset-0 opacity-50">
       @if (currentSong()?.thumbnail_url) {
       <img
-        [src]="currentSong()!.thumbnail_url"
-        [alt]="currentSong()!.title"
+        [src]="currentSong()?.thumbnail_url"
+        [alt]="currentSong()?.title"
         class="w-full h-full object-cover blur-md scale-110"
       />
       }
@@ -22,8 +24,9 @@
           </p>
         </div>
         <div class="flex items-center space-x-5 pr-3">
-
-          <app-btn-add-playlist/>
+          <ng-container *ngIf="currentSong() as song">
+            <app-btn-add-playlist [songId]="song.id" />
+          </ng-container>
           <!-- Shuffle Button -->
           <button
             (click)="toggleShuffle()"
@@ -32,8 +35,9 @@
           >
             <i class="fas fa-random text-xl m-auto"></i>
           </button>
-
-         <app-btn-down-and-heart/>
+          <ng-container *ngIf="currentSong() as song">
+           <app-btn-down-and-heart [song]="song"/>
+          </ng-container>
         </div>
       </div>
       <div *ngIf="currentSong()">
@@ -95,15 +99,11 @@
     <!-- Playlist -->
     <div class="px-3 py-2">
       <div *ngIf="currentPlaylist().length === 0" class="text-center py-16">
-        <i
-          class="fas fa-list-ul text-4xl text-gray-600  mb-4"
-        ></i>
-        <h3 class="text-lg font-medium text-white  mb-2">
+        <i class="fas fa-list-ul text-4xl text-gray-600 mb-4"></i>
+        <h3 class="text-lg font-medium text-white mb-2">
           Danh sách phát trống
         </h3>
-        <p class="text-gray-400">
-          Chọn bài hát để bắt đầu phát nhạc
-        </p>
+        <p class="text-gray-400">Chọn bài hát để bắt đầu phát nhạc</p>
       </div>
       <div *ngIf="currentPlaylist().length > 0" class="space-y-1">
         <ion-reorder-group
@@ -113,7 +113,11 @@
           no-haptics
         >
           <ion-item
-            *ngFor="let song of currentPlaylist(); let i = index; trackBy: trackBySongId"
+            *ngFor="
+              let song of currentPlaylist();
+              let i = index;
+              trackBy: trackBySongId
+            "
             class="reorder-item-wrapper"
             lines="none"
           >

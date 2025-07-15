@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, Input, OnInit } from '@angular/core';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { DownloadService } from 'src/app/services/download.service';
@@ -11,28 +11,23 @@ import { DownloadService } from 'src/app/services/download.service';
   styleUrls: ['./btn-add-playlist.component.scss'],
 })
 export class BtnAddPlaylistComponent implements OnInit {
-  private audioPlayerService = inject(AudioPlayerService);
   private modalCtrl = inject(ModalController);
-    private downloadService = inject(DownloadService);
-
-
-  currentSong = this.audioPlayerService.currentSong;
+  private downloadService = inject(DownloadService);
+  @Input() songId!: string;
 
   constructor() {}
 
-  ngOnInit() {
-    // this.toggleAddPlaylist();
-  }
+ngOnInit() {
 
-    isDownloaded(songId:string): boolean {
-    return this.downloadService.isSongDownloaded(songId);
+}
+
+  isDownloaded(): boolean {
+    return this.downloadService.isSongDownloaded(this.songId);
   }
 
   async toggleAddPlaylist() {
-    if (!this.currentSong() || !this.currentSong()?.id) {
-      console.log('No current song to add');
-      return;
-    }
+
+    if (!this.songId) return
     try {
       // Import động component modal danh sách playlist
       const { PlaylistSelectModalComponent } = await import(
@@ -41,7 +36,7 @@ export class BtnAddPlaylistComponent implements OnInit {
       const modal = await this.modalCtrl.create({
         component: PlaylistSelectModalComponent,
         componentProps: {
-          songId: this.currentSong()?.id
+          songId: this.songId
         },
         presentingElement: undefined,
         breakpoints: [0, 0.6, 1],

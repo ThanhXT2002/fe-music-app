@@ -17,12 +17,14 @@ import { addIcons } from 'ionicons';
 import { apps, reorderThreeOutline } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
+import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
+import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
 
 @Component({
   selector: 'app-song-item',
   templateUrl: './song-item.component.html',
   styleUrls: ['./song-item.component.scss'],
-  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent],
+  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent, BtnDownAndHeartComponent, BtnAddPlaylistComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -64,6 +66,8 @@ export class SongItemComponent implements OnInit {
   @Input() isPolling: boolean = false; // 🆕 Đang polling status
   @Input() pollProgress: number = 0; // 🆕 Progress polling
   @Input() isReady: boolean = false; // 🆕 Sẵn sàng download
+
+  isShowBoxFunction: boolean = false;
 
   get isCurrentPlayPage(): boolean {
     return this.modePage === 'current-play';
@@ -159,5 +163,11 @@ export class SongItemComponent implements OnInit {
 
   onSongCheckboxChange(event: any) {
     this.checkedChange.emit(event.detail.checked);
+  }
+
+  toogleShowBoxFunction(songId: string) {
+    if(songId === this.song.id) {
+      this.isShowBoxFunction = !this.isShowBoxFunction;
+    }
   }
 }

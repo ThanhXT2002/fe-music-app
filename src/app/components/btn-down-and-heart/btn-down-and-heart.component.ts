@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
-import { DataSong } from 'src/app/interfaces/song.interface';
+import { Component, inject, Input, OnInit } from '@angular/core';
+import { DataSong, Song } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { DatabaseService } from 'src/app/services/database.service';
-import { DownloadService } from 'src/app/services/download.service';
+import { DownloadService, DownloadTask } from 'src/app/services/download.service';
 import { RefreshService } from 'src/app/services/refresh.service';
 
 @Component({
@@ -15,28 +15,27 @@ import { RefreshService } from 'src/app/services/refresh.service';
 })
 export class BtnDownAndHeartComponent implements OnInit {
   private audioPlayerService = inject(AudioPlayerService);
-  private downloadService = inject(DownloadService);
+   downloadService = inject(DownloadService);
   private databaseService = inject(DatabaseService);
   private refreshService = inject(RefreshService);
 
-  currentSong = this.audioPlayerService.currentSong;
+  @Input() song!: Song;
 
   constructor() {}
 
   ngOnInit() {}
 
-  isDownloaded(songId: string): boolean {
-    return this.downloadService.isSongDownloaded(songId);
+  isDownloaded(): boolean {
+    return this.downloadService.isSongDownloaded(this.song.id);
   }
 
   async toggleFavorite() {
-    const song = this.currentSong();
-    if (song) {
+    if (this.song) {
       try {
-        await this.databaseService.toggleFavorite(song.id);
+        await this.databaseService.toggleFavorite(this.song.id);
         // Update the song object
-        song.isFavorite = !song.isFavorite;
-        this.audioPlayerService.updateCurrentSong(song);
+        this.song.isFavorite = !this.song.isFavorite;
+        // this.audioPlayerService.updateCurrentSong(this.song);
         this.refreshService.triggerRefresh();
       } catch (error) {
         console.error('Error toggling favorite:', error);
@@ -44,22 +43,22 @@ export class BtnDownAndHeartComponent implements OnInit {
     }
   }
 
-  async toggleDownload(currentSong: any): Promise<void> {
+  async toggleDownload(): Promise<void> {
     const song: DataSong = {
-      id: currentSong.id,
-      title: currentSong.title,
-      artist: currentSong.artist,
-      thumbnail_url: currentSong.thumbnail_url,
-      duration: currentSong.duration,
-      duration_formatted: currentSong.duration_formatted,
-      keywords: currentSong.keywords,
+      id: this.song.id,
+      title: this.song.title,
+      artist: this.song.artist,
+      thumbnail_url: this.song.thumbnail_url,
+      duration: this.song.duration,
+      duration_formatted: this.song.duration_formatted,
+      keywords: this.song.keywords,
       original_url: '',
       created_at: new Date().toISOString(),
     };
 
-    console.table(song);
+    // console.table(song);
     if (!song) return;
-    if (this.isDownloaded(song.id)) {
+    if (this.isDownloaded()) {
       return;
     }
     try {
@@ -71,9 +70,13 @@ export class BtnDownAndHeartComponent implements OnInit {
   }
 
   get currentDownloadTask() {
-    const song = this.currentSong();
-    if (!song) return null;
+
+    if (!this.song) return null;
     const downloads = this.downloadService.currentDownloads;
-    return downloads.find((d) => d.songData?.id === song.id);
+    return downloads.find((d) => d.songData?.id === this.song.id);
   }
+  getDownloadTask(downloads: DownloadTask[] | null): DownloadTask | null {
+  if (!downloads) return null;
+  return downloads.find(d => d.songData?.id === this.song.id) || null;
+}
 }
