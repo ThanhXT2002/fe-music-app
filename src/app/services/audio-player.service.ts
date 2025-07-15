@@ -168,24 +168,40 @@ export class AudioPlayerService {
   // 🆕 Cập nhật Media Session API để hiển thị control ngoài taskbar/màn hình khóa
 private updateMediaSession(song: Song) {
   if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
-  navigator.mediaSession.metadata = new MediaMetadata({
+    navigator.mediaSession.metadata = new MediaMetadata({
       title: song.title,
       artist: song.artist,
       album: '', // hoặc tên album nếu có
       artwork: song.thumbnail_url
         ? [
+            { src: song.thumbnail_url, sizes: '96x96', type: 'image/png' },
+            { src: song.thumbnail_url, sizes: '128x128', type: 'image/png' },
+            { src: song.thumbnail_url, sizes: '192x192', type: 'image/png' },
+            { src: song.thumbnail_url, sizes: '256x256', type: 'image/png' },
+            { src: song.thumbnail_url, sizes: '384x384', type: 'image/png' },
             { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' }
           ]
         : [],
     });
 
-    // Chỉ set action handler nếu KHÔNG phải iOS
     const isIOS = this.platform.is('ios');
     if (!isIOS) {
       navigator.mediaSession.setActionHandler('play', () => this.resume());
       navigator.mediaSession.setActionHandler('pause', () => this.pause());
       navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
       navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+    }
+
+    // Set playbackState
+    navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+
+    // Set position state (nếu hỗ trợ)
+    if ('setPositionState' in navigator.mediaSession && this.audio.duration) {
+      navigator.mediaSession.setPositionState({
+        duration: this.audio.duration,
+        playbackRate: this.audio.playbackRate,
+        position: this.audio.currentTime
+      });
     }
   }
 }
