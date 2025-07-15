@@ -6,6 +6,7 @@ import { IndexedDBService } from './indexeddb.service';
 import { Capacitor } from '@capacitor/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { Platform } from '@ionic/angular';
 
 @Injectable({
   providedIn: 'root',
@@ -45,7 +46,10 @@ export class AudioPlayerService {
   return this._lastPlaylistId;
 }
 
-  constructor(private indexedDBService: IndexedDBService) {
+  constructor(
+    private indexedDBService: IndexedDBService,
+    private platform: Platform,
+  ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
@@ -123,6 +127,9 @@ export class AudioPlayerService {
       // Set audio source và wait for load
       this.audio.src = audioUrl;
 
+      // 🆕 Cập nhật Media Session API
+      this.updateMediaSession(song);
+
       // Wait for audio to be ready before playing
       await new Promise<void>((resolve, reject) => {
         const handleCanPlay = () => {
@@ -149,8 +156,6 @@ export class AudioPlayerService {
       song.lastPlayedDate = new Date();
       await this.indexedDBService.put('songs', song);
 
-
-
       // Preload next song (optional optimization)
       this.preloadNextSong();
     } catch (error) {
@@ -160,6 +165,30 @@ export class AudioPlayerService {
       this.handlePlaybackError(error, song);
     }
   }
+  // 🆕 Cập nhật Media Session API để hiển thị control ngoài taskbar/màn hình khóa
+private updateMediaSession(song: Song) {
+  if ('mediaSession' in navigator && (window as any).MediaMetadata) {
+    navigator.mediaSession.metadata = new (window as any).MediaMetadata({
+      title: song.title,
+      artist: song.artist,
+      album: '', // hoặc tên album nếu có
+      artwork: song.thumbnail_url
+        ? [
+            { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' }
+          ]
+        : [],
+    });
+
+    // Chỉ set action handler nếu KHÔNG phải iOS
+    const isIOS = this.platform.is('ios');
+    if (!isIOS) {
+      navigator.mediaSession.setActionHandler('play', () => this.resume());
+      navigator.mediaSession.setActionHandler('pause', () => this.pause());
+      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
+      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+    }
+  }
+}
 
   // 🆕 Preload next song for smooth playback
   private async preloadNextSong(): Promise<void> {
