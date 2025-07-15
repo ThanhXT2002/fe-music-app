@@ -1,0 +1,17 @@
+<div
+  class="flex justify-end items-center gap-x-5 absolute top-1/2 transform -translate-y-1/2 bg-gray-800/50 h-full w-full pr-5"
+>
+  <button
+    class="grow text-start h-10 w-10 flex items-center justify-start rounded-full "
+    (click)="onClose($event)"
+  >
+    <i
+    class="fa fa-close text-xl"
+    [ngClass]="isItemHome ? 'ml-6' : 'ml-7'"
+    ></i>
+  </button>
+  <div class="flex items-center gap-x-5" (click)="$event.stopPropagation()">
+    <app-btn-add-playlist [songId]="song.id" />
+    <app-btn-down-and-heart [song]="song" />
+  </div>
+</div>

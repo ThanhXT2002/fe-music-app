@@ -1,5 +1,6 @@
-<div
-  class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 transition-colors duration-200"
+<div class="relative">
+  <div
+  class="flex items-center space-x-3 cursor-pointer rounded-lg p-2 mb-2 transition-colors duration-200"
   (click)="onSongClick()"
 >
   <!-- Thumbnail -->
@@ -49,10 +50,15 @@
   <div class="flex items-center flex-shrink-0">
     <!-- Options button -->
     <button
+    *ngIf="!isShowBoxFunction"
       class="w-6 h-6 text-white hover:text-white rounded-full flex items-center justify-center transition-colors duration-200"
-      (click)="onOptionsClick($event)"
+      (click)="toogleShowBoxFunction(); $event.stopPropagation();"
     >
       <i class="fa-solid fa-ellipsis-vertical"></i>
     </button>
   </div>
+</div>
+@if(isShowBoxFunction){
+  <app-song-item-actions [song]="song" [modeItem]="'itemHome'" (close)="toogleShowBoxFunction()"></app-song-item-actions>
+}
 </div>

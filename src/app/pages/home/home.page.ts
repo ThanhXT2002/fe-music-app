@@ -18,6 +18,7 @@ import {
 } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Capacitor } from '@capacitor/core';
+import { DatabaseService } from 'src/app/services/database.service';
 
 @Component({
   selector: 'app-home',
@@ -42,6 +43,7 @@ export class HomePage implements OnInit {
 
   constructor(
     private homeService: HomeService,
+    private databaseService: DatabaseService,
     public audioPlayerService: AudioPlayerService,
     private platform: Platform
   ) {
@@ -71,14 +73,14 @@ export class HomePage implements OnInit {
     this.loadTikTokSongs();
   }
 
-  loadEveryoneToListen() {
+  async loadEveryoneToListen() {
     // Get cached data (already loaded when app started)
     this.homeService.getHomeData().subscribe({
-      next: (res) => {
+      next: async (res) => {
         if (res && res.data) {
           // Ensure data is an array
           if (Array.isArray(res.data)) {
-            this.listEveryoneToListens = res.data;
+            this.listEveryoneToListens = await this.syncFavorites(res.data);
           } else {
             console.warn('Expected array but got:', typeof res.data);
             this.listEveryoneToListens = [];
@@ -94,12 +96,12 @@ export class HomePage implements OnInit {
     });
   }
 
-  loadRemixSongs() {
+  async loadRemixSongs() {
     this.homeService.getHomeData('remix', 25).subscribe({
-      next: (res) => {
+      next: async (res) => {
         if (res && res.data) {
           if (Array.isArray(res.data)) {
-            this.listRemixSongs = res.data;
+            this.listRemixSongs = await this.syncFavorites(res.data);
           } else {
             this.listRemixSongs = [];
           }
@@ -113,12 +115,12 @@ export class HomePage implements OnInit {
     });
   }
 
-  loadInstrumentalSongs() {
+  async loadInstrumentalSongs() {
     this.homeService.getHomeData('Không Lời', 25).subscribe({
-      next: (res) => {
+      next: async (res) => {
         if (res && res.data) {
           if (Array.isArray(res.data)) {
-            this.listInstrumentalSongs = res.data;
+            this.listInstrumentalSongs = await this.syncFavorites(res.data);
           } else {
             this.listInstrumentalSongs = [];
           }
@@ -133,12 +135,12 @@ export class HomePage implements OnInit {
     });
   }
 
-  loadTikTokSongs() {
+  async loadTikTokSongs() {
     this.homeService.getHomeData('tik', 25).subscribe({
-      next: (res) => {
+      next: async (res) => {
         if (res && res.data) {
           if (Array.isArray(res.data)) {
-            this.listTikTokSongs = res.data;
+            this.listTikTokSongs = await this.syncFavorites(res.data);
           } else {
             this.listTikTokSongs = [];
           }
@@ -192,6 +194,14 @@ onSongClick(event: { song: Song, playlist: Song[] }) {
   if (index !== -1) {
     this.audioPlayerService.setPlaylist(playlist, index);
   }
+}
+
+async syncFavorites(songs: Song[]): Promise<Song[]> {
+  const favoriteIds = await this.databaseService.getAllFavoriteSongIds(); // Trả về mảng id các bài hát favorite
+  return songs.map(song => ({
+    ...song,
+    isFavorite: favoriteIds.includes(song.id)
+  }));
 }
 
 

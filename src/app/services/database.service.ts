@@ -367,6 +367,8 @@ export class DatabaseService {
     if (!song) return false;
 
     song.isFavorite = !song.isFavorite;
+
+    console.log('isFavorite:', song.isFavorite);
     return await this.updateSong(song);
   }
 
@@ -459,4 +461,10 @@ export class DatabaseService {
     this.playlistsCache = null;
     this.playlistsCacheTime = 0;
   }
+
+
+  async getAllFavoriteSongIds(): Promise<string[]> {
+  const songs = await this.getAllSongs();
+  return songs.filter(song => song.isFavorite).map(song => song.id);
+}
 }

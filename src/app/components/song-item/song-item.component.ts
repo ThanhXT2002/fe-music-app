@@ -19,12 +19,13 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
 import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
 import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
+import { SongItemActionsComponent } from "../song-item-actions/song-item-actions.component";
 
 @Component({
   selector: 'app-song-item',
   templateUrl: './song-item.component.html',
   styleUrls: ['./song-item.component.scss'],
-  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent, BtnDownAndHeartComponent, BtnAddPlaylistComponent],
+  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent, BtnDownAndHeartComponent, BtnAddPlaylistComponent, SongItemActionsComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
