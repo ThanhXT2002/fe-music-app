@@ -15,7 +15,8 @@ export class BtnDeleteSongComponent {
   constructor(
     private databaseService: DatabaseService,
     private alertController: AlertController,
-    private downloadService: DownloadService
+    private downloadService: DownloadService,
+
   ) {}
 
     isDownloaded(): boolean {
@@ -47,6 +48,7 @@ export class BtnDeleteSongComponent {
               });
               await successAlert.present();
               this.deleted.emit(this.songId);
+
             } else {
               const failAlert = await this.alertController.create({
                 mode: 'ios',

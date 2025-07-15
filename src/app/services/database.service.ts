@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import {
   Song,
   Album,
@@ -35,6 +35,8 @@ export class DatabaseService {
   private songsCacheTime = 0;
 
   private readonly CACHE_DURATION = 30000; // 30 seconds
+
+  deletedSongId = signal<string | null>(null);
 
   constructor(
     indexedDBService: IndexedDBService,
@@ -227,6 +229,7 @@ export class DatabaseService {
       if (success) {
         this.songsCache = null;
         this.refreshService.triggerRefresh();
+        this.deletedSongId.set(id);
       }
       return success;
     } catch (error) {

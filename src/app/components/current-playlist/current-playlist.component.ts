@@ -19,19 +19,29 @@ import { DatabaseService } from 'src/app/services/database.service';
 import {
   IonReorderGroup,
   IonContent,
-   ItemReorderEventDetail, IonItem } from '@ionic/angular/standalone';
+  ItemReorderEventDetail,
+  IonItem,
+} from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { reorderThreeOutline } from 'ionicons/icons';
-import { SongItemComponent } from "../song-item/song-item.component";
-import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
-import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
+import { SongItemComponent } from '../song-item/song-item.component';
+import { BtnDownAndHeartComponent } from '../btn-down-and-heart/btn-down-and-heart.component';
+import { BtnAddPlaylistComponent } from '../btn-add-playlist/btn-add-playlist.component';
 
 @Component({
   selector: 'app-current-playlist',
   templateUrl: './current-playlist.component.html',
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
-  imports: [IonItem, IonReorderGroup, IonContent, CommonModule, SongItemComponent, BtnDownAndHeartComponent, BtnAddPlaylistComponent],
+  imports: [
+    IonItem,
+    IonReorderGroup,
+    IonContent,
+    CommonModule,
+    SongItemComponent,
+    BtnDownAndHeartComponent,
+    BtnAddPlaylistComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {
@@ -98,12 +108,20 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       );
     }
 
+    effect(() => {
+      const deletedId = this.databaseService.deletedSongId();
+      console.log('Deleted song ID:', deletedId);
+      if (deletedId) {
+        this.removeSongByIdFromCurrentPlaylist(deletedId);
+        // Reset signal để tránh lặp lại
+        this.databaseService.deletedSongId.set(null);
+      }
+    });
+
     addIcons({ reorderThreeOutline });
   }
 
-  ngOnInit() {
-
-  }
+  ngOnInit() {}
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -115,6 +133,22 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
       );
     }
   }
+
+  private removeSongByIdFromCurrentPlaylist(songId: string) {
+    const playlist = this.currentPlaylist();
+    if (!Array.isArray(playlist)) return;
+    const index = playlist.findIndex((s) => s.id === songId);
+    if (index !== -1) {
+      if (playlist.length <= 1) {
+        this.clearPlaylist();
+      } else {
+        this.audioPlayerService.removeFromQueue(index);
+      }
+      // Đảm bảo UI cập nhật
+      this.cdr.detectChanges();
+    }
+  }
+
   private handlePlayerAction = () => {
     requestAnimationFrame(() => {
       this.cdr.detectChanges();
@@ -226,7 +260,6 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
       // Force UI update
       this.cdr.detectChanges();
-
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -295,7 +328,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     return {
       'spin-with-fill': isCurrent,
       'spin-paused': !this.isPlaying() && isCurrent,
-      'border-purple-700': isCurrent
+      'border-purple-700': isCurrent,
     };
   }
 }
