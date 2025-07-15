@@ -91,7 +91,7 @@ export class SettingsPage implements OnInit {
     const alert = await this.alertController.create({
       mode: 'ios',
       header: 'App Information',
-      message: 'TXT Music Player v1.0.0\nA modern music player for your favorite songs.',
+      message: 'TXT Music Player v1.0.1\nA modern music player for your favorite songs.',
       buttons: ['OK']
     });
     await alert.present();
