@@ -55,7 +55,17 @@ export class AudioPlayerService {
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
+    this.initializeMediaSession();
   }
+
+  private initializeMediaSession() {
+  if ('mediaSession' in navigator) {
+    this.setupAudioEventListeners();
+    console.log('✅ Media Session initialized');
+  } else {
+    console.warn('❌ Media Session API not supported');
+  }
+}
   // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
@@ -166,27 +176,88 @@ export class AudioPlayerService {
     }
   }
   // 🆕 Cập nhật Media Session API để hiển thị control ngoài taskbar/màn hình khóa
-private updateMediaSession(song: Song) {
-  if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
-  navigator.mediaSession.metadata = new MediaMetadata({
-      title: song.title,
-      artist: song.artist,
-      album: '', // hoặc tên album nếu có
-      artwork: song.thumbnail_url
-        ? [
-            { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' }
-          ]
-        : [],
-    });
+updateMediaSession(song: Song) {
+  if (!('mediaSession' in navigator)) {
+    console.warn('Media Session API not supported');
+    return;
+  }
 
-    // Chỉ set action handler nếu KHÔNG phải iOS
-    const isIOS = this.platform.is('ios');
-    if (!isIOS) {
-      navigator.mediaSession.setActionHandler('play', () => this.resume());
-      navigator.mediaSession.setActionHandler('pause', () => this.pause());
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+  // Cập nhật metadata với fallback và đa kích thước artwork
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: song.title || 'Unknown Title',
+    artist: song.artist || 'Unknown Artist',
+    album: '',
+    artwork: [
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '96x96', type: 'image/png' },
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '128x128', type: 'image/png' },
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '192x192', type: 'image/png' },
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '256x256', type: 'image/png' },
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '384x384', type: 'image/png' },
+      { src: song.thumbnail_url || 'assets/default-artwork.png', sizes: '512x512', type: 'image/png' },
+    ],
+  });
+
+  // Chỉ set action handler nếu không phải iOS
+  const isIOS = this.platform.is('ios');
+  if (!isIOS) {
+    this.setupMediaSessionActions();
+  }
+
+  // Luôn cập nhật playback state cho Media Session
+  this.updateMediaSessionPlaybackState();
+}
+
+// Đăng ký các action handler cho Media Session
+private setupMediaSessionActions() {
+  const actions: MediaSessionAction[] = [
+    'play', 'pause', 'previoustrack', 'nexttrack', 'stop', 'seekbackward', 'seekforward', 'seekto'
+  ];
+  actions.forEach(action => {
+    try {
+      navigator.mediaSession.setActionHandler(action, (details) => {
+        this.handleMediaSessionAction(action, details);
+      });
+    } catch (error) {
+      // Một số action có thể không được hỗ trợ trên nền tảng hiện tại
     }
+  });
+}
+
+// Xử lý logic cho từng action
+private handleMediaSessionAction(action: MediaSessionAction, details?: MediaSessionActionDetails) {
+  switch (action) {
+    case 'play': this.resume(); break;
+    case 'pause': this.pause(); break;
+    case 'stop': this.stop(); break;
+    case 'previoustrack': this.playPrevious(); break;
+    case 'nexttrack': this.playNext(); break;
+    case 'seekbackward':
+      this.seekTo(Math.max(0, this.audio.currentTime - (details?.seekOffset || 10)));
+      break;
+    case 'seekforward':
+      this.seekTo(Math.min(this.audio.duration, this.audio.currentTime + (details?.seekOffset || 10)));
+      break;
+    case 'seekto':
+      if (details?.seekTime !== undefined) this.seekTo(details.seekTime);
+      break;
+    default:
+      // Không xử lý action này
+      break;
+  }
+}
+
+// Cập nhật playbackState và positionState cho Media Session
+private updateMediaSessionPlaybackState() {
+  if (!('mediaSession' in navigator)) return;
+  navigator.mediaSession.playbackState = this.isPlayingSignal() ? 'playing' : 'paused';
+  if ('setPositionState' in navigator.mediaSession) {
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: this.audio.duration || 0,
+        playbackRate: this.audio.playbackRate || 1.0,
+        position: this.audio.currentTime || 0,
+      });
+    } catch {}
   }
 }
 
@@ -256,12 +327,14 @@ private updateMediaSession(song: Song) {
         ...state,
         duration: this.audio.duration,
       }));
+      this.updateMediaSessionPlaybackState();
     });
     this.audio.addEventListener('timeupdate', () => {
       this.updatePlaybackState((state) => ({
         ...state,
         currentTime: this.audio.currentTime,
       }));
+      this.updateMediaSessionPlaybackState();
     });
 
     // Buffer progress tracking
@@ -282,6 +355,7 @@ private updateMediaSession(song: Song) {
         isPlaying: true,
         isPaused: false,
       }));
+      this.updateMediaSessionPlaybackState();
       this.startTimeUpdate();
     });
     this.audio.addEventListener('pause', () => {
@@ -290,6 +364,7 @@ private updateMediaSession(song: Song) {
         isPlaying: false,
         isPaused: true,
       }));
+      this.updateMediaSessionPlaybackState();
       this.stopTimeUpdate();
     });
     this.audio.addEventListener('error', (e) => {
@@ -755,6 +830,20 @@ private updateMediaSession(song: Song) {
       await this.playSong(playlist[index], playlist, index);
     }
   }
+
+  // Implements the stop functionality for Media Session API
+  stop() {
+    this.audio.pause();
+    this.audio.currentTime = 0;
+    this.updatePlaybackState((state) => ({
+      ...state,
+      isPlaying: false,
+      isPaused: false,
+      currentTime: 0,
+    }));
+    this.savePlaybackStateDebounced();
+  }
+
   removeFromQueue(index: number) {
     const state = this._playbackState();
     const newPlaylist = [...state.currentPlaylist];
