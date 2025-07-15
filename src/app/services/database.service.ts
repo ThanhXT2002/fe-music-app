@@ -173,18 +173,64 @@ export class DatabaseService {
 
   /**
    * Xóa bài hát
-   */ async deleteSong(id: string): Promise<boolean> {
+   */
+  async deleteSong(id: string): Promise<boolean> {
     if (!this.isDbReady) return false;
 
     try {
+      // 1. Xóa khỏi bảng songs
       const success = await this.indexedDB.deleteRecord('songs', id);
+
+      // 2. Xóa file audio liên quan (nếu có)
+      const audioDeletePromise = this.deleteAudioFile(id);
+
+      // 3. Xóa khỏi tất cả playlist (songId có thể là string hoặc object)
+      const playlists = await this.getAllPlaylists();
+      const playlistUpdatePromises: Promise<any>[] = [];
+      let playlistChanged = false;
+      for (const playlist of playlists) {
+        if (playlist.songs && Array.isArray(playlist.songs)) {
+          const originalLength = playlist.songs.length;
+          playlist.songs = playlist.songs.filter((songItem) => {
+            if (typeof songItem === 'string') {
+              return songItem !== id;
+            } else if (songItem && typeof songItem === 'object' && 'id' in songItem) {
+              return songItem.id !== id;
+            }
+            return true;
+          });
+          if (playlist.songs.length !== originalLength) {
+            playlistUpdatePromises.push(this.updatePlaylist(playlist));
+            playlistChanged = true;
+          }
+        }
+      }
+      if (playlistChanged) {
+        this.playlistsCache = null;
+      }
+
+      // 4. Xóa khỏi bảng search_history
+      const searchHistory = await this.getSearchHistory();
+      const toDelete = searchHistory.filter((item) => item.songId === id);
+      const searchHistoryDeletePromises = toDelete.map((item) =>
+        this.indexedDB.deleteRecord('search_history', String(item.id))
+      );
+
+      // Thực hiện song song các thao tác xóa phụ trợ
+      await Promise.all([
+        audioDeletePromise,
+        ...playlistUpdatePromises,
+        ...searchHistoryDeletePromises,
+      ]);
+
+      // 5. Xóa cache và trigger refresh nếu thành công
       if (success) {
-        this.songsCache = null; // Clear songs cache
+        this.songsCache = null;
         this.refreshService.triggerRefresh();
       }
       return success;
     } catch (error) {
-      console.error('Error deleting song:', error);
+      console.error('Error deleting song everywhere:', error);
       return false;
     }
   }
@@ -378,15 +424,15 @@ export class DatabaseService {
   }
 
   async getRecentlyPlayedSongs(limit: number = 50): Promise<Song[]> {
-  const songs = await this.getAllSongs();
-  return [...songs] // clone mảng, không ảnh hưởng cache
-    .sort(
-      (a, b) =>
-        (b.lastPlayedDate ? new Date(b.lastPlayedDate).getTime() : 0) -
-        (a.lastPlayedDate ? new Date(a.lastPlayedDate).getTime() : 0)
-    )
-    .slice(0, limit);
-}
+    const songs = await this.getAllSongs();
+    return [...songs] // clone mảng, không ảnh hưởng cache
+      .sort(
+        (a, b) =>
+          (b.lastPlayedDate ? new Date(b.lastPlayedDate).getTime() : 0) -
+          (a.lastPlayedDate ? new Date(a.lastPlayedDate).getTime() : 0)
+      )
+      .slice(0, limit);
+  }
 
   async addToSearchHistory(song: Song): Promise<boolean>;
   async addToSearchHistory(song: DataSong): Promise<boolean>;
@@ -462,9 +508,8 @@ export class DatabaseService {
     this.playlistsCacheTime = 0;
   }
 
-
   async getAllFavoriteSongIds(): Promise<string[]> {
-  const songs = await this.getAllSongs();
-  return songs.filter(song => song.isFavorite).map(song => song.id);
-}
+    const songs = await this.getAllSongs();
+    return songs.filter((song) => song.isFavorite).map((song) => song.id);
+  }
 }

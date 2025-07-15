@@ -2,12 +2,13 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
 import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
 import { CommonModule } from '@angular/common';
+import { BtnDeleteSongComponent } from "../btn-delete-song/btn-delete-song.component";
 
 @Component({
   selector: 'app-song-item-actions',
   templateUrl: './song-item-actions.component.html',
   styleUrls: ['./song-item-actions.component.scss'],
-  imports: [BtnAddPlaylistComponent, BtnDownAndHeartComponent, CommonModule],
+  imports: [BtnAddPlaylistComponent, BtnDownAndHeartComponent, CommonModule, BtnDeleteSongComponent],
 })
 export class SongItemActionsComponent {
   @Input() song: any;
