@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Platform } from '@ionic/angular';
+import { CapacitorMusicControls } from 'capacitor-music-controls-plugin';
 
 @Injectable({
   providedIn: 'root',
@@ -43,18 +44,26 @@ export class AudioPlayerService {
   private _lastPlaylistId: string | null = null;
 
   get lastPlaylistId(): string | null {
-  return this._lastPlaylistId;
-}
+    return this._lastPlaylistId;
+  }
 
   constructor(
     private indexedDBService: IndexedDBService,
-    private platform: Platform,
+    private platform: Platform
   ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
     this.setupSignalUpdates();
     // Phục hồi trạng thái phát nhạc khi khởi tạo
     this.restorePlaybackState();
+
+    // Đăng ký listener cho music controls
+    CapacitorMusicControls.addListener('controlsNotification', (info: any) => {
+      this.handleMusicControlEvent(info);
+    });
+    document.addEventListener('controlsNotification', (event: any) => {
+      this.handleMusicControlEvent(event);
+    });
   }
   // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
@@ -148,10 +157,40 @@ export class AudioPlayerService {
         this.audio.addEventListener('error', handleError);
 
         this.audio.load();
+        CapacitorMusicControls.create({
+          track: song.title,
+          artist: song.artist,
+          album: '',
+          cover: song.thumbnail_url,
+          isPlaying: true,
+          hasPrev: true,
+          hasNext: true,
+          hasClose: true,
+          dismissable: true,
+          // iOS only
+          duration: song.duration, // tổng thời lượng
+          elapsed: this.audio.currentTime, // thời gian đã phát
+          hasSkipForward: true,
+          hasSkipBackward: true,
+          skipForwardInterval: 15,
+          skipBackwardInterval: 15,
+          hasScrubbing: true,
+          // Android only
+          ticker: `Now playing "${song.title}"`,
+          playIcon: 'media_play',
+          pauseIcon: 'media_pause',
+          prevIcon: 'media_prev',
+          nextIcon: 'media_next',
+          closeIcon: 'media_close',
+          notificationIcon: 'notification',
+        });
       });
 
       // Now safely play the audio
       await this.audio.play();
+      CapacitorMusicControls.updateIsPlaying({
+        isPlaying: true,
+      });
 
       song.lastPlayedDate = new Date();
       await this.indexedDBService.put('songs', song);
@@ -166,45 +205,51 @@ export class AudioPlayerService {
     }
   }
   // 🆕 Cập nhật Media Session API để hiển thị control ngoài taskbar/màn hình khóa
-private updateMediaSession(song: Song) {
-  if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: song.title,
-      artist: song.artist,
-      album: '', // hoặc tên album nếu có
-      artwork: song.thumbnail_url
-        ? [
-            { src: song.thumbnail_url, sizes: '96x96', type: 'image/png' },
-            { src: song.thumbnail_url, sizes: '128x128', type: 'image/png' },
-            { src: song.thumbnail_url, sizes: '192x192', type: 'image/png' },
-            { src: song.thumbnail_url, sizes: '256x256', type: 'image/png' },
-            { src: song.thumbnail_url, sizes: '384x384', type: 'image/png' },
-            { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' }
-          ]
-        : [],
-    });
-
-    const isIOS = this.platform.is('ios');
-    if (!isIOS) {
-      navigator.mediaSession.setActionHandler('play', () => this.resume());
-      navigator.mediaSession.setActionHandler('pause', () => this.pause());
-      navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
-    }
-
-    // Set playbackState
-    navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
-
-    // Set position state (nếu hỗ trợ)
-    if ('setPositionState' in navigator.mediaSession && this.audio.duration) {
-      navigator.mediaSession.setPositionState({
-        duration: this.audio.duration,
-        playbackRate: this.audio.playbackRate,
-        position: this.audio.currentTime
+  private updateMediaSession(song: Song) {
+    if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: song.title,
+        artist: song.artist,
+        album: '', // hoặc tên album nếu có
+        artwork: song.thumbnail_url
+          ? [
+              { src: song.thumbnail_url, sizes: '96x96', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '128x128', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '192x192', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '256x256', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '384x384', type: 'image/png' },
+              { src: song.thumbnail_url, sizes: '512x512', type: 'image/png' },
+            ]
+          : [],
       });
+
+      const isIOS = this.platform.is('ios');
+      if (!isIOS) {
+        navigator.mediaSession.setActionHandler('play', () => this.resume());
+        navigator.mediaSession.setActionHandler('pause', () => this.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', () =>
+          this.playPrevious()
+        );
+        navigator.mediaSession.setActionHandler('nexttrack', () =>
+          this.playNext()
+        );
+      }
+
+      // Set playbackState
+      navigator.mediaSession.playbackState = this.audio.paused
+        ? 'paused'
+        : 'playing';
+
+      // Set position state (nếu hỗ trợ)
+      if ('setPositionState' in navigator.mediaSession && this.audio.duration) {
+        navigator.mediaSession.setPositionState({
+          duration: this.audio.duration,
+          playbackRate: this.audio.playbackRate,
+          position: this.audio.currentTime,
+        });
+      }
     }
   }
-}
 
   // 🆕 Preload next song for smooth playback
   private async preloadNextSong(): Promise<void> {
@@ -264,6 +309,7 @@ private updateMediaSession(song: Song) {
     this.audio.pause();
     this.audio.src = '';
     this.clearAudioCache(); // Clear cache khi destroy
+    CapacitorMusicControls.destroy();
   }
 
   private setupAudioEventListeners() {
@@ -402,6 +448,9 @@ private updateMediaSession(song: Song) {
       await this.audio.pause();
       // 🆕 Lưu state khi pause
       this.savePlaybackStateDebounced();
+      CapacitorMusicControls.updateIsPlaying({
+        isPlaying: false,
+      });
     }
   }
   async resume() {
@@ -422,6 +471,9 @@ private updateMediaSession(song: Song) {
         }
 
         await this.audio.play();
+        CapacitorMusicControls.updateIsPlaying({
+          isPlaying: true,
+        });
       }
     } catch (error) {
       console.error('❌ Error resuming audio:', error);
@@ -695,7 +747,11 @@ private updateMediaSession(song: Song) {
       console.error('❌ Error loading saved settings:', error);
     }
   }
-  async setPlaylist(playlist: Song[], startIndex: number = 0, playlistId?: string) {
+  async setPlaylist(
+    playlist: Song[],
+    startIndex: number = 0,
+    playlistId?: string
+  ) {
     this.updatePlaybackState((state) => ({
       ...state,
       currentPlaylist: playlist,
@@ -953,6 +1009,54 @@ private updateMediaSession(song: Song) {
     return this.audio;
   }
   private setLastPlaylistId(playlistId: string) {
-  this._lastPlaylistId = playlistId;
-}
+    this._lastPlaylistId = playlistId;
+  }
+
+  // 🆕 Handle music control events from Capacitor plugin
+  private handleMusicControlEvent(action: any) {
+    const message = action.message;
+    switch (message) {
+      case 'music-controls-next':
+        this.playNext();
+        break;
+      case 'music-controls-previous':
+        this.playPrevious();
+        break;
+      case 'music-controls-pause':
+        this.pause();
+        break;
+      case 'music-controls-play':
+        this.resume();
+        break;
+      case 'music-controls-destroy':
+        CapacitorMusicControls.destroy();
+        break;
+      case 'music-controls-toggle-play-pause':
+        this.togglePlayPause();
+        break;
+      case 'music-controls-skip-forward':
+        this.seek(this.audio.currentTime + 15);
+        break;
+      case 'music-controls-skip-backward':
+        this.seek(this.audio.currentTime - 15);
+        break;
+      case 'music-controls-skip-to':
+        if (action.position !== undefined) this.seek(action.position);
+        break;
+      case 'music-controls-media-button':
+        /* Xử lý nút media ngoài tai nghe */
+        this.togglePlayPause();
+        break;
+      case 'music-controls-headset-unplugged':
+        /* Xử lý rút tai nghe */
+        this.pause();
+        break;
+      case 'music-controls-headset-plugged':
+        /* Xử lý cắm tai nghe */
+        this.resume();
+        break;
+      default:
+        break;
+    }
+  }
 }

@@ -50,6 +50,7 @@
     "@fortawesome/fontawesome-free": "6.7.2",
     "@ionic/angular": "8.0.0",
     "@types/wavesurfer.js": "^6.0.12",
+    "capacitor-music-controls-plugin": "^6.1.0",
     "capacitor-plugin-safe-area": "4.0.0",
     "fuse.js": "7.1.0",
     "ionicons": "^8.0.9",
