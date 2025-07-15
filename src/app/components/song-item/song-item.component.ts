@@ -25,7 +25,7 @@ import { SongItemActionsComponent } from "../song-item-actions/song-item-actions
   selector: 'app-song-item',
   templateUrl: './song-item.component.html',
   styleUrls: ['./song-item.component.scss'],
-  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent, BtnDownAndHeartComponent, BtnAddPlaylistComponent, SongItemActionsComponent],
+  imports: [IonCheckbox, IonReorder, CommonModule, IonIcon, LottieEqualizerComponent, SongItemActionsComponent],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

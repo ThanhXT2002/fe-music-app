@@ -167,8 +167,8 @@ export class AudioPlayerService {
   }
   // 🆕 Cập nhật Media Session API để hiển thị control ngoài taskbar/màn hình khóa
 private updateMediaSession(song: Song) {
-  if ('mediaSession' in navigator && (window as any).MediaMetadata) {
-    navigator.mediaSession.metadata = new (window as any).MediaMetadata({
+  if ('mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+  navigator.mediaSession.metadata = new MediaMetadata({
       title: song.title,
       artist: song.artist,
       album: '', // hoặc tên album nếu có
