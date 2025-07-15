@@ -24,9 +24,7 @@
           </p>
         </div>
         <div class="flex items-center space-x-5 pr-3">
-          <ng-container *ngIf="currentSong() as song">
-            <app-btn-add-playlist [songId]="song.id" />
-          </ng-container>
+          <app-btn-add-playlist [songId]="currentSong()?.id!" />
           <!-- Shuffle Button -->
           <button
             (click)="toggleShuffle()"
@@ -35,9 +33,7 @@
           >
             <i class="fas fa-random text-xl m-auto"></i>
           </button>
-          <ng-container *ngIf="currentSong() as song">
-           <app-btn-down-and-heart [song]="song"/>
-          </ng-container>
+           <app-btn-down-and-heart [song]="currentSong()!"/>
         </div>
       </div>
       <div *ngIf="currentSong()">

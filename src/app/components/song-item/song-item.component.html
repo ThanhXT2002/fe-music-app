@@ -125,7 +125,7 @@
       ></ion-checkbox>
 
       }@else if(isFavoriteTab){
-      <button (click)="toggleFavorite.emit(song); $event.stopPropagation()">
+      <button (click)="onToggleFavorite($event)">
         <i
           class="fa-solid fa-heart text-xl"
           [ngClass]="song.isFavorite ? 'text-red-500' : 'text-white/70'"

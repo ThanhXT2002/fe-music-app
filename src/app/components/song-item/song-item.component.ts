@@ -145,6 +145,14 @@ export class SongItemComponent implements OnInit {
   onToggleFavorite(event: Event) {
     event.stopPropagation();
     this.toggleFavorite.emit(this.song);
+
+    // Nếu là bài hát đang phát, cập nhật lại currentSong trong AudioPlayerService
+  if (this.isCurrentSong) {
+    this.audioPlayerService.updateCurrentSong({
+      ...this.song,
+      isFavorite: !this.song.isFavorite
+    });
+  }
   }
 
   onRemoveSong(event: Event) {

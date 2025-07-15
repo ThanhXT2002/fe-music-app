@@ -17,6 +17,7 @@ export class BtnDownAndHeartComponent implements OnInit {
    downloadService = inject(DownloadService);
   private databaseService = inject(DatabaseService);
   private refreshService = inject(RefreshService);
+  private audioPlayerService = inject(AudioPlayerService);
 
   @Input() song!: Song;
 
@@ -34,7 +35,7 @@ export class BtnDownAndHeartComponent implements OnInit {
         await this.databaseService.toggleFavorite(this.song.id);
         // Update the song object
         this.song.isFavorite = !this.song.isFavorite;
-        // this.audioPlayerService.updateCurrentSong(this.song);
+        this.audioPlayerService.updateCurrentSong(this.song);
         this.refreshService.triggerRefresh();
       } catch (error) {
         console.error('Error toggling favorite:', error);
