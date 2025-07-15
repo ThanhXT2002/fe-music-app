@@ -1,3 +1,4 @@
+
 import { Injectable } from '@angular/core';
 import {
   BehaviorSubject,
@@ -804,7 +805,31 @@ export class DownloadService {
     }
   }
 
-  // === NEW API v3 METHODS ===
+// === NEW API v3 METHODS ===
+
+  /**
+   * Xóa hoàn toàn trạng thái download và polling của một bài hát khi xóa khỏi IndexedDB
+   * @param songId - ID của bài hát
+   */
+  public removeSongDownloadState(songId: string): void {
+    // Xóa download task khỏi danh sách
+    const currentDownloads = this.currentDownloads.filter(
+      (d: DownloadTask) => d.songData?.id !== songId
+    );
+    this.downloadsSubject.next(currentDownloads);
+    this.saveDownloadsToIndexedDB();
+
+    // Xóa polling interval nếu có
+    this.stopStatusPolling(songId);
+
+    // Xóa trạng thái khỏi songStatusMap
+    this.songStatusMap.delete(songId);
+
+    // Xóa notification cache nếu có
+    this.notificationSentCache.delete(songId);
+    this.readyNotificationSentCache.delete(songId);
+    this.saveNotificationCache();
+  }
 
   /**
    * NEW: Get song info từ YouTube URL sử dụng API v3

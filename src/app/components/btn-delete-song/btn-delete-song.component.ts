@@ -47,6 +47,7 @@ export class BtnDeleteSongComponent {
                 buttons: ['OK'],
               });
               await successAlert.present();
+              this.downloadService.removeSongDownloadState(this.songId);
               this.deleted.emit(this.songId);
 
             } else {

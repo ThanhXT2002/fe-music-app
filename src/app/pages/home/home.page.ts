@@ -65,6 +65,8 @@ export class HomePage implements OnInit {
       else {
         this.pbCustom =this.isCurrentSong?'pb-[445px]' :'pb-96';
       }
+
+
     }
 
     this.loadEveryoneToListen();
