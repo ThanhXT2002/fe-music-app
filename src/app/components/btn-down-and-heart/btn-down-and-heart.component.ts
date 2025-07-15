@@ -14,7 +14,6 @@ import { RefreshService } from 'src/app/services/refresh.service';
   styleUrls: ['./btn-down-and-heart.component.scss'],
 })
 export class BtnDownAndHeartComponent implements OnInit {
-  private audioPlayerService = inject(AudioPlayerService);
    downloadService = inject(DownloadService);
   private databaseService = inject(DatabaseService);
   private refreshService = inject(RefreshService);
@@ -61,6 +60,7 @@ export class BtnDownAndHeartComponent implements OnInit {
     if (this.isDownloaded()) {
       return;
     }
+
     try {
       await this.downloadService.downloadSong(song);
       this.refreshService.triggerRefresh();

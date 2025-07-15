@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Platform } from '@ionic/angular';
 import { CapacitorMusicControls } from 'capacitor-music-controls-plugin';
+import { DownloadService } from './download.service';
 
 @Injectable({
   providedIn: 'root',
@@ -49,7 +50,8 @@ export class AudioPlayerService {
 
   constructor(
     private indexedDBService: IndexedDBService,
-    private platform: Platform
+    private platform: Platform,
+    private downloadService: DownloadService
   ) {
     this.setupAudioEventListeners();
     this.loadSavedSettings();
@@ -65,6 +67,7 @@ export class AudioPlayerService {
       this.handleMusicControlEvent(event);
     });
   }
+
   // 🆕 Method để load audio, chỉ từ IndexedDB để đảm bảo offline
   private async loadAudioWithBypass(song: Song): Promise<string> {
     try {
@@ -192,8 +195,10 @@ export class AudioPlayerService {
         isPlaying: true,
       });
 
-      song.lastPlayedDate = new Date();
-      await this.indexedDBService.put('songs', song);
+      if (this.downloadService.isSongDownloaded(song.id)) {
+        song.lastPlayedDate = new Date();
+        await this.indexedDBService.put('songs', song);
+      }
 
       // Preload next song (optional optimization)
       this.preloadNextSong();
