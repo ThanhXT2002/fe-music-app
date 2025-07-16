@@ -10,7 +10,7 @@ import { Injectable } from '@angular/core';
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
   private dbName = 'xtmusic_db';
-  private dbVersion = 36;
+  private dbVersion = 37;
 
   constructor() {}
   /**
