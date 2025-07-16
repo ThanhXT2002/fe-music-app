@@ -81,7 +81,7 @@ export class SettingsPage implements OnInit {
   async exportData() {
     this.isLoadingExport = true;
     await this.saveFileZipService.exportAllToZip();
-    let locationFile = 'Downloads';
+    let locationFile = 'trên thiết bị';
     if (this.isNative) {
       locationFile = 'Documents';
     }
