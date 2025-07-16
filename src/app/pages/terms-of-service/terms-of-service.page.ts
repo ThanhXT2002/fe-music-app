@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonTitle } from '@ionic/angular/standalone';
 import { RouterModule } from '@angular/router';
 
 @Component({
@@ -9,13 +9,21 @@ import { RouterModule } from '@angular/router';
   templateUrl: './terms-of-service.page.html',
   styleUrls: ['./terms-of-service.page.scss'],
   standalone: true,
-  imports: [IonContent, CommonModule, FormsModule, RouterModule]
+  imports: [IonTitle, IonButton, IonButtons, IonToolbar, IonHeader, IonContent, CommonModule, FormsModule, RouterModule]
 })
 export class TermsOfServicePage implements OnInit {
 
-  constructor() { }
+
+  constructor(  private location: Location) { }
 
   ngOnInit() {
+
+
+  }
+
+
+  onBack() {
+    this.location.back();
   }
 
 }
