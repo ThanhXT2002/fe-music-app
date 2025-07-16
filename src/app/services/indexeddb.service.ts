@@ -144,7 +144,6 @@ export class IndexedDBService {
         'search_history',
         'playlists',
         'audioFiles',
-        'thumbnailFiles',
         'downloads',
       ];
       const existingStores = Array.from(this.db.objectStoreNames);

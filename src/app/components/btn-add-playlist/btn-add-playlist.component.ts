@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnInit } from '@angular/core';
+import { Component, inject, Input, OnInit, OnDestroy, OnChanges, ChangeDetectorRef, SimpleChanges } from '@angular/core';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { DownloadService } from 'src/app/services/download.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-btn-add-playlist',
@@ -10,20 +11,41 @@ import { DownloadService } from 'src/app/services/download.service';
   templateUrl: './btn-add-playlist.component.html',
   styleUrls: ['./btn-add-playlist.component.scss'],
 })
-export class BtnAddPlaylistComponent implements OnInit {
+export class BtnAddPlaylistComponent implements OnInit, OnDestroy,OnChanges {
   private modalCtrl = inject(ModalController);
   private downloadService = inject(DownloadService);
+  private cdr = inject(ChangeDetectorRef);
   @Input() songId!: string;
+
+  isDownloaded = false;
+  private songDownloadedSub?: Subscription;
 
   constructor() {}
 
 ngOnInit() {
-
-}
-
-  isDownloaded(): boolean {
-    return this.downloadService.isSongDownloaded(this.songId);
+    this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(data => {
+      if (data && data.songId === this.songId) {
+        this.isDownloaded = data.downloaded;
+        this.cdr.markForCheck();
+      }
+    });
+    this.checkDownloaded();
   }
+
+   ngOnChanges(changes: SimpleChanges) {
+    if (changes['songId'] && !changes['songId'].firstChange) {
+      this.checkDownloaded();
+    }
+  }
+
+  ngOnDestroy() {
+    this.songDownloadedSub?.unsubscribe();
+  }
+
+  private async checkDownloaded() {
+    await this.downloadService.isSongDownloadedDB(this.songId);
+  }
+
 
   async toggleAddPlaylist() {
 

@@ -1,4 +1,3 @@
-
 import { Injectable } from '@angular/core';
 import {
   BehaviorSubject,
@@ -68,6 +67,12 @@ export class DownloadService {
   private readyNotificationSentCache = new Set<string>(); // For ready notifications
   private readonly NOTIFICATION_CACHE_KEY = 'download_notifications_sent';
   private readonly READY_NOTIFICATION_CACHE_KEY = 'ready_notifications_sent';
+
+  private songDownloadedSignal = new BehaviorSubject<{
+    songId: string;
+    downloaded: boolean;
+  } | null>(null);
+  public songDownloaded$ = this.songDownloadedSignal.asObservable();
 
   private activeDownloads = new Map<string, any>();
   constructor(
@@ -322,7 +327,9 @@ export class DownloadService {
   // Get download by ID
   getDownload(id: string): DownloadTask | undefined {
     return this.currentDownloads.find((d) => d.id === id);
-  } // Get downloads by status
+  }
+
+  // Get downloads by status
   getDownloadsByStatus(status: DownloadTask['status']): DownloadTask[] {
     return this.currentDownloads.filter((d) => d.status === status);
   }
@@ -346,6 +353,24 @@ export class DownloadService {
   getDownloadBySongId(songId: string): DownloadTask | undefined {
     return this.currentDownloads.find((d) => d.songData?.id === songId);
   }
+
+  /**
+   * Kiểm tra bài hát đã thực sự được tải về (có cả metadata và audio blob)
+   * @param songId - ID của bài hát
+   * @returns Promise<boolean>
+   */
+  async isSongDownloadedDB(songId: string): Promise<boolean> {
+    const song = await this.databaseService.getSongById(songId);
+    if (!song) {
+      this.songDownloadedSignal.next({ songId, downloaded: false });
+      return false;
+    }
+    const hasAudio = await this.indexedDBService.hasFile('audioFiles', songId);
+    const result = !!hasAudio;
+    this.songDownloadedSignal.next({ songId, downloaded: result });
+    return result;
+  }
+
 
   // Private methods
   private updateDownload(id: string, updates: Partial<DownloadTask>) {
@@ -805,7 +830,7 @@ export class DownloadService {
     }
   }
 
-// === NEW API v3 METHODS ===
+  // === NEW API v3 METHODS ===
 
   /**
    * Xóa hoàn toàn trạng thái download và polling của một bài hát khi xóa khỏi IndexedDB
