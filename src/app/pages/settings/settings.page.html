@@ -1,8 +1,7 @@
 <div class="flex flex-col bg-page overflow-y-auto scrollbar-hide">
-  <div class="p-4 space-y-4"
-  [ngClass]="currentSong() ? 'pb-16':'pb-4' ">
+  <div class="p-4 space-y-4" [ngClass]="currentSong() ? 'pb-16':'pb-4' ">
     @if(!isNative) {
-      <app-install-prompt/>
+    <app-install-prompt />
     }
     <!-- Account Settings -->
     <app-account-panel />
@@ -19,7 +18,13 @@
       <div class="liquid-glass-content space-y-3">
         <button (click)="exportData()" class="liquid-glass-button">
           <div class="flex items-center">
-            <i class="fas fa-download text-blue-500 w-6"></i>
+            <div class="h-6 w-6 flex items-center justify-center">
+              <i
+                class="text-blue-500"
+                [ngClass]="isLoadingExport ? 'fa-solid fa-spinner animate-spin' : 'fas fa-download'"
+              ></i>
+            </div>
+
             <div class="ml-3 text-left">
               <p class="text-sm font-medium text-white">Export Data</p>
               <p class="text-xs text-gray-400">
@@ -29,10 +34,14 @@
           </div>
           <i class="fas fa-chevron-right text-gray-400"></i>
         </button>
-
         <button (click)="importData()" class="liquid-glass-button">
           <div class="flex items-center">
-            <i class="fas fa-upload text-green-500 w-6"></i>
+            <div class="h-6 w-6 flex items-center justify-center">
+              <i
+                class="text-green-500"
+                [ngClass]="isLoadingImport ? 'fa-solid fa-spinner animate-spin' : 'fas fa-upload'"
+              ></i>
+            </div>
             <div class="ml-3 text-left">
               <p class="text-sm font-medium text-white">Import Data</p>
               <p class="text-xs text-gray-400">Restore your data from backup</p>
@@ -192,7 +201,5 @@
         </button>
       </div>
     </div>
-
-
   </div>
 </div>

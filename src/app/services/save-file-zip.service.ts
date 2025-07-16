@@ -1,16 +1,17 @@
-
 import { Injectable } from '@angular/core';
 import JSZip from 'jszip';
 import { DatabaseService } from './database.service';
 import { Song, Playlist } from '../interfaces/song.interface';
 import { saveAs } from 'file-saver';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SaveFileZipService {
-
-  constructor(private db: DatabaseService) { }
+  constructor(
+    private db: DatabaseService) {}
 
   /**
    * Export toàn bộ dữ liệu (songs, playlists, audio) thành file zip
@@ -29,23 +30,40 @@ export class SaveFileZipService {
     const audioFolder = zip.folder('audio');
     // Lấy tất cả audioFiles từ IndexedDBService
     // @ts-ignore: access private indexedDB
-    const audioFiles = await this.db["indexedDB"].getAll('audioFiles');
+    const audioFiles = await this.db['indexedDB'].getAll('audioFiles');
     for (const audioFile of audioFiles) {
       if (audioFile && audioFile.songId && audioFile.blob) {
-        const ext = this.getAudioExtension(audioFile.mimeType || audioFile.blob.type);
+        const ext = this.getAudioExtension(
+          audioFile.mimeType || audioFile.blob.type
+        );
         audioFolder?.file(`${audioFile.songId}${ext}`, audioFile.blob);
       }
     }
 
     // 4. Tạo file zip và lưu
     const content = await zip.generateAsync({ type: 'blob' });
-    saveAs(content, filename);
+    if (Capacitor.isNativePlatform()) {
+      // Native: lưu bằng Filesystem
+      const arrayBuffer = await content.arrayBuffer();
+      const base64 = this.arrayBufferToBase64(arrayBuffer);
+      await Filesystem.writeFile({
+        path: filename,
+        data: base64,
+        directory: Directory.Documents, // hoặc Directory.Downloads nếu plugin hỗ trợ
+        recursive: true,
+      });
+    } else {
+      // Web/PWA: dùng FileSaver.js
+      saveAs(content, filename);
+    }
   }
 
   /**
    * Import dữ liệu từ file zip (songs, playlists, audio)
    */
-  async importAllFromZip(file: File): Promise<{songs: number, playlists: number, audio: number}> {
+  async importAllFromZip(
+    file: File
+  ): Promise<{ songs: number; playlists: number; audio: number }> {
     const zip = await JSZip.loadAsync(file);
     // 1. Import songs
     const songsJson = await zip.file('songs.json')?.async('string');
@@ -55,18 +73,23 @@ export class SaveFileZipService {
       // Chuyển lại các trường Date nếu cần
       if (song.addedDate) song.addedDate = new Date(song.addedDate);
       if (song.lastUpdated) song.lastUpdated = new Date(song.lastUpdated);
-      if (song.lastPlayedDate) song.lastPlayedDate = new Date(song.lastPlayedDate);
+      if (song.lastPlayedDate)
+        song.lastPlayedDate = new Date(song.lastPlayedDate);
       await this.db.addSong(song);
       songCount++;
     }
 
     // 2. Import playlists
     const playlistsJson = await zip.file('playlists.json')?.async('string');
-    const playlists: Playlist[] = playlistsJson ? JSON.parse(playlistsJson) : [];
+    const playlists: Playlist[] = playlistsJson
+      ? JSON.parse(playlistsJson)
+      : [];
     let playlistCount = 0;
     for (const playlist of playlists) {
-      if (playlist.createdDate) playlist.createdDate = new Date(playlist.createdDate);
-      if (playlist.updatedDate) playlist.updatedDate = new Date(playlist.updatedDate);
+      if (playlist.createdDate)
+        playlist.createdDate = new Date(playlist.createdDate);
+      if (playlist.updatedDate)
+        playlist.updatedDate = new Date(playlist.updatedDate);
       await this.db.addPlaylist(playlist);
       playlistCount++;
     }
@@ -82,7 +105,11 @@ export class SaveFileZipService {
           const songId = match[1];
           const blob = await zip.file(fileName)?.async('blob');
           if (blob) {
-            await this.db.saveAudioFile(songId, blob, blob.type || 'audio/mpeg');
+            await this.db.saveAudioFile(
+              songId,
+              blob,
+              blob.type || 'audio/mpeg'
+            );
             audioCount++;
           }
         }
@@ -96,13 +123,29 @@ export class SaveFileZipService {
    */
   private getAudioExtension(mimeType: string): string {
     switch (mimeType) {
-      case 'audio/mpeg': return '.mp3';
-      case 'audio/wav': return '.wav';
-      case 'audio/ogg': return '.ogg';
+      case 'audio/mpeg':
+        return '.mp3';
+      case 'audio/wav':
+        return '.wav';
+      case 'audio/ogg':
+        return '.ogg';
       case 'audio/x-m4a':
-      case 'audio/mp4': return '.m4a';
-      case 'audio/aac': return '.aac';
-      default: return '.mp3';
+      case 'audio/mp4':
+        return '.m4a';
+      case 'audio/aac':
+        return '.aac';
+      default:
+        return '.mp3';
     }
+  }
+
+  arrayBufferToBase64(buffer: ArrayBuffer): string {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   }
 }

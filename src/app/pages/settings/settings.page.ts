@@ -12,6 +12,7 @@ import { AccountPanelComponent } from 'src/app/components/account-panel/account-
 import { SaveFileZipService } from 'src/app/services/save-file-zip.service';
 import { ToastService } from 'src/app/services/toast.service';
 import { Router } from '@angular/router';
+import { RefreshService } from 'src/app/services/refresh.service';
 
 @Component({
   selector: 'app-settings',
@@ -32,10 +33,13 @@ export class SettingsPage implements OnInit {
   private downloadService = inject(DownloadService);
   private saveFileZipService = inject(SaveFileZipService);
   private toastService = inject(ToastService);
+  private refreshService = inject(RefreshService);
   private router = inject(Router);
 
   currentSong = this.audioPlayerService.currentSong;
   isNative = Capacitor.isNativePlatform();
+  isLoadingImport = false;
+  isLoadingExport = false;
 
   ngOnInit() {}
 
@@ -75,11 +79,18 @@ export class SettingsPage implements OnInit {
 
   // Import/Export functions (placeholders)
   async exportData() {
+    this.isLoadingExport = true;
     await this.saveFileZipService.exportAllToZip();
-    this.toastService.success('Đã sao lưu dữ liệu vào thiết bị!');
+    let locationFile = 'Downloads';
+    if (this.isNative) {
+      locationFile = 'Documents';
+    }
+    this.toastService.success(`Đã sao lưu dữ liệu vào thư mục ${locationFile}!`);
+    this.isLoadingExport = false;
   }
 
   async importData() {
+    this.isLoadingImport = true;
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.zip';
@@ -87,7 +98,11 @@ export class SettingsPage implements OnInit {
       const file = event.target.files[0];
       if (file) {
         const result = await this.saveFileZipService.importAllFromZip(file);
-        this.toastService.success(`Đã nhập: ${result.songs} bài hát, ${result.playlists} playlist, ${result.audio} file audio.`);
+        this.toastService.success(
+          `Đã nhập: ${result.songs} bài hát, ${result.playlists} playlist, ${result.audio} file audio.`
+        );
+        this.refreshService.triggerRefresh();
+        this.isLoadingImport = false;
       }
     };
     input.click();
@@ -99,7 +114,7 @@ export class SettingsPage implements OnInit {
       mode: 'ios',
       header: 'Thông tin ứng dụng',
       message:
-        'TXT Music Player v1.0.1\nTrình phát nhạc hiện đại cho các bài hát yêu thích của bạn.',
+        'TXT Music Player v1.0.2\nTrình phát nhạc hiện đại cho các bài hát yêu thích của bạn.',
       buttons: ['Đóng'],
     });
     await alert.present();
