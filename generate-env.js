@@ -22,6 +22,7 @@ const devEnvContent = `export const environment = {
   },
   appName: 'XTMusic',
   emailSupport: 'tranxuanthanhtxt2002@gmail.com',
+  fbAppId: '24147476401529487',
 };`;
 
 // Production environment file
@@ -40,6 +41,7 @@ const prodEnvContent = `export const environment = {
   },
   appName: 'XTMusic',
   emailSupport: 'tranxuanthanhtxt2002@gmail.com',
+  fbAppId: '24147476401529487',
 };`;
 
 // Write both environment files
