@@ -10,6 +10,7 @@ if (!fs.existsSync(envDir)) {
 const devEnvContent = `export const environment = {
   production: false,
   apiUrl: '${process.env.DEV_API_URL || 'http://localhost:8000/api'}',
+  appVersion: require('../../package.json').version,
   firebaseConfig: {
     apiKey: '${process.env.FIREBASE_API_KEY || 'AIzaSyDbBfc6kNnVILMIQsYN_q83HVDDwNrFBuo'}',
     authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || 'txt-system-90788.firebaseapp.com'}',
@@ -19,12 +20,15 @@ const devEnvContent = `export const environment = {
     appId: '${process.env.FIREBASE_APP_ID || '1:403716398920:web:daf2be700aa20f9cba5d7d'}',
     measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || 'G-TVYQ5L8G7B'}',
   },
+  appName: 'XTMusic',
+  emailSupport: 'tranxuanthanhtxt2002@gmail.com',
 };`;
 
 // Production environment file
 const prodEnvContent = `export const environment = {
   production: true,
   apiUrl: '${process.env.API_URL || 'http://api-music.tranxuanthanh.vn/api/v1'}',
+  appVersion: require('../../package.json').version,
   firebaseConfig: {
     apiKey: '${process.env.FIREBASE_API_KEY || 'AIzaSyDbBfc6kNnVILMIQsYN_q83HVDDwNrFBuo'}',
     authDomain: '${process.env.FIREBASE_AUTH_DOMAIN || 'txt-system-90788.firebaseapp.com'}',
@@ -34,6 +38,8 @@ const prodEnvContent = `export const environment = {
     appId: '${process.env.FIREBASE_APP_ID || '1:403716398920:web:daf2be700aa20f9cba5d7d'}',
     measurementId: '${process.env.FIREBASE_MEASUREMENT_ID || 'G-TVYQ5L8G7B'}',
   },
+  appName: 'XTMusic',
+  emailSupport: 'tranxuanthanhtxt2002@gmail.com',
 };`;
 
 // Write both environment files
