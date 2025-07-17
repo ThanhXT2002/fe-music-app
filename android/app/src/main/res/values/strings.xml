@@ -1,6 +1,11 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8' ?>
 <resources>
     <string name="app_name">XTMusic</string>
-    <string name="title_activity_main">XTMusic</string>    <string name="package_name">xtmusic.tranxuanthanhtxt.com</string>
+    <string name="title_activity_main">XTMusic</string>    <string
+    name="package_name"
+  >xtmusic.tranxuanthanhtxt.com</string>
     <string name="custom_url_scheme">xtmusic.tranxuanthanhtxt.com</string>
+    <string name="facebook_app_id">24147476401529487</string>
+    <string name="fb_login_protocol_scheme">fb24147476401529487</string>
+    <string name="facebook_client_token">f25ac8b06f9579eac5bd95bd4a5536c1</string>
 </resources>

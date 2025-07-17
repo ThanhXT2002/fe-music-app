@@ -13,7 +13,7 @@ import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
-import { Facebook } from '@ionic-native/facebook/ngx';
+import { FacebookLogin } from '@capacitor-community/facebook-login';
 
 @Injectable({
   providedIn: 'root',
@@ -30,8 +30,7 @@ export class AuthService {
   constructor(
     private auth: Auth,
     private toastController: ToastController,
-    private platform: Platform,
-    private fb: Facebook
+    private platform: Platform
   ) {
     // Khôi phục user từ localStorage nếu có
     this.loadUserFromLocalStorage();
@@ -174,13 +173,15 @@ export class AuthService {
     return signInWithPopup(this.auth, provider);
   }
 
-  async loginWithFacebookMobile() {
-    const response = await this.fb.login(['public_profile', 'email']);
-    const credential = FacebookAuthProvider.credential(
-      response.authResponse.accessToken
-    );
+async loginWithFacebookMobile() {
+  const result = await FacebookLogin.login({ permissions: ['public_profile', 'email'] });
+  if (result.accessToken) {
+    const credential = FacebookAuthProvider.credential(result.accessToken.token);
     return signInWithCredential(this.auth, credential);
+  } else {
+    throw new Error('Facebook login failed');
   }
+}
 
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;
