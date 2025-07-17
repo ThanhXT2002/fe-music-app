@@ -8,7 +8,6 @@ import {
   User,
   FacebookAuthProvider,
   getAuth,
-  AuthCredential,
 } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
@@ -48,11 +47,6 @@ export class AuthService {
       }
       this.userSubject.next(user);
     });
-  }
-
-  // Public wrapper cho showSuccessToast (đảm bảo nằm trong class)
-  public async showSuccessToastPublic() {
-    return this.showSuccessToast();
   }
 
   /**
@@ -165,22 +159,9 @@ export class AuthService {
       return user;
     } catch (error: any) {
       if (error.code === 'auth/account-exists-with-different-credential') {
-        // Lấy credential Facebook từ error hoặc tự tạo lại từ accessToken
-        let pendingCred = error.credential;
-        const email = error.customData?.email || error.email;
-        let accessToken =
-          error.customData?.accessToken ||
-          error.accessToken ||
-          error.customData?._tokenResponse?.oauthAccessToken;
-        if (!pendingCred && accessToken) {
-          pendingCred = FacebookAuthProvider.credential(accessToken);
-        }
-        // Trả về object đặc biệt để component xử lý tiếp
-        return {
-          error: 'account-exists-with-different-credential',
-          email,
-          pendingCred
-        };
+        alert(
+          'Tài khoản này đã đăng nhập bằng Google. Vui lòng đăng nhập Google trước, sau đó liên kết Facebook trong phần cài đặt tài khoản.'
+        );
       }
       throw error;
     } finally {
@@ -199,10 +180,6 @@ export class AuthService {
       response.authResponse.accessToken
     );
     return signInWithCredential(this.auth, credential);
-  }
-
-  async linkWithCredential(user: User, credential: AuthCredential): Promise<User> {
-    return await this.linkWithCredential(user, credential);
   }
 
   async getIdToken(): Promise<string | null> {
