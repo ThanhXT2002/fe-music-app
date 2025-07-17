@@ -10,8 +10,10 @@ export class RefreshService {
   // Observable để các component subscribe
   refresh$ = this.refreshSubject.asObservable();
 
-  // Method để trigger refresh
+  // Method để trigger refresh với delay 100ms
   triggerRefresh() {
-    this.refreshSubject.next();
+    setTimeout(() => {
+      this.refreshSubject.next();
+    }, 100);
   }
 }
