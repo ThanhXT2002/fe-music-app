@@ -13,6 +13,7 @@ import { SaveFileZipService } from 'src/app/services/save-file-zip.service';
 import { ToastService } from 'src/app/services/toast.service';
 import { Router } from '@angular/router';
 import { RefreshService } from 'src/app/services/refresh.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-settings',
@@ -40,6 +41,9 @@ export class SettingsPage implements OnInit {
   isNative = Capacitor.isNativePlatform();
   isLoadingImport = false;
   isLoadingExport = false;
+  appVersion = environment.appVersion;
+  emailSupport = environment.emailSupport;
+  appName = environment.appName;
 
   ngOnInit() {}
 
@@ -108,17 +112,6 @@ export class SettingsPage implements OnInit {
     input.click();
   }
 
-  // Settings functions (placeholders)
-  async showAppInfo() {
-    const alert = await this.alertController.create({
-      mode: 'ios',
-      header: 'Thông tin ứng dụng',
-      message:
-        'TXT Music Player v1.0.2\nTrình phát nhạc hiện đại cho các bài hát yêu thích của bạn.',
-      buttons: ['Đóng'],
-    });
-    await alert.present();
-  }
 
   async showPrivacyPolicy() {
     await this.router.navigate(['/privacy-policy']);
@@ -128,16 +121,6 @@ export class SettingsPage implements OnInit {
     await this.router.navigate(['/terms-of-service']);
   }
 
-  async showHelp() {
-    const alert = await this.alertController.create({
-      mode: 'ios',
-      header: 'Trợ giúp & Hỗ trợ',
-      message:
-        'Nếu cần trợ giúp, vui lòng liên hệ: tranxuanthanhtxt2002@gmail.com',
-      buttons: ['Đóng'],
-    });
-    await alert.present();
-  }
 
   async clearCache() {
     const confirm = await this.alertController.create({

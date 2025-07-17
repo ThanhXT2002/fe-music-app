@@ -3,17 +3,18 @@
     @if(!isNative) {
     <app-install-prompt />
     }
-    <!-- Account Settings -->
+
+    <!-- Cài đặt tài khoản -->
     <app-account-panel />
 
-    <!-- Data Management -->
+    <!-- Quản lý dữ liệu -->
     <div class="liquid-glass-panel">
       <div class="liquid-glass-bg">
         <div class="liquid-glass-blur"></div>
         <div class="liquid-glass-highlight"></div>
       </div>
       <div class="liquid-glass-header">
-        <h2 class="liquid-glass-title">Data Management</h2>
+        <h2 class="liquid-glass-title">Quản lý dữ liệu</h2>
       </div>
       <div class="liquid-glass-content space-y-3">
         <button (click)="exportData()" class="liquid-glass-button">
@@ -26,9 +27,9 @@
             </div>
 
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Export Data</p>
+              <p class="text-sm font-medium text-white">Xuất dữ liệu</p>
               <p class="text-xs text-gray-400">
-                Backup your playlists and settings
+                Sao lưu danh sách phát và cài đặt của bạn
               </p>
             </div>
           </div>
@@ -43,8 +44,10 @@
               ></i>
             </div>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Import Data</p>
-              <p class="text-xs text-gray-400">Restore your data from backup</p>
+              <p class="text-sm font-medium text-white">Nhập dữ liệu</p>
+              <p class="text-xs text-gray-400">
+                Khôi phục dữ liệu từ bản sao lưu
+              </p>
             </div>
           </div>
           <i class="fas fa-chevron-right text-gray-400"></i>
@@ -54,9 +57,9 @@
           <div class="flex items-center">
             <i class="fas fa-broom text-yellow-500 w-6"></i>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Clear Cache</p>
+              <p class="text-sm font-medium text-white">Xóa bộ nhớ đệm</p>
               <p class="text-xs text-gray-400">
-                Free up space by clearing temporary data
+                Giải phóng dung lượng bằng cách xóa dữ liệu tạm thời
               </p>
             </div>
           </div>
@@ -70,9 +73,9 @@
           <div class="flex items-center">
             <i class="fas fa-trash text-red-500 w-6"></i>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium">Clear All Data</p>
+              <p class="text-sm font-medium">Xóa toàn bộ dữ liệu</p>
               <p class="text-xs text-gray-400">
-                Delete all songs, playlists and settings
+                Xóa tất cả bài hát, danh sách phát và cài đặt
               </p>
             </div>
           </div>
@@ -146,44 +149,24 @@
       </div>
     </div> -->
 
-    <!-- About & Support -->
+    <!-- Giới thiệu & Hỗ trợ -->
     <div class="liquid-glass-panel">
       <div class="liquid-glass-bg">
         <div class="liquid-glass-blur"></div>
         <div class="liquid-glass-highlight"></div>
       </div>
       <div class="liquid-glass-header">
-        <h2 class="liquid-glass-title">About & Support</h2>
+        <h2 class="liquid-glass-title">Giới thiệu & Hỗ trợ</h2>
       </div>
       <div class="liquid-glass-content space-y-3">
-        <button (click)="showAppInfo()" class="liquid-glass-button">
-          <div class="flex items-center">
-            <i class="fas fa-info-circle text-blue-500 w-6"></i>
-            <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">App Information</p>
-              <p class="text-xs text-gray-400">Version and build details</p>
-            </div>
-          </div>
-          <i class="fas fa-chevron-right text-gray-400"></i>
-        </button>
-
-        <button (click)="showHelp()" class="liquid-glass-button">
-          <div class="flex items-center">
-            <i class="fas fa-question-circle text-green-500 w-6"></i>
-            <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Help & Support</p>
-              <p class="text-xs text-gray-400">Get help and contact support</p>
-            </div>
-          </div>
-          <i class="fas fa-chevron-right text-gray-400"></i>
-        </button>
-
         <button (click)="showPrivacyPolicy()" class="liquid-glass-button">
           <div class="flex items-center">
             <i class="fas fa-shield-alt text-emerald-500 w-6"></i>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Privacy Policy</p>
-              <p class="text-xs text-gray-400">How we protect your data</p>
+              <p class="text-sm font-medium text-white">Chính sách bảo mật</p>
+              <p class="text-xs text-gray-400">
+                Cách chúng tôi bảo vệ dữ liệu của bạn
+              </p>
             </div>
           </div>
           <i class="fas fa-chevron-right text-gray-400"></i>
@@ -193,12 +176,35 @@
           <div class="flex items-center">
             <i class="fas fa-file-contract text-amber-500 w-6"></i>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Terms of Service</p>
-              <p class="text-xs text-gray-400">Terms and conditions</p>
+              <p class="text-sm font-medium text-white">Điều khoản sử dụng</p>
+              <p class="text-xs text-gray-400">Điều khoản và điều kiện</p>
             </div>
           </div>
           <i class="fas fa-chevron-right text-gray-400"></i>
         </button>
+
+        <div  class="liquid-glass-button">
+          <div class="flex flex-col items-center justify-center  w-full gap-y-2">
+            <i class="fas fa-question-circle text-green-500 w-6"></i>
+            <div class="w-full  text-center">
+              <p class="text-sm font-medium text-white">Trợ giúp & Hỗ trợ</p>
+              <p class="text-xs text-gray-400">
+                Nếu cần trợ giúp, vui lòng liên hệ: <a class="text-blue-500 underline" href="mailto:{{emailSupport}}">{{emailSupport}}</a>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="liquid-glass-button">
+          <div class="flex flex-col items-center justify-center  w-full gap-y-2">
+            <i class="fas fa-info-circle text-blue-500 w-6"></i>
+            <div class="w-full  text-center">
+              <p class="text-sm font-medium text-white">Thông tin ứng dụng</p>
+              <p class="text-sm text-gray-400">Phiên bản: {{appVersion}}</p>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   </div>

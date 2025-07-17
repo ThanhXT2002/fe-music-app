@@ -1,0 +1,16 @@
+.btnGoogle{
+  span{
+    background: linear-gradient(
+                90deg,
+                #4285f4 0%,
+                #34a853 25%,
+                #fbbc05 50%,
+                #ea4335 75%,
+                #4285f4 100%
+              );
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              color: transparent;
+  }
+}

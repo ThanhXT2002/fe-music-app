@@ -4,7 +4,7 @@
     <div class="liquid-glass-highlight"></div>
   </div>
   <div class="liquid-glass-header">
-    <h2 class="liquid-glass-title">Account</h2>
+    <h2 class="liquid-glass-title">Tài khoản</h2>
   </div>
   <div class="liquid-glass-content">
     <div class="liquid-glass-row">
@@ -16,7 +16,7 @@
       />
       <div>
         <p class="liquid-glass-subtitle">
-          {{ user()?.displayName || "Guest User" }}
+          {{ user()?.displayName || "Khách" }}
         </p>
         <p class="liquid-glass-description">
           {{ user()?.email || "" }}
@@ -25,7 +25,7 @@
     </div>
     @if(user()){
     <div class="liquid-glass-action-group">
-      <button (click)="logout()" class="btn btn-primary w-full">Log Out</button>
+      <button (click)="logout()" class="btn btn-primary w-full">Đăng xuất</button>
     </div>
     }@else{
     <div class="liquid-glass-action-group">
@@ -38,7 +38,7 @@
         </div>
         }
         <button
-          class="h-full w-full text-black font-medium"
+          class="h-full w-full text-black font-medium btnGoogle"
           (click)="loginWithGoogle()"
           [disabled]="isLoading()"
           [class.opacity-75]="isLoading()"
@@ -50,20 +50,6 @@
           />
 
           <span
-            style="
-              background: linear-gradient(
-                90deg,
-                #4285f4 0%,
-                #34a853 25%,
-                #fbbc05 50%,
-                #ea4335 75%,
-                #4285f4 100%
-              );
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              color: transparent;
-            "
           >
             {{ isLoading() ? 'Đang đăng nhập...' : 'Đăng nhập với Google' }}
           </span>
