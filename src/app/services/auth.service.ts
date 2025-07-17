@@ -6,11 +6,15 @@ import {
   GoogleAuthProvider,
   signOut,
   User,
+  FacebookAuthProvider,
+  getAuth,
+  AuthCredential,
 } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
+import { Facebook } from '@ionic-native/facebook/ngx';
 
 @Injectable({
   providedIn: 'root',
@@ -27,7 +31,8 @@ export class AuthService {
   constructor(
     private auth: Auth,
     private toastController: ToastController,
-    private platform: Platform
+    private platform: Platform,
+    private fb: Facebook
   ) {
     // Khôi phục user từ localStorage nếu có
     this.loadUserFromLocalStorage();
@@ -43,6 +48,11 @@ export class AuthService {
       }
       this.userSubject.next(user);
     });
+  }
+
+  // Public wrapper cho showSuccessToast (đảm bảo nằm trong class)
+  public async showSuccessToastPublic() {
+    return this.showSuccessToast();
   }
 
   /**
@@ -93,7 +103,8 @@ export class AuthService {
       this._isLoading.set(false);
     }
   }
-   async loginWithGoogleMobile(): Promise<User> {
+
+  async loginWithGoogleMobile(): Promise<User> {
     try {
       const result = await FirebaseAuthentication.signInWithGoogle();
 
@@ -135,6 +146,64 @@ export class AuthService {
     return result.user;
   }
 
+  async loginWithFacebook() {
+    try {
+      this._isLoading.set(true);
+      let user: User;
+      let credential: any;
+      let result: any;
+      if (Capacitor.isNativePlatform()) {
+        result = await this.loginWithFacebookMobile();
+      } else {
+        result = await this.loginWithFacebookWeb();
+      }
+      user = result.user;
+      credential = result.credential;
+      this.saveUserToLocalStorage(user);
+      this.userSubject.next(user);
+      await this.showSuccessToast();
+      return user;
+    } catch (error: any) {
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        // Lấy credential Facebook từ error hoặc tự tạo lại từ accessToken
+        let pendingCred = error.credential;
+        const email = error.customData?.email || error.email;
+        let accessToken =
+          error.customData?.accessToken ||
+          error.accessToken ||
+          error.customData?._tokenResponse?.oauthAccessToken;
+        if (!pendingCred && accessToken) {
+          pendingCred = FacebookAuthProvider.credential(accessToken);
+        }
+        // Trả về object đặc biệt để component xử lý tiếp
+        return {
+          error: 'account-exists-with-different-credential',
+          email,
+          pendingCred
+        };
+      }
+      throw error;
+    } finally {
+      this._isLoading.set(false);
+    }
+  }
+
+  loginWithFacebookWeb() {
+    const provider = new FacebookAuthProvider();
+    return signInWithPopup(this.auth, provider);
+  }
+
+  async loginWithFacebookMobile() {
+    const response = await this.fb.login(['public_profile', 'email']);
+    const credential = FacebookAuthProvider.credential(
+      response.authResponse.accessToken
+    );
+    return signInWithCredential(this.auth, credential);
+  }
+
+  async linkWithCredential(user: User, credential: AuthCredential): Promise<User> {
+    return await this.linkWithCredential(user, credential);
+  }
 
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;

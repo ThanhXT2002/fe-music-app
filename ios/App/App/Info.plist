@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>XTMusic</string>
+		<string>XTMusic</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -45,5 +45,56 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+</dict>
+  <!-- Facebook Login Config -->
+  <key>FacebookAppID</key>
+  <string>24147476401529487</string>
+  <key>FacebookDisplayName</key>
+  <string>XTMusic</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+	<dict>
+	  <key>CFBundleURLSchemes</key>
+	  <array>
+		<string>fb24147476401529487</string>
+	  </array>
+	</dict>
+  </array>
+  <key>LSApplicationQueriesSchemes</key>
+  <array>
+	<string>fbapi</string>
+	<string>fb-messenger-api</string>
+	<string>fbauth2</string>
+	<string>fbshareextension</string>
+  </array>
+  <key>NSAppTransportSecurity</key>
+  <dict>
+	<key>NSExceptionDomains</key>
+	<dict>
+	  <key>facebook.com</key>
+	  <dict>
+		<key>NSIncludesSubdomains</key>
+		<true/>
+		<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+		<false/>
+	  </dict>
+	  <key>fbcdn.net</key>
+	  <dict>
+		<key>NSIncludesSubdomains</key>
+		<true/>
+		<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+		<false/>
+	  </dict>
+	  <key>akamaihd.net</key>
+	  <dict>
+		<key>NSIncludesSubdomains</key>
+		<true/>
+		<key>NSThirdPartyExceptionRequiresForwardSecrecy</key>
+		<false/>
+	  </dict>
+	</dict>
+  </dict>
+  <key>FacebookHybridAppEvents</key>
+  <string>true</string>
 </dict>
 </plist>

@@ -29,6 +29,7 @@ import { SafeAreaService } from './app/services/safe-area.service';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
 import { register as registerSwiperElements } from 'swiper/element/bundle';
+import { Facebook } from '@ionic-native/facebook/ngx';
 
 
 registerSwiperElements()
@@ -52,6 +53,7 @@ bootstrapApplication(AppComponent, {
     provideLottieOptions({
       player: () => player,
     }),
+    Facebook
 
   ],
 }).catch((error) => {

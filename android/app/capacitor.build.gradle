@@ -21,7 +21,7 @@ dependencies {
     implementation project(':capacitor-status-bar')
     implementation project(':capacitor-music-controls-plugin')
     implementation project(':capacitor-plugin-safe-area')
-
+    implementation "com.facebook.android:facebook-android-sdk:5.13.0"
 }
 
 
