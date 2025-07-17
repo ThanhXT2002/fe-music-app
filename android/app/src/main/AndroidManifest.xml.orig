@@ -15,25 +15,15 @@
         </activity>
         <activity android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation" android:exported="false" android:label="@string/title_activity_main" android:launchMode="singleTask" android:name="xtmusic.tranxuanthanhtxt.com.MainActivity" android:theme="@style/AppTheme.NoActionBar">
         </activity>
-        <provider
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true"
-            android:name="androidx.core.content.FileProvider">
+        <provider android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true" android:name="androidx.core.content.FileProvider">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
             <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
         </provider>
-        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id"/>
-        <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token"/>
-        <activity android:name="com.facebook.FacebookActivity"
-            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
-            android:label="@string/app_name" />
-        <provider
-          android:name="com.facebook.internal.FacebookInitProvider"
-          android:authorities="com.facebook.app.FacebookContentProvider24147476401529487"
-          android:exported="false"
-          tools:replace="android:authorities"/>
-          <activity android:name="com.facebook.CustomTabActivity" android:exported="true">
+        <meta-data android:name="com.facebook.sdk.ApplicationId" android:value="@string/facebook_app_id" />
+        <meta-data android:name="com.facebook.sdk.ClientToken" android:value="@string/facebook_client_token" />
+        <activity android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation" android:label="@string/app_name" android:name="com.facebook.FacebookActivity" />
+        <provider android:authorities="com.facebook.app.FacebookContentProvider24147476401529487" android:exported="false" android:name="com.facebook.internal.FacebookInitProvider" tools:replace="android:authorities" />
+        <activity android:exported="true" android:name="com.facebook.CustomTabActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

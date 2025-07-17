@@ -27,9 +27,11 @@ export class AuthService {
   public user$ = this.userSubject.asObservable();
   private readonly USER_STORAGE_KEY = 'txt_music_user';
   private _isLoading = signal<boolean>(false);
+  private _isLoadingFb = signal<boolean>(false);
 
   // Public readonly signals
   public readonly isLoading = this._isLoading.asReadonly();
+  public readonly isLoadingFb = this._isLoadingFb.asReadonly();
 
   constructor(
     private auth: Auth,
@@ -155,6 +157,8 @@ export class AuthService {
   }
 
   async loginWithFacebook() {
+    if (this.isLoadingFb()) return; // Chặn overlapped calls
+  this._isLoadingFb.set(true);
     try {
       let user: User;
       let credential: any;
@@ -179,7 +183,7 @@ export class AuthService {
       }
       throw error;
     } finally {
-    
+        this._isLoadingFb.set(false);
     }
   }
 

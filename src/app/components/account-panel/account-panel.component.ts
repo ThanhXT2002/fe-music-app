@@ -17,6 +17,7 @@ export class AccountPanelComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   textFB= 'Đăng nhập với Facebook';
+  isLoadingFb = this.authService.isLoadingFb; // Sử dụng signal từ AuthService
 
   user = signal<User | null>(null);
   email!: string;
@@ -83,7 +84,7 @@ export class AccountPanelComponent implements OnInit {
       console.error('Login Facebook error:', error);
       await this.showToast('Đăng nhập Facebook thất bại', 'danger');
     } finally {
-     
+
     }
 
   }
