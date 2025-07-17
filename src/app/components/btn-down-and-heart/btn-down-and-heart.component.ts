@@ -85,11 +85,12 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
       if (task && task.status === 'completed') {
         setTimeout(() => {
           this.checkDownloaded();
-        }, 300); // Đợi thêm 5s sau khi completed
+           this.refreshService.triggerRefresh();
+        }, 300); 
         sub.unsubscribe();
       }
     });
-      this.refreshService.triggerRefresh();
+
     } catch (error) {
       console.error('Download failed:', error);
     }
