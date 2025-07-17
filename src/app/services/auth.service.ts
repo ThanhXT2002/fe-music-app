@@ -13,7 +13,10 @@ import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
-import { FacebookLogin } from '@capacitor-community/facebook-login';
+import {
+  FacebookLogin,
+  FacebookLoginResponse,
+} from '@capacitor-community/facebook-login';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -153,8 +156,6 @@ export class AuthService {
 
   async loginWithFacebook() {
     try {
-      if (this.isLoading()) return;
-      this._isLoading.set(true);
       let user: User;
       let credential: any;
       let result: any;
@@ -163,6 +164,7 @@ export class AuthService {
       } else {
         result = await this.loginWithFacebookWeb();
       }
+      console.log('Facebook login result:', result);
       user = result.user;
       credential = result.credential;
       this.saveUserToLocalStorage(user);
@@ -177,7 +179,7 @@ export class AuthService {
       }
       throw error;
     } finally {
-      this._isLoading.set(false);
+    
     }
   }
 
@@ -186,20 +188,24 @@ export class AuthService {
     return signInWithPopup(this.auth, provider);
   }
 
-async loginWithFacebookMobile() {
-
-  console.log('Attempting Facebook login on mobile');
-  const result = await FacebookLogin.login({ permissions: ['public_profile', 'email'] });
-  console.log('Facebook login result:', result);
-  if (result.accessToken) {
-    const credential = FacebookAuthProvider.credential(result.accessToken.token);
-    console.log('Facebook credential:', credential);
-    return signInWithCredential(this.auth, credential);
-  } else {
-    console.error('Facebook login failed: No access token received');
-    throw new Error('Facebook login failed');
+  async loginWithFacebookMobile() {
+    const FACEBOOK_PERMISSIONS = ['email'];
+    console.log('Attempting Facebook login on mobile');
+    const result = (await FacebookLogin.login({
+      permissions: FACEBOOK_PERMISSIONS,
+    })) as FacebookLoginResponse;
+    console.log('Facebook login result:', result);
+    if (result.accessToken) {
+      const credential = FacebookAuthProvider.credential(
+        result.accessToken.token
+      );
+      console.log('Facebook credential:', credential);
+      return signInWithCredential(this.auth, credential);
+    } else {
+      console.error('Facebook login failed: No access token received');
+      throw new Error('Facebook login failed');
+    }
   }
-}
 
   async getIdToken(): Promise<string | null> {
     const user = this.auth.currentUser;

@@ -75,7 +75,6 @@ export class AccountPanelComponent implements OnInit {
 
   async onLoginWithFacebook() {
     try {
-      this.isLoading.set(true);
       await this.authService.loginWithFacebook();
       await this.router.navigate(['/tabs/settings'], {
         replaceUrl: true,
@@ -84,7 +83,7 @@ export class AccountPanelComponent implements OnInit {
       console.error('Login Facebook error:', error);
       await this.showToast('Đăng nhập Facebook thất bại', 'danger');
     } finally {
-      this.isLoading.set(false);
+     
     }
 
   }
