@@ -14,6 +14,7 @@ import { ToastController, Platform } from '@ionic/angular/standalone';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 import { FacebookLogin } from '@capacitor-community/facebook-login';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -46,6 +47,17 @@ export class AuthService {
       }
       this.userSubject.next(user);
     });
+
+    // Initialize FacebookLogin asynchronously
+    this.initializeFacebookLogin();
+  }
+
+  private async initializeFacebookLogin() {
+    try {
+      await FacebookLogin.initialize({ appId: environment.fbAppId });
+    } catch (error) {
+      console.error('Error initializing FacebookLogin', error);
+    }
   }
 
   /**
@@ -141,6 +153,7 @@ export class AuthService {
 
   async loginWithFacebook() {
     try {
+      if (this.isLoading()) return;
       this._isLoading.set(true);
       let user: User;
       let credential: any;
@@ -174,11 +187,16 @@ export class AuthService {
   }
 
 async loginWithFacebookMobile() {
+
+  console.log('Attempting Facebook login on mobile');
   const result = await FacebookLogin.login({ permissions: ['public_profile', 'email'] });
+  console.log('Facebook login result:', result);
   if (result.accessToken) {
     const credential = FacebookAuthProvider.credential(result.accessToken.token);
+    console.log('Facebook credential:', credential);
     return signInWithCredential(this.auth, credential);
   } else {
+    console.error('Facebook login failed: No access token received');
     throw new Error('Facebook login failed');
   }
 }
