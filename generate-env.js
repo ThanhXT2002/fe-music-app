@@ -27,7 +27,7 @@ const devEnvContent = `export const environment = {
 // Production environment file
 const prodEnvContent = `export const environment = {
   production: true,
-  apiUrl: '${process.env.API_URL || 'http://api-music.tranxuanthanh.vn/api/v1'}',
+  apiUrl: '${process.env.API_URL || 'http://api-music.tranxuanthanh.vn/api/v3'}',
   appVersion: require('../../package.json').version,
   firebaseConfig: {
     apiKey: '${process.env.FIREBASE_API_KEY || 'AIzaSyDbBfc6kNnVILMIQsYN_q83HVDDwNrFBuo'}',
