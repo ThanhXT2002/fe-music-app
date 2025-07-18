@@ -4,7 +4,6 @@ import { User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/services/auth.service';
 import { ToastController } from '@ionic/angular/standalone';
-import { getRedirectResult } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-account-panel',
@@ -38,16 +37,7 @@ export class AccountPanelComponent implements OnInit {
       this.email = user?.providerData?.map((p) => p.email).join(', ') || '';
     });
 
-    try {
-      const result = await getRedirectResult(this.authService.firebaseAuth);
-      if (result && result.user) {
-        this.authService.saveUserToLocalStorage(result.user);
-        this.authService.userSubject.next(result.user);
-        // Có thể chuyển hướng sang trang chính hoặc reload UI
-      }
-    } catch (error) {
-      // Xử lý lỗi nếu cần
-    }
+
   }
 
   // Lấy URL avatar với fallback
