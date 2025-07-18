@@ -92,6 +92,10 @@
     @apply p-2 rounded-full hover:bg-gray-800 transition-colors;
   }
 
+  .btn-header{
+    @apply block h-10 w-10 rounded-full hover:bg-gray-600 flex__middle;
+  }
+
   /* Custom Input Styles */
   .input {
     @apply w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white;

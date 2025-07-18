@@ -1,3 +1,45 @@
-<p>
-  header works!
-</p>
+<ion-header
+  mode="md"
+  [translucent]="true"
+  class="shadow-none border-none h__header"
+>
+  <div class="flex items-center justify-between px-4 h-full">
+    <!-- App Logo & Name -->
+    <div class="flex items-center space-x-3 cursor-pointer" routerLink="/">
+      <div
+        class="w-9 h-9 flex items-center justify-center rounded-full border-2 border-purple-500 hover:scale-110 transition-colors"
+      >
+        <img src="assets/icon/icon-app.png" alt="" />
+      </div>
+      <h1
+        class="text-xl font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
+      >
+        XTMusic
+      </h1>
+    </div>
+
+    <div class="flex items-center justify-end gap-x-3">
+      <button class="btn-header"
+      (click)="toggleFindSongByAudio()"
+      >
+        <i class="fa-solid fa-microphone text-lg"></i>
+      </button>
+
+      <button id="openSearchModal" class="btn-header">
+        <i class="fa-solid fa-magnifying-glass text-lg"></i>
+      </button>
+    </div>
+  </div>
+</ion-header>
+
+<ion-modal
+  #searchModal
+  trigger="openSearchModal"
+  (willPresent)="onWillPresentSearch()"
+>
+  <ng-template>
+    <ion-content>
+      <ion-nav #navSearch></ion-nav>
+    </ion-content>
+  </ng-template>
+</ion-modal>
