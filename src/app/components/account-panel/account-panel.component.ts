@@ -65,6 +65,7 @@ export class AccountPanelComponent implements OnInit {
   navigateToLogin() {
     this.router.navigate(['/login']);
   }
+  
   async loginWithGoogle() {
     try {
       this.isLoading.set(true);
