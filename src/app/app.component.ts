@@ -14,6 +14,8 @@ import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
 import { AudioPlayerService } from './services/audio-player.service';
+import { getRedirectResult } from '@angular/fire/auth';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -31,7 +33,8 @@ export class AppComponent implements OnInit {
     private safeAreaService: SafeAreaService,
     private platform: Platform,
     private dbService: DatabaseService,
-    private permissionService: PermissionService
+    private permissionService: PermissionService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {

@@ -4,6 +4,7 @@ import { User } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { AuthService } from 'src/app/services/auth.service';
 import { ToastController } from '@ionic/angular/standalone';
+import { getRedirectResult } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-account-panel',
@@ -16,22 +17,37 @@ export class AccountPanelComponent implements OnInit {
   isLoading = signal(false);
   private authService = inject(AuthService);
   private router = inject(Router);
-  textFB= 'Đăng nhập với Facebook';
+  textFB = 'Đăng nhập với Facebook';
   isLoadingFb = this.authService.isLoadingFb; // Sử dụng signal từ AuthService
 
   user = signal<User | null>(null);
   email!: string;
 
-  constructor() {}
+  constructor(
+  ) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     // Subscribe to user changes
     this.authService.user$.subscribe((user) => {
       this.user.set(user);
       console.log('User updated in AccountPanelComponent:', user?.providerData);
-      console.log('User emial:', user?.providerData?.map(p => p.email).join(', '));
-      this.email = user?.providerData?.map(p => p.email).join(', ') || '';
+      console.log(
+        'User emial:',
+        user?.providerData?.map((p) => p.email).join(', ')
+      );
+      this.email = user?.providerData?.map((p) => p.email).join(', ') || '';
     });
+
+    try {
+      const result = await getRedirectResult(this.authService.firebaseAuth);
+      if (result && result.user) {
+        this.authService.saveUserToLocalStorage(result.user);
+        this.authService.userSubject.next(result.user);
+        // Có thể chuyển hướng sang trang chính hoặc reload UI
+      }
+    } catch (error) {
+      // Xử lý lỗi nếu cần
+    }
   }
 
   // Lấy URL avatar với fallback
@@ -84,9 +100,7 @@ export class AccountPanelComponent implements OnInit {
       console.error('Login Facebook error:', error);
       await this.showToast('Đăng nhập Facebook thất bại', 'danger');
     } finally {
-
     }
-
   }
 
   private async showToast(message: string, color: string = 'primary') {
@@ -104,5 +118,4 @@ export class AccountPanelComponent implements OnInit {
     });
     await toast.present();
   }
-
 }

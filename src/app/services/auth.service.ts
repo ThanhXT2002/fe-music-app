@@ -8,6 +8,8 @@ import {
   User,
   FacebookAuthProvider,
   getAuth,
+  getRedirectResult,
+  signInWithRedirect
 } from '@angular/fire/auth';
 import { BehaviorSubject } from 'rxjs';
 import { ToastController, Platform } from '@ionic/angular/standalone';
@@ -25,7 +27,7 @@ import { environment } from 'src/environments/environment';
   providedIn: 'root',
 })
 export class AuthService {
-  private userSubject = new BehaviorSubject<User | null>(null);
+  public userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
   private readonly USER_STORAGE_KEY = 'txt_music_user';
   private _isLoading = signal<boolean>(false);
@@ -68,10 +70,14 @@ export class AuthService {
     }
   }
 
+  get firebaseAuth() {
+  return this.auth;
+}
+
   /**
    * Lưu thông tin user vào localStorage
    */
-  private saveUserToLocalStorage(user: User): void {
+  saveUserToLocalStorage(user: User): void {
     try {
       // Chỉ lưu những thông tin cần thiết và an toàn
       const userToSave = {
@@ -192,7 +198,12 @@ export class AuthService {
 
   loginWithFacebookWeb() {
     const provider = new FacebookAuthProvider();
-    return signInWithPopup(this.auth, provider);
+    provider.addScope('email');
+    provider.addScope('public_profile');
+    if(this.platform.is('desktop')) {
+      return signInWithRedirect(getAuth(), provider);
+    }
+    return signInWithRedirect(getAuth(), provider);
   }
 
   async loginWithFacebookMobile() {
@@ -206,7 +217,7 @@ export class AuthService {
       const credential = FacebookAuthProvider.credential(
         result.accessToken.token
       );
-      return signInWithCredential(this.auth, credential);
+      return signInWithCredential(getAuth(), credential);
     } else {
       console.error('Facebook login failed: No access token received');
       throw new Error('Facebook login failed');
