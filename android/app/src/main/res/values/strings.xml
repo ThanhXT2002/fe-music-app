@@ -6,6 +6,6 @@
   >xtmusic.tranxuanthanhtxt.com</string>
     <string name="custom_url_scheme">xtmusic.tranxuanthanhtxt.com</string>
     <string name="facebook_app_id">24147476401529487</string>
-    <string name="fb_login_protocol_scheme">fb24147476401529487</string>
+    <string name="fb_login_protocol_scheme">24147476401529487</string>
     <string name="facebook_client_token">f25ac8b06f9579eac5bd95bd4a5536c1</string>
 </resources>

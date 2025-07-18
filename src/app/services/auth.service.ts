@@ -15,9 +15,11 @@ import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { Capacitor } from '@capacitor/core';
 import {
   FacebookLogin,
+  FacebookLoginPlugin,
   FacebookLoginResponse,
 } from '@capacitor-community/facebook-login';
 import { environment } from 'src/environments/environment';
+
 
 @Injectable({
   providedIn: 'root',
@@ -28,6 +30,7 @@ export class AuthService {
   private readonly USER_STORAGE_KEY = 'txt_music_user';
   private _isLoading = signal<boolean>(false);
   private _isLoadingFb = signal<boolean>(false);
+  fbLogin!: FacebookLoginPlugin;
 
   // Public readonly signals
   public readonly isLoading = this._isLoading.asReadonly();
@@ -158,7 +161,7 @@ export class AuthService {
 
   async loginWithFacebook() {
     if (this.isLoadingFb()) return; // Chặn overlapped calls
-  this._isLoadingFb.set(true);
+    this._isLoadingFb.set(true);
     try {
       let user: User;
       let credential: any;
@@ -183,7 +186,7 @@ export class AuthService {
       }
       throw error;
     } finally {
-        this._isLoadingFb.set(false);
+      this._isLoadingFb.set(false);
     }
   }
 
@@ -194,16 +197,15 @@ export class AuthService {
 
   async loginWithFacebookMobile() {
     const FACEBOOK_PERMISSIONS = ['email'];
-    console.log('Attempting Facebook login on mobile');
     const result = (await FacebookLogin.login({
       permissions: FACEBOOK_PERMISSIONS,
     })) as FacebookLoginResponse;
-    console.log('Facebook login result:', result);
+
+
     if (result.accessToken) {
       const credential = FacebookAuthProvider.credential(
         result.accessToken.token
       );
-      console.log('Facebook credential:', credential);
       return signInWithCredential(this.auth, credential);
     } else {
       console.error('Facebook login failed: No access token received');
