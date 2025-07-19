@@ -16,7 +16,7 @@
   class="bg-gradient-to-b from-black via-purple-950 to-black min-h-screen"
 >
   <div class="h-full flex flex-col items-center justify-start px-3">
-    <div class="flex__middle flex-col w-full mt-24">
+    <div class="flex__middle flex-col w-full mt-16">
       <input
         #fileInputRef
         id="fileInput"
@@ -28,7 +28,7 @@
 
 
       <div
-        class="w-[65%] aspect-square relative flex items-center justify-center cursor-pointer px-3"
+        class="w-[75%] aspect-square relative flex items-center justify-center cursor-pointer px-3"
         (click)="triggerFileInput()"
       >
         <!-- Border xoay riêng -->
@@ -37,10 +37,10 @@
           [ngClass]="{ 'animate-spin-slow': loading }"
         ></div>
         <!-- Nội dung giữ nguyên, không xoay -->
-        <div class="flex flex-col items-center justify-center text-center z-10">
+        <div class="flex flex-col items-center justify-center text-center z-10 min-w-0">
           <i class="fa-solid fa-upload text-5xl text-white animate-bounce"></i>
           <!-- <i class="fa-solid fa-magnifying-glass text-3xl text-white animate-fade-in"></i> -->
-          <span>
+          <span class="block w-full max-w-full break-all text-center align-bottom">
             @if(selectedFile){
             {{ selectedFile.name }}
             }@else { Chọn file âm thanh/video }
@@ -48,19 +48,18 @@
         </div>
       </div>
 
-      <div class="w-full animate-fade-in-up">
-        <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 p-0">
-          <div class="flex items-center gap-2 py-4 px-6">
+      <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 mt-10 w-full">
+          <div class="flex items-center gap-2 py-4">
             <div class="">
-              <span class="text-xl font-bold text-purple-300">
+              <span class="text-xl font-bold text-purple-300 ml-11">
                 @if (result) { Kết quả nhận diện } @else { Hướng dẫn nhận diện bài hát }
               </span>
             </div>
           </div>
-          <div class="py-4 px-6">
+          <div class=" pb-4 px-3">
             @if (result) {
               @if (result.success) {
-                <div class="space-y-2">
+                <div class="space-y-2 ml-9">
                   <div class="flex items-center gap-2">
                     <i class="fa-solid fa-music text-pink-400"></i>
                     <span class="font-semibold text-white">{{ result.data.title || "Không có" }}</span>
@@ -102,7 +101,6 @@
               <div class="flex items-center gap-3">
                 <i class="fa-solid fa-circle-info text-purple-300 text-2xl"></i>
                 <div class="flex-1">
-                  <div class="text-base font-semibold text-purple-200 mb-1">Hướng dẫn nhận diện bài hát</div>
                   <div class="text-sm text-gray-300">
                     Tải lên file <span class="font-bold text-pink-300">audio hoặc video</span> (mp3, wav, m4a, mp4, webm...) để nhận diện bài hát.<br />
                     <span class="block mt-1 text-xs text-yellow-300 font-medium">
@@ -116,7 +114,6 @@
             }
           </div>
         </div>
-      </div>
     </div>
   </div>
 </ion-content>
