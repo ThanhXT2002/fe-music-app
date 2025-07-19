@@ -49,15 +49,15 @@
       </div>
 
       <div class="w-full animate-fade-in-up">
-        <ion-card class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 p-0">
-          <ion-card-header class="flex items-center gap-2 py-4 px-6">
-            <ion-card-title class="">
+        <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 p-0">
+          <div class="flex items-center gap-2 py-4 px-6">
+            <div class="">
               <span class="text-xl font-bold text-purple-300">
                 @if (result) { Kết quả nhận diện } @else { Hướng dẫn nhận diện bài hát }
               </span>
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content class="py-4 px-6">
+            </div>
+          </div>
+          <div class="py-4 px-6">
             @if (result) {
               @if (result.success) {
                 <div class="space-y-2">
@@ -114,8 +114,8 @@
                 </div>
               </div>
             }
-          </ion-card-content>
-        </ion-card>
+          </div>
+        </div>
       </div>
     </div>
   </div>
