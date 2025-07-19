@@ -79,6 +79,10 @@ export const routes: Routes = [
     path: 'edit-playlist/:playlistId',
     loadComponent: () => import('./pages/playlists/edit-playlist/edit-playlist.page').then( m => m.EditPlaylistPage)
   },
+  {
+    path: 'file-song',
+    loadComponent: () => import('./components/find-infor-song-with-file/find-infor-song-with-file.component').then( m => m.FindInforSongWithFileComponent)
+  },
 
 
 

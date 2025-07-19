@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { AlertController, ToastController } from '@ionic/angular/standalone';
+import { AlertController } from '@ionic/angular/standalone';
 import { Platform } from '@ionic/angular';
+import { ToastService } from './toast.service';
 import { filter } from 'rxjs/operators';
 
 @Injectable({
@@ -12,7 +13,7 @@ export class PWAService {
   constructor(
     private swUpdate: SwUpdate,
     private alertController: AlertController,
-    private toastController: ToastController,
+    private toastService: ToastService,
     private platform: Platform
   ) {
     if (swUpdate.isEnabled && platform.is('pwa')) {
@@ -32,31 +33,18 @@ export class PWAService {
       .pipe(
         filter((evt): evt is VersionReadyEvent => evt.type === 'VERSION_READY')
       )
-      .subscribe(async (evt) => {
-        const alert = await this.alertController.create({
-          header: 'Cập nhật ứng dụng',
-          message: 'Có phiên bản mới của ứng dụng. Bạn có muốn cập nhật ngay không?',
-          backdropDismiss: false,
-          buttons: [
-            {
-              text: 'Để sau',
-              role: 'cancel',
-              cssClass: 'secondary'
-            },
-            {
-              text: 'Cập nhật ngay',
-              handler: () => {
-                this.updateApp();
-              }
-            }
-          ]
-        });
-        await alert.present();
+      .subscribe(() => {
+        // Auto reload app
+        this.updateApp();
       });
   }
 
   updateApp() {
-    window.location.reload();
+    // Hiển thị toast trước khi reload
+    this.toastService.success('Ứng dụng đã được cập nhật thành công!', 2500);
+    setTimeout(() => {
+      window.location.reload();
+    }, 2500);
   }
 
   // Kiểm tra trạng thái offline/online
@@ -75,13 +63,13 @@ export class PWAService {
     });
   }
 
-  private async showNetworkStatus(message: string, color: string) {
-    const toast = await this.toastController.create({
-      message,
-      color,
-      duration: 3000,
-      position: 'top'
-    });
-    await toast.present();
+  private showNetworkStatus(message: string, color: string) {
+    if (color === 'success') {
+      this.toastService.success(message, 3000);
+    } else if (color === 'warning') {
+      this.toastService.warning(message, 3000);
+    } else {
+      this.toastService.info(message, 3000);
+    }
   }
 }
