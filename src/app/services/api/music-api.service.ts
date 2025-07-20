@@ -4,14 +4,12 @@ import {
   HttpParams,
   HttpErrorResponse,
   HttpRequest,
-  HttpEvent,
-  HttpEventType,
+  HttpEvent
 } from '@angular/common/http';
-import { Observable, catchError, throwError, firstValueFrom } from 'rxjs';
+import { Observable, catchError, throwError } from 'rxjs';
 import {
   SongsResponse,
   SongStatusResponse,
-  DataSong,
   SongStatus,
 } from '../../interfaces/song.interface';
 import { environment } from '../../../environments/environment';

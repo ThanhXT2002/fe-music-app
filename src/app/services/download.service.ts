@@ -10,8 +10,7 @@ import {
 import {
   Song,
   DataSong,
-  SongsResponse,
-  SongConverter,
+  SongsResponse
 } from '../interfaces/song.interface';
 import {
   HttpErrorResponse,
@@ -24,6 +23,7 @@ import { RefreshService } from './refresh.service';
 import { MusicApiService } from './api/music-api.service';
 import { environment } from 'src/environments/environment';
 import { ToastService } from './toast.service';
+import { SongConverter } from '../utils/song.converter';
 
 // Define DownloadTask interface directly in this file
 export interface DownloadTask {

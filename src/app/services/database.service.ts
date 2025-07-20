@@ -5,11 +5,11 @@ import {
   Artist,
   Playlist,
   SearchHistoryItem,
-  DataSong,
-  SongConverter,
+  DataSong
 } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
+import { SongConverter } from '../utils/song.converter';
 
 /**
  * Service quản lý cơ sở dữ liệu IndexedDB cho ứng dụng nhạc

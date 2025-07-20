@@ -12,9 +12,7 @@ import { FooterComponent } from '../../components/footer/footer.component';
 import { SongSectionComponent } from '../../components/song-section/song-section.component';
 import { HomeService } from 'src/app/services/api/home.service';
 import {
-  Song,
-  DataSong,
-  SongConverter,
+  Song
 } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Capacitor } from '@capacitor/core';
