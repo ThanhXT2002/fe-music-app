@@ -123,7 +123,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       this.isSearching.set(true);
 
-      // Step 1: Get song info từ API v3
+      // Step 1: Get song info từ API 
       const response = await firstValueFrom(
         this.downloadService.getSongInfo(url)
       );

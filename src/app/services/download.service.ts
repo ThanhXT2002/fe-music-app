@@ -830,7 +830,7 @@ export class DownloadService {
     }
   }
 
-  // === NEW API v3 METHODS ===
+  // === NEW API METHODS ===
 
   /**
    * Xóa hoàn toàn trạng thái download và polling của một bài hát khi xóa khỏi IndexedDB
@@ -857,7 +857,7 @@ export class DownloadService {
   }
 
   /**
-   * NEW: Get song info từ YouTube URL sử dụng API v3
+   * NEW: Get song info từ YouTube URL sử dụng API
    * @param url - YouTube URL
    * @returns Observable<SongsResponse>
    */
@@ -875,7 +875,7 @@ export class DownloadService {
   }
 
   /**
-   * NEW: Workflow mới - Add song từ YouTube URL với API v3
+   * NEW: Workflow mới - Add song từ YouTube URL với API
    * 1. Get song info từ URL
    * 2. Save song info ngay lập tức
    * 3. Poll status cho đến khi ready

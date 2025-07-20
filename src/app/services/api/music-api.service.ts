@@ -15,7 +15,7 @@ import {
 import { environment } from '../../../environments/environment';
 
 /**
- * Service để giao tiếp với Music API v3
+ * Service để giao tiếp với Music API
  * Implement 4 API endpoints chính cho Download Page
  */
 @Injectable({
@@ -27,7 +27,7 @@ export class MusicApiService {
   constructor(private http: HttpClient) {}
 
   /**
-   * 1. POST /api/v3/songs/info - Get Song Info từ YouTube URL
+   * 1. POST /api//songs/info - Get Song Info từ YouTube URL
    * @param url - YouTube URL
    * @returns Observable<SongsResponse>
    */
@@ -38,7 +38,7 @@ export class MusicApiService {
   }
 
   /**
-   * 2. GET /api/v3/songs/status/{song_id} - Get Song Status
+   * 2. GET /api//songs/status/{song_id} - Get Song Status
    * Kiểm tra trạng thái xử lý của bài hát
    * @param songId - ID của bài hát
    * @returns Observable<SongStatusResponse>
@@ -50,7 +50,7 @@ export class MusicApiService {
   }
 
   /**
-   * 3. GET /api/v3/songs/download/{song_id} - Download Song Audio
+   * 3. GET /api//songs/download/{song_id} - Download Song Audio
    * Download file audio đã được xử lý
    * @param songId - ID của bài hát
    * @param downloadParam - Thêm parameter download=true để download file
@@ -79,7 +79,7 @@ export class MusicApiService {
   }
 
   /**
-   * 4. GET /api/v3/songs/thumbnail/{song_id} - Get Thumbnail
+   * 4. GET /api//songs/thumbnail/{song_id} - Get Thumbnail
    * Download thumbnail của bài hát
    * @param songId - ID của bài hát
    * @returns Observable<Blob>
