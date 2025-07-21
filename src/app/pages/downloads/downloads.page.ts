@@ -65,7 +65,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       });
 
     // Auto-paste from clipboard on load
-    await this.tryAutoPaste();
+    // await this.tryAutoPaste();
   }
   /**
    * Tự động paste từ clipboard nếu có URL YouTube hợp lệ (chỉ cho native)
@@ -123,7 +123,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
     try {
       this.isSearching.set(true);
 
-      // Step 1: Get song info từ API 
+      // Step 1: Get song info từ API
       const response = await firstValueFrom(
         this.downloadService.getSongInfo(url)
       );
