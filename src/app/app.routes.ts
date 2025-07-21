@@ -82,13 +82,6 @@ export const routes: Routes = [
   {
     path: 'file-song',
     loadComponent: () => import('./components/find-infor-song-with-file/find-infor-song-with-file.component').then( m => m.FindInforSongWithFileComponent)
-  },  {
-    path: 'test-audio',
-    loadComponent: () => import('./pages/test-audio/test-audio.page').then( m => m.TestAudioPage)
   },
-
-
-
-
 
 ];

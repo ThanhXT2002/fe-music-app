@@ -6,7 +6,7 @@ import { Location } from '@angular/common';
 import { ModalController } from '@ionic/angular';
 @Component({
   selector: 'app-header',
-  imports: [IonContent, IonModal, IonHeader, RouterLink,IonModal,IonNav,],
+  imports: [ IonContent, IonModal, IonHeader, RouterLink,IonModal,IonNav,],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss'],
 })
