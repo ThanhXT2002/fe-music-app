@@ -115,18 +115,16 @@ export class YtPlayerPage implements OnInit {
   // Điều khiển phát nhạc
   play() {
     this.isPlaying = true;
-    this.ytPlayerService.play();
-    // Nếu có audioUrl thì play audio
-    const audioElem = document.getElementById('yt-audio') as HTMLAudioElement;
-    if (audioElem) audioElem.play();
+    if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
+      this.ytPlayer.playVideo();
+    }
   }
 
   pause() {
     this.isPlaying = false;
-    this.ytPlayerService.pause();
-    // Nếu có audioUrl thì pause audio
-    const audioElem = document.getElementById('yt-audio') as HTMLAudioElement;
-    if (audioElem) audioElem.pause();
+    if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
+      this.ytPlayer.pauseVideo();
+    }
   }
 
   next() {
