@@ -5,10 +5,10 @@
   <!-- Background Album Art -->
   <div class="absolute inset-0 opacity-50">
     <img
-      [src]="currentSong?.thumbnail_url"
-      [alt]="currentSong?.title"
+      [src]="songThumbnail"
+      [alt]="songTitle"
       class="w-full h-full object-cover blur-md scale-110"
-      *ngIf="currentSong?.thumbnail_url"
+      *ngIf="songThumbnail"
     />
   </div>
 
@@ -18,7 +18,7 @@
       <i class="fa-solid fa-chevron-down text-xl"></i>
     </button>
     <div class="text-center">
-      <p class="font-medium">YOUTUBE PLAYER</p>
+      <p class="font-medium">PLAYER</p>
       <p class="font-medium">_ ___ _</p>
     </div>
     <button class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors" >
@@ -32,30 +32,31 @@
     <div class="flex-1 flex items-center justify-center my-4">
       <div class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill" [ngClass]="{ 'spin-paused': !isPlaying }">
         <img
-          [src]="currentSong?.thumbnail_url"
-          [alt]="currentSong?.title"
+          [src]="songThumbnail"
+          [alt]="songTitle"
           class="w-full h-full object-cover"
-          *ngIf="currentSong?.thumbnail_url"
+          *ngIf="songThumbnail"
         />
-        <div *ngIf="!currentSong?.thumbnail_url" class="w-full h-full flex items-center justify-center">
+        <div *ngIf="!songThumbnail" class="w-full h-full flex items-center justify-center">
           <i class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"></i>
         </div>
       </div>
     </div>
 
     <iframe #ytIframe
-        width="100%" height="200"
+        width="0" height="0"
         [src]="safeVideoUrl"
         frameborder="0"
         allow="autoplay; encrypted-media"
         allowfullscreen
-        class="rounded-lg bg-black hidden">
+        class="rounded-lg  opacity-0 pointer-events-none absolute z-[-1]">
       </iframe>
 
     <!-- Song Info -->
     <div class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end">
-      <h1 class="font-medium mb-2 text-white">{{ currentSong?.title || 'No song selected' }}</h1>
-      <p class="text-lg text-white/70">{{ currentSong?.artist || 'Unknown Artist' }}</p>
+      <h1 class="text-xl font-medium mb-2 text-white">{{ songTitle || 'No song selected' }}</h1>
+      <p class=" text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
+
     </div>
 
     <!-- Progress Bar -->
@@ -65,21 +66,69 @@
       </div>
       <!-- Enhanced Progress Bar -->
       <div class="relative px-2 enhanced-progress-bar">
-        <div class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none">
+        <!-- Main Progress Container -->
+        <div
+          #progressContainer
+          data-progress-container
+          class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none"
+          (click)="onProgressClick($event)"
+          (mousedown)="onProgressStart($event)"
+          (touchstart)="onProgressStart($event)"
+          (mousemove)="onProgressMove($event)"
+          (touchmove)="onProgressMove($event)"
+          (mouseup)="onProgressEnd($event)"
+          (touchend)="onProgressEnd($event)"
+          (mouseleave)="onProgressLeave()"
+        >
           <!-- Buffer Bar (đã preload) -->
-          <div class="progress-buffer absolute h-full rounded-full" style="width: 0%"></div>
+          <div
+            class="progress-buffer absolute h-full rounded-full"
+            [style.width.%]="bufferProgress()"
+          ></div>
+
           <!-- Progress Bar (đã nghe) -->
-          <div class="progress-fill absolute h-full rounded-full" style="width: 0%"></div>
+          <div
+            class="progress-fill absolute h-full rounded-full"
+            [class.dragging]="isDragging()"
+            [style.width.%]="progress()"
+          ></div>
+
+          <!-- Hover Preview -->
+          <div
+            *ngIf="hoverProgress() >= 0"
+            class="progress-hover absolute h-full rounded-full pointer-events-none"
+            [style.width.%]="hoverProgress()"
+          ></div>
+
           <!-- Thumb (điểm kéo) -->
-          <div class="progress-thumb absolute w-4 h-4 rounded-full transform -translate-y-1/2 top-1/2 -translate-x-1/2 opacity-0" style="left: 0%"></div>
+          <div
+            class="progress-thumb absolute w-4 h-4 rounded-full transform -translate-y-1/2 top-1/2 -translate-x-1/2"
+            [class.opacity-0]="!isHoveringProgress() && !isDragging()"
+            [class.opacity-100]="isHoveringProgress() || isDragging()"
+            [class.dragging]="isDragging()"
+            [style.left.%]="progress()"
+          ></div>
+
+          <!-- Time Preview Tooltip -->
+          <!-- <div
+            *ngIf="hoverProgress() >= 0"
+            class="time-tooltip absolute bottom-6 transform -translate-x-1/2 pointer-events-none whitespace-nowrap"
+            [style.left.%]="hoverProgress()"
+          >
+            {{ formatTime((hoverProgress() / 100) * duration()) }}
+          </div> -->
         </div>
+
         <!-- Time Markers -->
-        <div class="flex items-center justify-between text-sm text-white/70 mt-3">
-          <span>0:00</span>
-          <span>{{ currentSong?.duration_formatted || '0:00' }}</span>
+        <div
+          class="flex items-center justify-between text-sm text-white/70 mt-3"
+        >
+          <span>{{ progressTime() }}</span>
+          <span>{{ durationTime() }}</span>
         </div>
       </div>
     </div>
+
 
     <!-- Main Controls -->
     <div class="flex items-center justify-around w-full pb-16">
@@ -89,7 +138,7 @@
       </button>
       <!-- Play/Pause -->
       <button (click)="isPlaying ? pause() : play()" class="!w-14 !h-14 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform shadow-2xl">
-        <i class="fas" [ngClass]="isPlaying ? 'fa-pause' : 'fa-play'" class="text-3xl"></i>
+        <i class="fas text-3xl" [ngClass]="isPlaying ? 'fa-pause' : 'fa-play'" ></i>
       </button>
       <!-- Next -->
       <button (click)="next()" class="p-3 rounded-full transition-colors">
