@@ -1,30 +1,32 @@
-<div class="search-page h-full flex flex-col bg-black ptAreanSave">
+<ion-header mode="md" [translucent]="true" class="p-4 bg-black">
+  <div class="relative bg-black">
+    <input
+      type="text"
+      [value]="searchQuery()"
+      (input)="onInputChange($event)"
+      (keyup.enter)="onSearchButtonClick()"
+      placeholder="Nhập tên bài hát, nghệ sĩ, album..."
+      class="input w-full pl-10 pr-10 bg-gray-700"
+    />
+    <button
+      class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+      (click)="closeModal()"
+    >
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button
+      class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
+      (click)="onSearchButtonClick()"
+    >
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </button>
+  </div>
+</ion-header>
+<ion-content class="search-page h-full flex flex-col bg-black ptAreanSave">
   <!-- Content -->
   <div class="flex-1 overflow-y-auto">
     <!-- Search Section -->
     <div class="p-4">
-      <div class="relative mb-4">
-        <input
-          type="text"
-          [value]="searchQuery()"
-          (input)="onInputChange($event)"
-          (keyup.enter)="onSearchButtonClick()"
-          placeholder="Search YouTube for music..."
-          class="input w-full pl-10 pr-10 bg-gray-700"
-        />
-        <button
-          class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-          (click)="closeModal()"
-        >
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button
-          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-          (click)="onSearchButtonClick()"
-        >
-          <i class="fa-solid fa-magnifying-glass"></i>
-        </button>
-      </div>
       <!-- Loading State -->
       <div *ngIf="isSearching()" class="text-center py-8">
         <div class="spinner mx-auto"></div>
@@ -32,88 +34,26 @@
       </div>
       <!-- Tabs -->
       @if (searchResults().length > 0 && !isSearching()) {
-        <div class="space-y-3">
-          <div class="flex items-center justify-between gap-x-3 scrollbar-hide px-3 pb-5 overflow-x-auto">
-            @for (tab of tabs; track tab.id) {
-              <app-btn-custom
-                (click)="onTabChange(tab)"
-                [text]="tab.label"
-                [height]="'auto'"
-                [width]="'unset'"
-                [rounded]="'rounded-md'"
-                [borderClass]="'border border-gray-500 border-opacity-70'"
-                [cssClass]="getTabClass(tab.id)"
-              ></app-btn-custom>
-            }
-          </div>
-          <!-- Search Results List: chỉ hiển thị tất cả kết quả cho tab all -->
-          <div class="divide-y divide-gray-700">
-            @for (item of searchResults(); track item) {
-              @switch (item.resultType) {
-                @case ('song') {
-                  <div class="flex items-center py-3">
-                    <img [src]="item.thumbnails[0]?.url || 'assets/default-song.png'" class="w-14 h-14 rounded-md object-cover mr-3" />
-                    <div class="flex-1">
-                      <div class="font-semibold text-white text-base">{{ getTitle(item) }}</div>
-                      <div class="text-xs text-gray-400">{{ getArtists(item) }}</div>
-                      <div class="text-xs text-gray-500">{{ getDuration(item) }}</div>
-                    </div>
-                    <button class="ml-2 text-pink-400"><i class="fa-solid fa-play"></i></button>
-                  </div>
-                }
-                @case ('artist') {
-                  <div class="flex items-center py-3">
-                    <img [src]="item.thumbnails[0]?.url || 'assets/default-artist.png'" class="w-14 h-14 rounded-full object-cover mr-3" />
-                    <div class="flex-1">
-                      <div class="font-semibold text-white text-base">{{ getTitle(item) }}</div>
-                      <div class="text-xs text-gray-400">Nghệ sĩ</div>
-                      <div class="text-xs text-gray-500">{{ getSubscribers(item) }}</div>
-                    </div>
-                    <button class="ml-2 text-pink-400"><i class="fa-solid fa-user"></i></button>
-                  </div>
-                }
-                @case ('playlist') {
-                  <div class="flex items-center py-3">
-                    <img [src]="item.thumbnails[0]?.url || 'assets/default-playlist.png'" class="w-14 h-14 rounded-md object-cover mr-3" />
-                    <div class="flex-1">
-                      <div class="font-semibold text-white text-base">{{ getTitle(item) }}</div>
-                      <div class="text-xs text-gray-400">Playlist</div>
-                      <div class="text-xs text-gray-500">{{ getPlaylistAuthor(item) }}</div>
-                    </div>
-                    <button class="ml-2 text-pink-400"><i class="fa-solid fa-list"></i></button>
-                  </div>
-                }
-              }
-            }
-          </div>
-        </div>
+      <div class="space-y-3">
+
+        <ng-container *ngFor="let song of songSectionData(); trackBy: trackBySongId">
+        <app-song-item-home
+          [song]="song"
+          [isHomePage]="false"
+          [showDuration]="true"
+          [showArtist]="true"
+          (songClick)="onSongClick(song)"
+          (songOptions)="onSongOptions(song)">
+        </app-song-item-home>
+      </ng-container>
+      </div>
       }
       <!-- No Results -->
-      @if (searchQuery().length >= 3 && searchResults().length === 0 && !isSearching()) {
-        <div class="text-center py-8">
-          <svg
-            class="w-16 h-16 text-gray-400 mx-auto mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            ></path>
-          </svg>
-          <p class="text-gray-400">No results found</p>
-          <p class="text-sm text-gray-500">Try different keywords</p>
-        </div>
-      }
-    </div>
-    <!-- Empty State -->
-    @if (searchQuery().length < 3) {
-      <div class="flex flex-col items-center justify-center h-64 text-center px-4">
+      @if (searchQuery().length >= 3 && searchResults().length === 0 &&
+      !isSearching()) {
+      <div class="text-center py-8">
         <svg
-          class="w-24 h-24 text-gray-400 mb-4"
+          class="w-16 h-16 text-gray-400 mx-auto mb-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -122,17 +62,41 @@
             stroke-linecap="round"
             stroke-linejoin="round"
             stroke-width="2"
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           ></path>
         </svg>
-        <h3 class="text-lg font-semibold text-gray-300 mb-2">
-          Search & Download Music
-        </h3>
-        <p class="text-gray-400 text-sm">
-          Search for your favorite songs on YouTube and download them to your
-          device
-        </p>
+        <p class="text-gray-400">No results found</p>
+        <p class="text-sm text-gray-500">Try different keywords</p>
       </div>
+      }
+    </div>
+    <!-- Empty State -->
+    @if (searchQuery().length < 3 && searchResults().length === 0 &&
+    !isSearching()) {
+    <div
+      class="flex flex-col items-center justify-center h-64 text-center px-4"
+    >
+      <svg
+        class="w-24 h-24 text-gray-400 mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+        ></path>
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-300 mb-2">
+        Search & Download Music
+      </h3>
+      <p class="text-gray-400 text-sm">
+        Search for your favorite songs on YouTube and download them to your
+        device
+      </p>
+    </div>
     }
   </div>
-</div>
+</ion-content>

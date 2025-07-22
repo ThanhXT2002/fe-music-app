@@ -17,7 +17,7 @@
     <div
       class="absolute inset-0 flex items-center justify-center transition-all duration-200"
     >
-      @if (playerState.currentSong && song.id === playerState.currentSong.id &&
+      @if (playerState && playerState.currentSong && song.id === playerState.currentSong.id &&
       sectionPlaylist === playerState.currentPlaylist) {
       <app-lottie-equalizer
         [width]="20"
