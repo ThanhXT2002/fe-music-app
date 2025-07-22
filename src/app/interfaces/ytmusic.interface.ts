@@ -2,6 +2,7 @@ export interface YTMusicArtist {
   category?: string | null;
   resultType: 'artist';
   artist?: string;
+  artists?: { name: string; id?: string }[];
   shuffleId?: string;
   radioId?: string;
   browseId?: string;
