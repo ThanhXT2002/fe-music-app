@@ -6,7 +6,7 @@ import { Location } from '@angular/common';
 import { ModalController } from '@ionic/angular';
 @Component({
   selector: 'app-header',
-  imports: [ IonContent, IonModal, IonHeader, RouterLink,IonModal,IonNav,],
+  imports: [  IonHeader, RouterLink],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss'],
 })
@@ -15,16 +15,11 @@ export class HeaderComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private location: Location,
-    private modalCtrl: ModalController
+    private modalCtrl: ModalController,
 
   ) { }
 
   ngOnInit() {}
-
-  onWillPresentSearch() {
-    this.navSearch.setRoot(SearchPage);
-  }
 
 
   async toggleFindSongByAudio() {
@@ -47,5 +42,9 @@ export class HeaderComponent implements OnInit {
     }
   }
 
-
+  navToSearch(){
+    // Lưu url hiện tại vào localStorage
+    localStorage.setItem('back-search', this.router.url);
+    this.router.navigate(['/search']);
+  }
 }

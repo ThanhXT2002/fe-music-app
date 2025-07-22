@@ -29,7 +29,9 @@
         <i class="fa-solid fa-magnifying-glass text-lg"></i>
       </button> -->
 
-      <button routerLink="/search" class="btn-header">
+      <button
+        (click)="navToSearch()"
+      class="btn-header">
         <i class="fa-solid fa-magnifying-glass text-lg"></i>
       </button>
 
@@ -37,14 +39,4 @@
   </div>
 </ion-header>
 
-<ion-modal
-  #searchModal
-  trigger="openSearchModal"
-  (willPresent)="onWillPresentSearch()"
->
-  <ng-template>
-    <ion-content>
-      <ion-nav #navSearch></ion-nav>
-    </ion-content>
-  </ng-template>
-</ion-modal>
+

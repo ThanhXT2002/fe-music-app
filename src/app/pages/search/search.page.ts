@@ -9,6 +9,8 @@ import { debounceTime, Subject } from 'rxjs';
 import { SongItemHomeComponent } from "src/app/components/song-item-home/song-item-home.component";
 import { Song } from 'src/app/interfaces/song.interface';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { YtPlayerService } from 'src/app/services/yt-player.service';
+import { Router } from '@angular/router';
 
 
 @Component({
@@ -23,6 +25,8 @@ export class SearchPage implements OnInit {
   private readonly ytMusic = inject(YtMusicService);
   private readonly destroyRef = inject(DestroyRef);
   private location = inject(Location);
+  private ytPlayerService = inject(YtPlayerService);
+  private router = inject(Router);
 
   // Signals
   searchQuery = signal('');
@@ -89,7 +93,13 @@ export class SearchPage implements OnInit {
   }
 
   onBack(){
-    this.location.back();
+    const backUrl = localStorage.getItem('back-search');
+    if (backUrl) {
+      localStorage.removeItem('back-search');
+      this.router.navigate([backUrl]);
+    } else {
+      this.location.back();
+    }
   }
 
   clearSearch() {
@@ -133,15 +143,13 @@ export class SearchPage implements OnInit {
       this.searchResults.set([]);
       return;
     }
-
     this.isSearching.set(true);
     this.searchYouTube(query);
   }
 
   onSongClick(song: Song) {
-    // Xử lý khi click vào bài hát
-    console.log('Song clicked:', song);
-    // TODO: Implement song playback logic
+    this.ytPlayerService.setPlaylist(this.songSectionData(), this.songSectionData().findIndex(s => s.id === song.id));
+    this.router.navigate(['/yt-player', song.id]);
   }
 
   onSongOptions(song: Song) {

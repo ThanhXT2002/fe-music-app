@@ -83,5 +83,10 @@ export const routes: Routes = [
     path: 'file-song',
     loadComponent: () => import('./components/find-infor-song-with-file/find-infor-song-with-file.component').then( m => m.FindInforSongWithFileComponent)
   },
+  {
+    path: 'yt-player/:videoId',
+    loadComponent: () => import('./pages/yt-player/yt-player.page').then( m => m.YtPlayerPage)
+  },
+
 
 ];
