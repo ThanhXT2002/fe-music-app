@@ -1,5 +1,5 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController, IonicModule } from '@ionic/angular';
 import { YtMusicService } from 'src/app/services/api/ytmusic.service';
@@ -19,11 +19,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
   styleUrls: ['./search.page.scss'],
 })
 export class SearchPage implements OnInit {
-
-  // Inject services
   private readonly modalCtrl = inject(ModalController);
   private readonly ytMusic = inject(YtMusicService);
   private readonly destroyRef = inject(DestroyRef);
+  private location = inject(Location);
 
   // Signals
   searchQuery = signal('');
@@ -87,6 +86,10 @@ export class SearchPage implements OnInit {
 
   closeModal() {
     this.modalCtrl.dismiss();
+  }
+
+  onBack(){
+    this.location.back();
   }
 
   clearSearch() {
