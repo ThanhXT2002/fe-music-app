@@ -4,12 +4,6 @@ import { Component, OnInit, ViewChild, ElementRef, NgZone } from '@angular/core'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
 import { YtPlayerService } from '../../services/yt-player.service';
 import { Song } from '../../interfaces/song.interface';
@@ -99,6 +93,8 @@ export class YtPlayerPage implements OnInit {
       }
     });
   }
+
+  
   formatDuration(seconds: string): string {
     const sec = parseInt(seconds, 10);
     const min = Math.floor(sec / 60);
@@ -107,6 +103,11 @@ export class YtPlayerPage implements OnInit {
   }
 
   updateSafeUrl() {
+    // Hủy player cũ nếu có
+    if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
+      this.ytPlayer.destroy();
+      this.ytPlayer = null;
+    }
     this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
       `https://www.youtube.com/embed/${this.videoId}?autoplay=1&enablejsapi=1`
     );
@@ -134,6 +135,7 @@ export class YtPlayerPage implements OnInit {
       this.videoId = this.currentSong.id;
       this.isPlaying = true;
       this.ytPlayerService.goToSong(this.currentIndex);
+      this.router.navigate(['/yt-player', this.videoId]);
       this.updateSafeUrl();
       // Lấy lại thông tin bài hát mới
       this.ytMusicService.getSong(this.videoId).subscribe({
@@ -174,6 +176,7 @@ export class YtPlayerPage implements OnInit {
       this.videoId = this.currentSong.id;
       this.isPlaying = true;
       this.ytPlayerService.goToSong(this.currentIndex);
+      this.router.navigate(['/yt-player', this.videoId]);
       this.updateSafeUrl();
       // Lấy lại thông tin bài hát mới
       this.ytMusicService.getSong(this.videoId).subscribe({
