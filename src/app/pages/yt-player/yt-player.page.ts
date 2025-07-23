@@ -6,12 +6,13 @@ import {
   ViewChild,
   ElementRef,
   NgZone,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Song } from '../../interfaces/song.interface';
+import { Subject, takeUntil } from 'rxjs';
 import { YtMusicService } from '../../services/api/ytmusic.service';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
@@ -26,6 +27,8 @@ import { YtPlayerService } from 'src/app/services/yt-player.service';
 export class YtPlayerPage implements OnInit {
   @ViewChild('ytIframe', { static: false })
   ytIframe?: ElementRef<HTMLIFrameElement>;
+  ytPlayer: any = null;
+  iframeKey = 1;
 
   videoId: string = '';
   playlist: YTPlayerTrack[] = [];
@@ -41,11 +44,19 @@ export class YtPlayerPage implements OnInit {
   songDuration: string = '';
   songViews: string = '';
 
+  private destroy$ = new Subject<void>();
+
   videoDuration: number = 0;
   videoCurrentTime: number = 0;
   dragging: boolean = false;
   hoverPercent: number = -1;
   tempProgress: number = 0; // progress tạm khi kéo
+
+  private iframeReady = false;
+  private shouldInitPlayer = false;
+  showIframe: boolean = false;
+
+
 
   constructor(
     private route: ActivatedRoute,
@@ -53,34 +64,55 @@ export class YtPlayerPage implements OnInit {
     private router: Router,
     private ytMusicService: YtMusicService,
     private ytPlayerService: YtPlayerService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
+     private location: Location
   ) {}
 
   ngOnInit() {
-    // Lấy videoId từ query param và lấy playlist từ service
-    this.route.queryParamMap.subscribe((params) => {
-      const videoId = params.get('v');
-      // Lấy playlist từ signal
-      const playlist = this.ytPlayerService.currentPlaylist();
-      this.playlist = playlist || [];
-      this.currentIndex = this.playlist.findIndex((s) => s.videoId === videoId);
-      this.currentSong = this.playlist[this.currentIndex] || null;
-      if (videoId) {
-        this.videoId = videoId;
-        this.updateSafeUrl(videoId);
-        // Hiển thị thông tin bài hát lên giao diện
-        this.songTitle = this.currentSong?.title || '';
-        this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
-          ? this.currentSong.artists[0].name || '' : '';
-        this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
-          ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
-        this.songDuration = this.currentSong?.length || '';
-        this.songViews = this.currentSong?.views || '';
-      }
-    });
+    this.updateCurrentTrackFromParams();
   }
 
+  private updateCurrentTrackFromParams() {
+    this.route.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((params) => {
+        const videoId = params.get('v');
+        const playlist = this.ytPlayerService.currentPlaylist();
+        this.playlist = playlist || [];
+        this.currentIndex = this.playlist.findIndex(
+          (s) => s.videoId === videoId
+        );
+        this.currentSong = this.playlist[this.currentIndex] || null;
+        if (videoId) {
+          this.videoId = videoId;
+          this.updateSongInfo();
+        }
+      });
+  }
 
+  ngOnDestroy() {
+    // Hủy subscription
+    this.destroy$.next();
+    this.destroy$.complete();
+
+    // Cleanup global listeners
+    this.cleanupGlobalListeners();
+
+    // Hủy player
+    if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
+      try {
+        this.ytPlayer.destroy();
+      } catch (e) {
+        console.warn('Error destroying player in ngOnDestroy:', e);
+      }
+      this.ytPlayer = null;
+    }
+
+    // Reset states
+    this.iframeReady = false;
+    this.shouldInitPlayer = false;
+  }
 
   formatDuration(seconds: string): string {
     const sec = parseInt(seconds, 10);
@@ -89,15 +121,50 @@ export class YtPlayerPage implements OnInit {
     return `${min}:${s < 10 ? '0' : ''}${s}`;
   }
 
-  updateSafeUrl(videoId:string) {
+  updateSafeUrl(videoId: string) {
     // Hủy player cũ nếu có
     if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
-      this.ytPlayer.destroy();
+      try {
+        this.ytPlayer.destroy();
+      } catch (e) {
+        console.warn('Error destroying player:', e);
+      }
       this.ytPlayer = null;
     }
-    this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`
-    );
+
+    // Reset states
+    this.iframeReady = false;
+    this.showIframe = false;
+
+    // Force change detection
+    this.cdr.detectChanges();
+
+    // Tạo URL mới với timestamp để tránh cache
+    const timestamp = Date.now();
+    const newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
+    this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(newUrl);
+    // Tăng iframe key
+    this.iframeKey++;
+    this.showIframe = true;
+    // Force change detection ngay lập tức
+    this.cdr.detectChanges();
+    // Đợi iframe render xong
+    setTimeout(() => {
+      this.iframeReady = true;
+      if (this.shouldInitPlayer && this.ytIframe?.nativeElement) {
+        this.initPlayer();
+      }
+    }, 200);
+  }
+
+
+  onIframeLoad() {
+    this.iframeReady = true;
+    setTimeout(() => {
+      if (this.shouldInitPlayer && !this.ytPlayer && this.ytIframe?.nativeElement) {
+        this.initPlayer();
+      }
+    }, 300);
   }
 
   // Điều khiển phát nhạc
@@ -121,16 +188,9 @@ export class YtPlayerPage implements OnInit {
       this.currentSong = this.playlist[this.currentIndex];
       this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      // Cập nhật thông tin bài hát
-      this.songTitle = this.currentSong?.title || '';
-      this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
-        ? this.currentSong.artists[0].name || '' : '';
-      this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
-        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
-      this.songDuration = this.currentSong?.length || '';
-      this.songViews = this.currentSong?.views || '';
-      this.router.navigate(['/yt-player'], { queryParams: { v: this.videoId, list: this.ytPlayerService.playlistId() } });
+      this.updateSongInfo(false);
       this.updateSafeUrl(this.videoId);
+      this.updateUrlWithLocation();
     }
   }
 
@@ -140,15 +200,37 @@ export class YtPlayerPage implements OnInit {
       this.currentSong = this.playlist[this.currentIndex];
       this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      // Cập nhật thông tin bài hát
-      this.songTitle = this.currentSong?.title || '';
-      this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
-        ? this.currentSong.artists[0].name || '' : '';
-      this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
-        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
-      this.songDuration = this.currentSong?.length || '';
-      this.songViews = this.currentSong?.views || '';
-      this.router.navigate(['/yt-player'], { queryParams: { v: this.videoId, list: this.ytPlayerService.playlistId() } });
+      this.updateSongInfo(false);
+      this.updateSafeUrl(this.videoId);
+      this.updateUrlWithLocation();
+    }
+  }
+
+  private updateUrlWithLocation() {
+    const queryParams = new URLSearchParams();
+    queryParams.set('v', this.videoId);
+    const playlistId = this.ytPlayerService.playlistId();
+    if (playlistId) {
+      queryParams.set('list', playlistId);
+    }
+    const newUrl = `/yt-player?${queryParams.toString()}`;
+    this.location.replaceState(newUrl, '');
+  }
+
+  private updateSongInfo(callUpdateSafeUrl: boolean = true) {
+    this.songTitle = this.currentSong?.title || '';
+    this.songArtist =
+      this.currentSong?.artists && this.currentSong.artists.length > 0
+        ? this.currentSong.artists[0].name || ''
+        : '';
+    this.songThumbnail =
+      this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
+        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1]
+            .url || ''
+        : '';
+    this.songDuration = this.currentSong?.length || '';
+    this.songViews = this.currentSong?.views || '';
+    if (callUpdateSafeUrl) {
       this.updateSafeUrl(this.videoId);
     }
   }
@@ -174,42 +256,86 @@ export class YtPlayerPage implements OnInit {
   }
 
   ngAfterViewInit() {
-    // YouTube IFrame API
+    this.loadYouTubeAPI();
+  }
+
+  private loadYouTubeAPI() {
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
+      tag.onerror = (error) => {
+        console.error('Failed to load YouTube API script:', error);
+      };
       document.body.appendChild(tag);
     }
-    (window as any).onYouTubeIframeAPIReady = () => {
-      this.initPlayer();
+
+    // Set callback
+    const callbackName = `onYTReady_${Date.now()}`;
+    (window as any)[callbackName] = () => {
+      this.shouldInitPlayer = true;
+      if (this.iframeReady && this.ytIframe?.nativeElement && !this.ytPlayer) {
+        this.initPlayer();
+      }
     };
+    (window as any).onYouTubeIframeAPIReady = (window as any)[callbackName];
+
+    // Check if API is already available
     if ((window as any).YT && (window as any).YT.Player) {
-      this.initPlayer();
+      this.shouldInitPlayer = true;
+      if (this.iframeReady && this.ytIframe?.nativeElement && !this.ytPlayer) {
+        this.initPlayer();
+      }
     }
+
   }
 
-  ytPlayer: any = null;
   initPlayer() {
-    if (!this.ytIframe) return;
-    this.ytPlayer = new (window as any).YT.Player(this.ytIframe.nativeElement, {
-      events: {
-        onReady: (event: any) => {
-          this.ngZone.run(() => {
-            this.videoDuration = event.target.getDuration();
-            this.isPlaying = true;
-            event.target.playVideo();
-            this.syncProgress();
-          });
+    if (!this.ytIframe?.nativeElement) {
+      setTimeout(() => {
+        if (!this.ytPlayer) {
+          this.initPlayer();
+        }
+      }, 200);
+      return;
+    }
+    if (!this.shouldInitPlayer) {
+      return;
+    }
+    if (this.ytPlayer) {
+      return;
+    }
+
+    try {
+      this.ytPlayer = new (window as any).YT.Player(this.ytIframe.nativeElement, {
+        events: {
+          onReady: (event: any) => {
+            this.ngZone.run(() => {
+              this.videoDuration = event.target.getDuration();
+              this.isPlaying = true;
+              event.target.playVideo();
+              this.syncProgress();
+            });
+          },
+          onStateChange: (event: any) => {
+            this.ngZone.run(() => {
+              if (event.data === 0) this.next(); // Ended
+              if (event.data === 2) this.isPlaying = false; // Paused
+              if (event.data === 1) this.isPlaying = true; // Playing
+            });
+          },
+          onError: (event: any) => {
+            console.error('YouTube Player Error:', event.data);
+          }
         },
-        onStateChange: (event: any) => {
-          this.ngZone.run(() => {
-            if (event.data === 0) this.next(); // Ended
-            if (event.data === 2) this.isPlaying = false; // Paused
-            if (event.data === 1) this.isPlaying = true; // Playing
-          });
-        },
-      },
-    });
+      });
+    } catch (error) {
+      console.error('Error creating YouTube Player:', error);
+      setTimeout(() => {
+        if (!this.ytPlayer) {
+          this.initPlayer();
+        }
+      }, 500);
+    }
   }
 
   syncProgress() {

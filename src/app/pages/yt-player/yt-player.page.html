@@ -1,7 +1,7 @@
-
-
 <!-- Main Player Container -->
-<div class="player-container h-screen text-white relative overflow-hidden bg-gradient-to-br from-purple-600 from-[20%] via-indigo-600 to-pink-600 ptAreanSave">
+<div
+  class="player-container h-screen text-white relative overflow-hidden bg-gradient-to-br from-purple-600 from-[20%] via-indigo-600 to-pink-600 ptAreanSave"
+>
   <!-- Background Album Art -->
   <div class="absolute inset-0 opacity-50">
     <img
@@ -14,54 +14,79 @@
 
   <!-- Header -->
   <div class="relative z-10 flex items-center justify-between p-4 pt-6">
-    <button class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors" (click)="handleBack()">
+    <button
+      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
+      (click)="handleBack()"
+    >
       <i class="fa-solid fa-chevron-down text-xl"></i>
     </button>
     <div class="text-center">
       <p class="font-medium">PLAYER</p>
       <p class="font-medium">_ ___ _</p>
     </div>
-    <button class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors" >
+    <button
+      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
+    >
       <i class="fa-solid fa-bars text-xl"></i>
     </button>
   </div>
 
   <!-- Main Content -->
-  <div class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between">
+  <div
+    class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between"
+  >
     <!-- Album Art -->
     <div class="flex-1 flex items-center justify-center my-4">
-      <div class="w-[80%]  aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill" [ngClass]="{ 'spin-paused': !isPlaying }">
+      <div
+        class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill"
+        [ngClass]="{ 'spin-paused': !isPlaying }"
+      >
         <img
           [src]="songThumbnail"
           [alt]="songTitle"
           class="w-full h-full object-cover"
           *ngIf="songThumbnail"
         />
-        <div *ngIf="!songThumbnail" class="w-full h-full flex items-center justify-center">
-          <i class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"></i>
+        <div
+          *ngIf="!songThumbnail"
+          class="w-full h-full flex items-center justify-center"
+        >
+          <i
+            class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
+          ></i>
         </div>
       </div>
     </div>
 
-    <iframe #ytIframe
-        width="0" height="0"
-        [src]="safeVideoUrl"
-        frameborder="0"
-        allow="autoplay; encrypted-media"
-        allowfullscreen
-        class="rounded-lg  opacity-0 pointer-events-none absolute z-[-1]">
-      </iframe>
-
+    <iframe
+      *ngIf="iframeKey > 0 && showIframe && safeVideoUrl"
+      [attr.key]="iframeKey"
+      #ytIframe
+      width="0"
+      height="0"
+      [src]="safeVideoUrl"
+      frameborder="0"
+      allow="autoplay; encrypted-media"
+      allowfullscreen
+      class="rounded-lg opacity-0 pointer-events-none absolute z-[-1]"
+      (load)="onIframeLoad()"
+    >
+    </iframe>
     <!-- Song Info -->
-    <div class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end">
-      <h1 class="text-xl font-medium mb-2 text-white">{{ songTitle || 'No song selected' }}</h1>
-      <p class=" text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
-
+    <div
+      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
+    >
+      <h1 class="text-xl font-medium mb-2 text-white">
+        {{ songTitle || 'No song selected' }}
+      </h1>
+      <p class="text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
     </div>
 
     <!-- Progress Bar -->
     <div class="mb-8">
-      <div class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]">
+      <div
+        class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
+      >
         <!-- Có thể thêm nút yêu thích, thêm playlist ở đây nếu muốn -->
       </div>
       <!-- Enhanced Progress Bar -->
@@ -120,16 +145,24 @@
       </div>
     </div>
 
-
     <!-- Main Controls -->
     <div class="flex items-center justify-around w-full pb-16">
       <!-- Previous -->
-      <button (click)="previous()" class="!w-10 !h-10 rounded-full transition-colors">
+      <button
+        (click)="previous()"
+        class="!w-10 !h-10 rounded-full transition-colors"
+      >
         <i class="fas fa-step-backward text-2xl"></i>
       </button>
       <!-- Play/Pause -->
-      <button (click)="isPlaying ? pause() : play()" class="!w-14 !h-14 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform shadow-2xl">
-        <i class="fas text-3xl" [ngClass]="isPlaying ? 'fa-pause' : 'fa-play'" ></i>
+      <button
+        (click)="isPlaying ? pause() : play()"
+        class="!w-14 !h-14 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform shadow-2xl"
+      >
+        <i
+          class="fas text-3xl"
+          [ngClass]="isPlaying ? 'fa-pause' : 'fa-play'"
+        ></i>
       </button>
       <!-- Next -->
       <button (click)="next()" class="p-3 rounded-full transition-colors">
@@ -138,4 +171,3 @@
     </div>
   </div>
 </div>
-
