@@ -38,6 +38,7 @@ export class YtPlayerPage implements OnInit {
   videoCurrentTime: number = 0;
   dragging: boolean = false;
   hoverPercent: number = -1;
+  tempProgress: number = 0; // progress tạm khi kéo
 
   constructor(
     private route: ActivatedRoute,
@@ -94,7 +95,7 @@ export class YtPlayerPage implements OnInit {
     });
   }
 
-  
+
   formatDuration(seconds: string): string {
     const sec = parseInt(seconds, 10);
     const min = Math.floor(sec / 60);
@@ -283,10 +284,7 @@ export class YtPlayerPage implements OnInit {
     update();
   }
 
-  progress(): number {
-    if (!this.videoDuration) return 0;
-    return (this.videoCurrentTime / this.videoDuration) * 100;
-  }
+  // ...existing code...
   bufferProgress(): number {
     // YouTube không expose buffered, luôn 100%
     return 100;
@@ -319,59 +317,142 @@ export class YtPlayerPage implements OnInit {
   onProgressClick(event: MouseEvent) {
     this.seekToEvent(event);
   }
+
   onProgressStart(event: MouseEvent | TouchEvent) {
+    event.preventDefault();
     this.dragging = true;
-    this.setHoverPercent(event);
+    this.updateProgress(event);
+    document.addEventListener('mousemove', this.onGlobalMouseMove, { passive: false });
+    document.addEventListener('mouseup', this.onGlobalMouseUp, { passive: true });
+    document.addEventListener('touchmove', this.onGlobalTouchMove, { passive: false });
+    document.addEventListener('touchend', this.onGlobalTouchEnd, { passive: true });
   }
+
   onProgressMove(event: MouseEvent | TouchEvent) {
-    if (this.dragging) {
+    if (!this.dragging) {
       this.setHoverPercent(event);
+    } else {
+      this.updateProgress(event);
     }
   }
+
   onProgressEnd(event: MouseEvent | TouchEvent) {
     if (this.dragging) {
-      this.seekToEvent(event);
-      this.dragging = false;
+      this.finishDrag();
+    }
+  }
+
+  onProgressLeave() {
+    if (!this.dragging) {
       this.hoverPercent = -1;
     }
   }
-  onProgressLeave() {
-    this.hoverPercent = -1;
+
+  // --- Global event handlers ---
+  private onGlobalMouseMove = (event: MouseEvent) => {
+    if (this.dragging) {
+      event.preventDefault();
+      this.updateProgressFromGlobalEvent(event);
+    }
+  };
+  private onGlobalMouseUp = (event: MouseEvent) => {
+    if (this.dragging) {
+      this.finishDrag();
+    }
+  };
+  private onGlobalTouchMove = (event: TouchEvent) => {
+    if (this.dragging) {
+      event.preventDefault();
+      this.updateProgressFromGlobalEvent(event);
+    }
+  };
+  private onGlobalTouchEnd = (event: TouchEvent) => {
+    if (this.dragging) {
+      this.finishDrag();
+    }
+  };
+
+  private finishDrag() {
+    if (!this.dragging) return;
+    const seekTime = (this.tempProgress / 100) * this.videoDuration;
+    if (this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
+      this.ytPlayer.seekTo(seekTime, true);
+      this.videoCurrentTime = seekTime;
+    }
     this.dragging = false;
+    this.hoverPercent = -1;
+    this.cleanupGlobalListeners();
   }
+
+  private cleanupGlobalListeners() {
+    document.removeEventListener('mousemove', this.onGlobalMouseMove);
+    document.removeEventListener('mouseup', this.onGlobalMouseUp);
+    document.removeEventListener('touchmove', this.onGlobalTouchMove);
+    document.removeEventListener('touchend', this.onGlobalTouchEnd);
+  }
+
   setHoverPercent(event: MouseEvent | TouchEvent) {
     let clientX = 0;
     if (event instanceof MouseEvent) {
       clientX = event.clientX;
     } else if (event instanceof TouchEvent) {
-      clientX = event.touches[0].clientX;
+      clientX = event.touches[0]?.clientX || 0;
     }
-    const progressElem = document.querySelector(
-      '[data-progress-container]'
-    ) as HTMLElement;
+    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
     if (progressElem) {
       const rect = progressElem.getBoundingClientRect();
       const percent = ((clientX - rect.left) / rect.width) * 100;
       this.hoverPercent = Math.max(0, Math.min(100, percent));
     }
   }
+
+  updateProgress(event: MouseEvent | TouchEvent) {
+    const percent = this.calculateProgress(event);
+    this.tempProgress = percent;
+  }
+
+  updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
+    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
+    if (!progressElem) return;
+    let clientX = 0;
+    if (event instanceof MouseEvent) {
+      clientX = event.clientX;
+    } else if (event instanceof TouchEvent) {
+      clientX = event.touches[0]?.clientX || 0;
+    }
+    const rect = progressElem.getBoundingClientRect();
+    const percent = ((clientX - rect.left) / rect.width) * 100;
+    this.tempProgress = Math.max(0, Math.min(100, percent));
+  }
+
+  calculateProgress(event: MouseEvent | TouchEvent): number {
+    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
+    if (!progressElem) return 0;
+    let clientX = 0;
+    if (event instanceof MouseEvent) {
+      clientX = event.clientX;
+    } else if (event instanceof TouchEvent) {
+      clientX = event.touches[0]?.clientX || 0;
+    }
+    const rect = progressElem.getBoundingClientRect();
+    const percent = ((clientX - rect.left) / rect.width) * 100;
+    return Math.max(0, Math.min(100, percent));
+  }
+
   seekToEvent(event: MouseEvent | TouchEvent | undefined) {
     if (!event) return;
-    let clientX = 0;
-    if (event instanceof MouseEvent && typeof event.clientX === 'number') {
-      clientX = event.clientX;
-    } else if (event instanceof TouchEvent && event.touches.length > 0) {
-      clientX = event.touches[0].clientX;
-    } else {
-      return;
-    }
-    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
-    if (progressElem && this.videoDuration && this.ytPlayer) {
-      const rect = progressElem.getBoundingClientRect();
-      const percent = (clientX - rect.left) / rect.width;
-      const seekTime = percent * this.videoDuration;
+    const percent = this.calculateProgress(event);
+    const seekTime = (percent / 100) * this.videoDuration;
+    if (this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
       this.ytPlayer.seekTo(seekTime, true);
       this.videoCurrentTime = seekTime;
     }
+  }
+
+  // --- Progress bar binding ---
+  progress(): number {
+    if (this.dragging) return this.tempProgress;
+    if (!this.videoDuration) return 0;
+    return (this.videoCurrentTime / this.videoDuration) * 100;
   }
 }
