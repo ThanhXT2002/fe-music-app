@@ -30,7 +30,7 @@
   <div class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between">
     <!-- Album Art -->
     <div class="flex-1 flex items-center justify-center my-4">
-      <div class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill" [ngClass]="{ 'spin-paused': !isPlaying }">
+      <div class="w-[75%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill" [ngClass]="{ 'spin-paused': !isPlaying }">
         <img
           [src]="songThumbnail"
           [alt]="songTitle"
@@ -108,15 +108,6 @@
             [class.dragging]="isDragging()"
             [style.left.%]="progress()"
           ></div>
-
-          <!-- Time Preview Tooltip -->
-          <!-- <div
-            *ngIf="hoverProgress() >= 0"
-            class="time-tooltip absolute bottom-6 transform -translate-x-1/2 pointer-events-none whitespace-nowrap"
-            [style.left.%]="hoverProgress()"
-          >
-            {{ formatTime((hoverProgress() / 100) * duration()) }}
-          </div> -->
         </div>
 
         <!-- Time Markers -->

@@ -1,21 +1,28 @@
-// Response cho endpoint /playlist-with-related/{song_id}
-export interface YTMusicPlaylistWithRelatedResponse {
-  watch: YTMusicWatchPlaylist;
-  related: YTMusicRelatedSection[];
+export interface YTPlayerTrack {
+  videoId: string;
+  title: string;
+  length?: string;
+  thumbnail?: YTMusicThumbnail[];
+  feedbackTokens?: any;
+  likeStatus?: any;
+  inLibrary?: boolean;
+  videoType?: string;
+  artists?: { name: string; id?: string }[];
+  album?: { id: string; name?: string };
+  year?: string;
+  views?: string;
 }
 
-// Watch playlist structure (tùy biến theo response thực tế, có thể mở rộng thêm trường nếu cần)
-export interface YTMusicWatchPlaylist {
+// Watch playlist structure (theo đúng response thực tế)
+export interface YTMusicWatchPlaylistResponse {
+  tracks: YTPlayerTrack[];
   playlistId?: string;
-  title?: string;
-  contents?: YTMusicSong[];
-  currentIndex?: number;
+  lyrics?: string | null;
   related?: string;
-  [key: string]: any; // fallback cho các trường động
 }
 
 // Section liên quan (tái sử dụng nếu đã có)
-export interface YTMusicRelatedSection {
+export interface YTMusicRelatedResponse {
   title: string;
   contents: YTMusicRelatedItem[];
 }

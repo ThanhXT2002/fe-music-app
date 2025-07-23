@@ -1,13 +1,19 @@
 // Progress bar logic
 
-import { Component, OnInit, ViewChild, ElementRef, NgZone } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  ElementRef,
+  NgZone,
+} from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { YtPlayerService } from '../../services/yt-player.service';
 import { Song } from '../../interfaces/song.interface';
 import { YtMusicService } from '../../services/api/ytmusic.service';
+import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 
 @Component({
   selector: 'app-yt-player',
@@ -21,9 +27,9 @@ export class YtPlayerPage implements OnInit {
   ytIframe?: ElementRef<HTMLIFrameElement>;
 
   videoId: string = '';
-  playlist: Song[] = [];
+  playlist: YTPlayerTrack[] = [];
   currentIndex: number = 0;
-  currentSong: Song | null = null;
+  currentSong: YTPlayerTrack | null = null;
   isPlaying: boolean = true;
   safeVideoUrl: SafeResourceUrl = '';
   ytApiData: any = null;
@@ -42,59 +48,99 @@ export class YtPlayerPage implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private ytPlayerService: YtPlayerService,
     private sanitizer: DomSanitizer,
     private router: Router,
-    private ytMusicService: YtMusicService
-    , private ngZone: NgZone
+    private ytMusicService: YtMusicService,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit() {
     // Lấy videoId từ route
     this.route.paramMap.subscribe((params) => {
       this.videoId = params.get('videoId') || '';
-      // Lấy playlist và index hiện tại từ service
-      this.playlist = this.ytPlayerService['playlistSubject'].getValue();
-      this.currentIndex = this.playlist.findIndex((s) => s.id === this.videoId);
-      this.currentSong = this.playlist[this.currentIndex] || null;
-      this.isPlaying = true;
       this.updateSafeUrl();
       // Gọi API lấy thông tin chi tiết bài hát
       if (this.videoId) {
-        this.ytMusicService.getSong(this.videoId).subscribe({
-          next: (data: any) => {
-            this.ytApiData = data;
-            this.audioUrl = data.audio_url || '';
-            this.songTitle =
-              data.videoDetails?.title || this.currentSong?.title || '';
-            this.songArtist =
-              data.videoDetails?.author || this.currentSong?.artist || '';
-            // Ưu tiên thumbnail lớn nhất
-            this.songThumbnail =
-              data.microformat?.microformatDataRenderer?.thumbnail?.thumbnails?.slice(
-                -1
-              )[0]?.url ||
-              this.currentSong?.thumbnail_url ||
-              '';
-            this.songDuration = this.formatDuration(
-              data.videoDetails?.lengthSeconds || '0'
-            );
-            this.songViews = data.videoDetails?.viewCount || '';
-          },
-          error: (err) => {
-            // fallback nếu lỗi
-            this.audioUrl = '';
-            this.songTitle = this.currentSong?.title || '';
-            this.songArtist = this.currentSong?.artist || '';
-            this.songThumbnail = this.currentSong?.thumbnail_url || '';
-            this.songDuration = this.currentSong?.duration_formatted || '';
-            this.songViews = '';
-          },
-        });
+        // // this.setSongInfoFromApi(this.videoId, this.currentSong);
+        // this.setPlaylistWithRelated(this.videoId);
       }
     });
   }
 
+  // setPlaylistWithRelated(videoId: string) {
+  //   this.ytMusicService.getPlaylistWithRelated(videoId).subscribe({
+  //     next: (data) => {
+  //       console.log(data);
+  //       this.playlist = data.watch.tracks || [];
+  //       this.currentIndex = this.playlist.findIndex(
+  //         (s: any) => s.videoId === videoId
+  //       );
+  //       this.currentSong = this.playlist[this.currentIndex] || null;
+  //       this.isPlaying = true;
+  //       // this.updateSafeUrl();
+  //       this.setSongInfoFromApi(videoId, this.currentSong);
+  //     },
+  //     error: () => {
+  //       this.playlist = [];
+  //       this.currentIndex = 0;
+  //       this.currentSong = null;
+  //     },
+  //   });
+  // }
+
+  setSongInfoFromApi(videoId: string, fallbackSong: YTPlayerTrack | null) {
+    this.ytMusicService.getSong(videoId).subscribe({
+      next: (data: any) => {
+        this.ytApiData = data;
+        this.audioUrl = data.audio_url || '';
+        this.songTitle = data.videoDetails?.title || fallbackSong?.title || '';
+        this.songArtist =
+          data.videoDetails?.author ||
+          (fallbackSong?.artists && fallbackSong.artists.length > 0
+            ? fallbackSong.artists[0].name || ''
+            : '');
+        this.songThumbnail =
+          data.microformat?.microformatDataRenderer?.thumbnail?.thumbnails?.slice(
+            -1
+          )[0]?.url ||
+          (fallbackSong?.thumbnail && fallbackSong.thumbnail.length > 0
+            ? fallbackSong.thumbnail[fallbackSong.thumbnail.length - 1].url ||
+              ''
+            : '');
+        this.songDuration = this.formatDuration(
+          data.videoDetails?.lengthSeconds ||
+            (fallbackSong?.length
+              ? this.parseDurationToSeconds(fallbackSong.length)
+              : '0')
+        );
+        this.songViews = data.videoDetails?.viewCount || '';
+      },
+      error: () => {
+        this.audioUrl = '';
+        this.songTitle = fallbackSong?.title || '';
+        this.songArtist =
+          fallbackSong?.artists && fallbackSong.artists.length > 0
+            ? fallbackSong.artists[0].name || ''
+            : '';
+        this.songThumbnail =
+          fallbackSong?.thumbnail && fallbackSong.thumbnail.length > 0
+            ? fallbackSong.thumbnail[fallbackSong.thumbnail.length - 1].url ||
+              ''
+            : '';
+        this.songDuration = fallbackSong?.length || '';
+        this.songViews = '';
+      },
+    });
+  }
+
+  private parseDurationToSeconds(length: string): string {
+    if (!length) return '0';
+    const parts = length.split(':').map(Number);
+    if (parts.length === 2) {
+      return (parts[0] * 60 + parts[1]).toString();
+    }
+    return '0';
+  }
 
   formatDuration(seconds: string): string {
     const sec = parseInt(seconds, 10);
@@ -133,40 +179,11 @@ export class YtPlayerPage implements OnInit {
     if (this.currentIndex < this.playlist.length - 1) {
       this.currentIndex++;
       this.currentSong = this.playlist[this.currentIndex];
-      this.videoId = this.currentSong.id;
+      this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      this.ytPlayerService.goToSong(this.currentIndex);
       this.router.navigate(['/yt-player', this.videoId]);
       this.updateSafeUrl();
-      // Lấy lại thông tin bài hát mới
-      this.ytMusicService.getSong(this.videoId).subscribe({
-        next: (data: any) => {
-          this.ytApiData = data;
-          this.audioUrl = data.audio_url || '';
-          this.songTitle =
-            data.videoDetails?.title || this.currentSong?.title || '';
-          this.songArtist =
-            data.videoDetails?.author || this.currentSong?.artist || '';
-          this.songThumbnail =
-            data.microformat?.microformatDataRenderer?.thumbnail?.thumbnails?.slice(
-              -1
-            )[0]?.url ||
-            this.currentSong?.thumbnail_url ||
-            '';
-          this.songDuration = this.formatDuration(
-            data.videoDetails?.lengthSeconds || '0'
-          );
-          this.songViews = data.videoDetails?.viewCount || '';
-        },
-        error: () => {
-          this.audioUrl = '';
-          this.songTitle = this.currentSong?.title || '';
-          this.songArtist = this.currentSong?.artist || '';
-          this.songThumbnail = this.currentSong?.thumbnail_url || '';
-          this.songDuration = this.currentSong?.duration_formatted || '';
-          this.songViews = '';
-        },
-      });
+      this.setSongInfoFromApi(this.videoId, this.currentSong);
     }
   }
 
@@ -174,40 +191,11 @@ export class YtPlayerPage implements OnInit {
     if (this.currentIndex > 0) {
       this.currentIndex--;
       this.currentSong = this.playlist[this.currentIndex];
-      this.videoId = this.currentSong.id;
+      this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      this.ytPlayerService.goToSong(this.currentIndex);
       this.router.navigate(['/yt-player', this.videoId]);
       this.updateSafeUrl();
-      // Lấy lại thông tin bài hát mới
-      this.ytMusicService.getSong(this.videoId).subscribe({
-        next: (data: any) => {
-          this.ytApiData = data;
-          this.audioUrl = data.audio_url || '';
-          this.songTitle =
-            data.videoDetails?.title || this.currentSong?.title || '';
-          this.songArtist =
-            data.videoDetails?.author || this.currentSong?.artist || '';
-          this.songThumbnail =
-            data.microformat?.microformatDataRenderer?.thumbnail?.thumbnails?.slice(
-              -1
-            )[0]?.url ||
-            this.currentSong?.thumbnail_url ||
-            '';
-          this.songDuration = this.formatDuration(
-            data.videoDetails?.lengthSeconds || '0'
-          );
-          this.songViews = data.videoDetails?.viewCount || '';
-        },
-        error: () => {
-          this.audioUrl = '';
-          this.songTitle = this.currentSong?.title || '';
-          this.songArtist = this.currentSong?.artist || '';
-          this.songThumbnail = this.currentSong?.thumbnail_url || '';
-          this.songDuration = this.currentSong?.duration_formatted || '';
-          this.songViews = '';
-        },
-      });
+      this.setSongInfoFromApi(this.videoId, this.currentSong);
     }
   }
 
@@ -265,8 +253,8 @@ export class YtPlayerPage implements OnInit {
             if (event.data === 2) this.isPlaying = false; // Paused
             if (event.data === 1) this.isPlaying = true; // Playing
           });
-        }
-      }
+        },
+      },
     });
   }
 
@@ -322,10 +310,18 @@ export class YtPlayerPage implements OnInit {
     event.preventDefault();
     this.dragging = true;
     this.updateProgress(event);
-    document.addEventListener('mousemove', this.onGlobalMouseMove, { passive: false });
-    document.addEventListener('mouseup', this.onGlobalMouseUp, { passive: true });
-    document.addEventListener('touchmove', this.onGlobalTouchMove, { passive: false });
-    document.addEventListener('touchend', this.onGlobalTouchEnd, { passive: true });
+    document.addEventListener('mousemove', this.onGlobalMouseMove, {
+      passive: false,
+    });
+    document.addEventListener('mouseup', this.onGlobalMouseUp, {
+      passive: true,
+    });
+    document.addEventListener('touchmove', this.onGlobalTouchMove, {
+      passive: false,
+    });
+    document.addEventListener('touchend', this.onGlobalTouchEnd, {
+      passive: true,
+    });
   }
 
   onProgressMove(event: MouseEvent | TouchEvent) {
@@ -398,7 +394,9 @@ export class YtPlayerPage implements OnInit {
     } else if (event instanceof TouchEvent) {
       clientX = event.touches[0]?.clientX || 0;
     }
-    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
+    const progressElem = document.querySelector(
+      '[data-progress-container]'
+    ) as HTMLElement;
     if (progressElem) {
       const rect = progressElem.getBoundingClientRect();
       const percent = ((clientX - rect.left) / rect.width) * 100;
@@ -412,7 +410,9 @@ export class YtPlayerPage implements OnInit {
   }
 
   updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
-    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
+    const progressElem = document.querySelector(
+      '[data-progress-container]'
+    ) as HTMLElement;
     if (!progressElem) return;
     let clientX = 0;
     if (event instanceof MouseEvent) {
@@ -426,7 +426,9 @@ export class YtPlayerPage implements OnInit {
   }
 
   calculateProgress(event: MouseEvent | TouchEvent): number {
-    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
+    const progressElem = document.querySelector(
+      '[data-progress-container]'
+    ) as HTMLElement;
     if (!progressElem) return 0;
     let clientX = 0;
     if (event instanceof MouseEvent) {

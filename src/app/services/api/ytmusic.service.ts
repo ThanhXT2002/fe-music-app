@@ -12,7 +12,8 @@ import {
   YTMusicAlbumResponse,
   YTMusicPlaylistResponse,
   YTMusicArtistResponse,
-  YTMusicPlaylistWithRelatedResponse
+  YTMusicWatchPlaylistResponse,
+  YTMusicRelatedResponse
 } from '../../interfaces/ytmusic.interface';
 
 
@@ -89,9 +90,13 @@ export class YtMusicService {
 
 
   /**
-   * Lấy watch playlist và các nội dung liên quan đến bài hát
+   * Lấy watch playlist liên quan đến bài hát
    */
-  getPlaylistWithRelated(songId: string): Observable<YTMusicPlaylistWithRelatedResponse> {
-    return this.http.get<YTMusicPlaylistWithRelatedResponse>(`${this.apiUrl}/playlist-with-related/${songId}`);
+  getPlaylistWithSong(songId: string): Observable<YTMusicWatchPlaylistResponse> {
+    return this.http.get<YTMusicWatchPlaylistResponse>(`${this.apiUrl}/playlist-with-song/${songId}`);
+  }
+
+  getRelated(browerId: string): Observable<YTMusicRelatedResponse> {
+    return this.http.get<YTMusicRelatedResponse>(`${this.apiUrl}/related/${browerId}`);
   }
 }

@@ -22,7 +22,7 @@ import { Router } from '@angular/router';
 })
 export class SearchPage implements OnInit {
   private readonly modalCtrl = inject(ModalController);
-  private readonly ytMusic = inject(YtMusicService);
+  private readonly ytMusicService = inject(YtMusicService);
   private readonly destroyRef = inject(DestroyRef);
   private location = inject(Location);
   private ytPlayerService = inject(YtPlayerService);
@@ -116,7 +116,7 @@ export class SearchPage implements OnInit {
     }
 
     try {
-      this.ytMusic.search(query, 'songs')
+      this.ytMusicService.search(query, 'songs')
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (results) => {
@@ -148,9 +148,22 @@ export class SearchPage implements OnInit {
   }
 
   onSongClick(song: Song) {
-    this.ytPlayerService.setPlaylist(this.songSectionData(), this.songSectionData().findIndex(s => s.id === song.id));
-    this.router.navigate(['/yt-player', song.id]);
+    this.ytMusicService.getPlaylistWithSong(song.id).subscribe({
+      next: (res) => {
+        this.ytPlayerService.currentPlaylist.set(res.tracks);
+        this.ytPlayerService.playlistId.set(res.playlistId ?? null);
+        this.ytPlayerService.ralated.set(res.related ?? null);
+        console.log(this.ytPlayerService.currentPlaylist());
+        this.router.navigate(['/yt-player', song.id]);
+      },
+      error: (err) => {
+        console.error('Error fetching playlist with related:', err);
+      },
+    });
   }
+
+
+
 
   onSongOptions(song: Song) {
     // Xử lý khi click vào nút options của bài hát
