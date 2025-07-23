@@ -90,12 +90,124 @@ export interface YTMusicArtistDetail {
 }
 
 export interface YTMusicSongDetail {
-  playabilityStatus?: any;
-  streamingData?: any;
-  playbackTracking?: any;
-  videoDetails?: any;
-  microformat?: any;
-  audio_url?: string;
+  playabilityStatus?: YTMusicPlayabilityStatus;
+  streamingData?: YTMusicStreamingData;
+  playbackTracking?: YTMusicPlaybackTracking;
+  videoDetails?: YTMusicVideoDetails;
+  microformat?: YTMusicMicroformat;
+}
+
+export interface YTMusicPlayabilityStatus {
+  status: string;
+  playableInEmbed?: boolean;
+  audioOnlyPlayability?: {
+    audioOnlyPlayabilityRenderer: {
+      trackingParams?: string;
+      audioOnlyAvailability?: string;
+    }
+  };
+  miniplayer?: {
+    miniplayerRenderer: {
+      playbackMode?: string;
+      enableStashedPlayback?: boolean;
+    }
+  };
+  contextParams?: string;
+}
+
+export interface YTMusicStreamingData {
+  expiresInSeconds?: string;
+  formats?: any[];
+  adaptiveFormats?: any[];
+  serverAbrStreamingUrl?: string;
+}
+
+export interface YTMusicPlaybackTracking {
+  videostatsPlaybackUrl?: { baseUrl: string; headers?: any[] };
+  videostatsDelayplayUrl?: { baseUrl: string; headers?: any[] };
+  videostatsWatchtimeUrl?: { baseUrl: string; headers?: any[] };
+  ptrackingUrl?: { baseUrl: string; headers?: any[] };
+  qoeUrl?: { baseUrl: string; headers?: any[] };
+  atrUrl?: { baseUrl: string; elapsedMediaTimeSeconds?: number; headers?: any[] };
+  videostatsScheduledFlushWalltimeSeconds?: number[];
+  videostatsDefaultFlushIntervalSeconds?: number;
+  youtubeRemarketingUrl?: { baseUrl: string; elapsedMediaTimeSeconds?: number; headers?: any[] };
+  googleRemarketingUrl?: { baseUrl: string; elapsedMediaTimeSeconds?: number; headers?: any[] };
+}
+
+export interface YTMusicVideoDetails {
+  videoId: string;
+  title: string;
+  lengthSeconds: string;
+  channelId: string;
+  isOwnerViewing?: boolean;
+  isCrawlable?: boolean;
+  thumbnail?: { thumbnails: YTMusicThumbnail[] };
+  allowRatings?: boolean;
+  viewCount?: string;
+  author?: string;
+  isPrivate?: boolean;
+  isUnpluggedCorpus?: boolean;
+  musicVideoType?: string;
+  isLiveContent?: boolean;
+}
+
+export interface YTMusicMicroformat {
+  microformatDataRenderer: {
+    urlCanonical?: string;
+    title?: string;
+    description?: string;
+    thumbnail?: any;
+    siteName?: string;
+    appName?: string;
+    androidPackage?: string;
+    iosAppStoreId?: string;
+    iosAppArguments?: string;
+    ogType?: string;
+    urlApplinksIos?: string;
+    urlApplinksAndroid?: string;
+    urlTwitterIos?: string;
+    urlTwitterAndroid?: string;
+    twitterCardType?: string;
+    twitterSiteHandle?: string;
+    schemaDotOrgType?: string;
+    noindex?: boolean;
+    unlisted?: boolean;
+    paid?: boolean;
+    familySafe?: boolean;
+    tags?: string[];
+    availableCountries?: string[];
+    pageOwnerDetails?: { youtubeProfileUrl?: string };
+    videoDetails?: { durationIso8601?: string };
+    linkAlternates?: any[];
+    viewCount?: string;
+    publishDate?: string;
+    category?: string;
+    uploadDate?: string;
+  }
+}
+
+// Interface cho từng mục trong related.contents
+export interface YTMusicRelatedItem {
+  // Có thể là bài hát, playlist, nghệ sĩ, hoặc object đặc biệt
+  title?: string;
+  description?: string;
+  views?: string;
+  year?: string;
+  // fallback cho các trường hợp đặc biệt
+  [key: string]: any;
+}
+
+// Interface cho từng section trong related
+export interface YTMusicRelatedSection {
+  title: string;
+  contents: YTMusicRelatedItem[];
+}
+
+// Interface cho response mới: { song: ..., related: ... }
+export interface YTMusicSongWithRelated {
+  song: YTMusicSongDetail;
+  related: YTMusicRelatedSection[];
 }
 
 export interface YTMusicThumbnail {
@@ -112,4 +224,4 @@ export type YTMusicSearchResponse = YTMusicSearchResult[];
 export type YTMusicAlbumResponse = YTMusicAlbum;
 export type YTMusicPlaylistResponse = YTMusicPlaylistDetail;
 export type YTMusicArtistResponse = YTMusicArtistDetail;
-export type YTMusicSongResponse = YTMusicSongDetail;
+export type YTMusicSongResponse = YTMusicSongWithRelated;
