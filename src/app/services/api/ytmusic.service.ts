@@ -1,3 +1,4 @@
+
 import { Injectable } from '@angular/core';
 import {
   HttpClient,
@@ -10,12 +11,13 @@ import {
   YTMusicSongResponse,
   YTMusicAlbumResponse,
   YTMusicPlaylistResponse,
-  YTMusicArtistResponse
+  YTMusicArtistResponse,
+  YTMusicPlaylistWithRelatedResponse
 } from '../../interfaces/ytmusic.interface';
+
 
 /**
  * Service để giao tiếp với Music API
- * Implement 4 API endpoints chính cho Download Page
  */
 @Injectable({
   providedIn: 'root',
@@ -83,5 +85,13 @@ export class YtMusicService {
    */
   streamAudio(songId: string): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/stream/${songId}`, { responseType: 'blob' });
+  }
+
+
+  /**
+   * Lấy watch playlist và các nội dung liên quan đến bài hát
+   */
+  getPlaylistWithRelated(songId: string): Observable<YTMusicPlaylistWithRelatedResponse> {
+    return this.http.get<YTMusicPlaylistWithRelatedResponse>(`${this.apiUrl}/playlist-with-related/${songId}`);
   }
 }
