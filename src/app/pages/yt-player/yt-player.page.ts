@@ -481,58 +481,20 @@ export class YtPlayerPage implements OnInit {
   }
 
   setHoverPercent(event: MouseEvent | TouchEvent) {
-    let clientX = 0;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-    } else if (event instanceof TouchEvent) {
-      clientX = event.touches[0]?.clientX || 0;
-    }
-    const progressElem = document.querySelector(
-      '[data-progress-container]'
-    ) as HTMLElement;
-    if (progressElem) {
-      const rect = progressElem.getBoundingClientRect();
-      const percent = ((clientX - rect.left) / rect.width) * 100;
-      this.hoverPercent = Math.max(0, Math.min(100, percent));
-    }
+    this.hoverPercent = this.getProgressPercent(event);
   }
 
   updateProgress(event: MouseEvent | TouchEvent) {
-    const percent = this.calculateProgress(event);
-    this.tempProgress = percent;
-  }
+  this.tempProgress = this.getProgressPercent(event);
+}
 
   updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
-    const progressElem = document.querySelector(
-      '[data-progress-container]'
-    ) as HTMLElement;
-    if (!progressElem) return;
-    let clientX = 0;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-    } else if (event instanceof TouchEvent) {
-      clientX = event.touches[0]?.clientX || 0;
-    }
-    const rect = progressElem.getBoundingClientRect();
-    const percent = ((clientX - rect.left) / rect.width) * 100;
-    this.tempProgress = Math.max(0, Math.min(100, percent));
-  }
+  this.tempProgress = this.getProgressPercent(event);
+}
 
   calculateProgress(event: MouseEvent | TouchEvent): number {
-    const progressElem = document.querySelector(
-      '[data-progress-container]'
-    ) as HTMLElement;
-    if (!progressElem) return 0;
-    let clientX = 0;
-    if (event instanceof MouseEvent) {
-      clientX = event.clientX;
-    } else if (event instanceof TouchEvent) {
-      clientX = event.touches[0]?.clientX || 0;
-    }
-    const rect = progressElem.getBoundingClientRect();
-    const percent = ((clientX - rect.left) / rect.width) * 100;
-    return Math.max(0, Math.min(100, percent));
-  }
+  return this.getProgressPercent(event);
+}
 
   seekToEvent(event: MouseEvent | TouchEvent | undefined) {
     if (!event) return;
@@ -542,6 +504,22 @@ export class YtPlayerPage implements OnInit {
       this.ytPlayer.seekTo(seekTime, true);
       this.videoCurrentTime = seekTime;
     }
+  }
+
+  private getProgressPercent(event: MouseEvent | TouchEvent): number {
+    let clientX = 0;
+    if (event instanceof MouseEvent) {
+      clientX = event.clientX;
+    } else if (event instanceof TouchEvent) {
+      clientX = event.touches[0]?.clientX || 0;
+    }
+    const progressElem = document.querySelector(
+      '[data-progress-container]'
+    ) as HTMLElement;
+    if (!progressElem) return 0;
+    const rect = progressElem.getBoundingClientRect();
+    const percent = ((clientX - rect.left) / rect.width) * 100;
+    return Math.max(0, Math.min(100, percent));
   }
 
   // --- Progress bar binding ---
