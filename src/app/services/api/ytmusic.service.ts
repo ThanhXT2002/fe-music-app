@@ -31,7 +31,7 @@ export class YtMusicService {
   /**
    * Tìm kiếm bài hát, album, playlist, nghệ sĩ
    */
-  search(query: string, filter?: string, limit: number = 20): Observable<YTMusicSearchResponse> {
+  search(query: string, filter?: string, limit: number = 50): Observable<YTMusicSearchResponse> {
     let params = new HttpParams().set('query', query).set('limit', limit.toString());
     if (filter) params = params.set('filter', filter);
     return this.http.get<YTMusicSearchResponse>(`${this.apiUrl}/search`, { params });

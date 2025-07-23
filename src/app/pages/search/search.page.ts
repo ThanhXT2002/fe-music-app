@@ -11,6 +11,7 @@ import { Song } from 'src/app/interfaces/song.interface';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
 import { Router } from '@angular/router';
+import { LoadingService } from 'src/app/services/loading.service';
 
 
 @Component({
@@ -26,6 +27,7 @@ export class SearchPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private location = inject(Location);
   private ytPlayerService = inject(YtPlayerService);
+  private loadingService = inject(LoadingService);
   private router = inject(Router);
 
   // Signals
@@ -148,6 +150,7 @@ export class SearchPage implements OnInit {
   }
 
   onSongClick(song: Song) {
+    this.loadingService.show();
     this.ytMusicService.getPlaylistWithSong(song.id).subscribe({
       next: (res) => {
         const tracks = res.tracks;
@@ -159,7 +162,7 @@ export class SearchPage implements OnInit {
         this.ytPlayerService.currentPlaylist.set(tracks);
         this.ytPlayerService.playlistId.set(playlistId);
         this.ytPlayerService.ralated.set(related);
-
+        this.loadingService.hide();
         this.router.navigate(['/yt-player'], { queryParams: { v: song.id, list: res.playlistId } });
       },
       error: (err) => {

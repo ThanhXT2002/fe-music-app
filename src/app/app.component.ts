@@ -16,12 +16,13 @@ import { PermissionService } from './services/permission.service';
 import { AudioPlayerService } from './services/audio-player.service';
 import { getRedirectResult } from '@angular/fire/auth';
 import { AuthService } from './services/auth.service';
+import { LoadingComponent } from "./components/loading/loading.component";
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
-  imports: [IonRouterOutlet, IonApp, CommonModule],
+  imports: [IonRouterOutlet, IonApp, CommonModule, LoadingComponent],
   standalone: true,
 })
 export class AppComponent implements OnInit {

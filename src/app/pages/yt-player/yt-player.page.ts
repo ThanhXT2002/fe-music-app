@@ -6,12 +6,12 @@ import {
   ViewChild,
   ElementRef,
   NgZone,
-  inject,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Song } from '../../interfaces/song.interface';
 import { YtMusicService } from '../../services/api/ytmusic.service';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
@@ -52,7 +52,7 @@ export class YtPlayerPage implements OnInit {
     private sanitizer: DomSanitizer,
     private router: Router,
     private ytMusicService: YtMusicService,
-   private  ytPlayerService: YtPlayerService,
+    private ytPlayerService: YtPlayerService,
     private ngZone: NgZone
   ) {}
 
@@ -60,7 +60,6 @@ export class YtPlayerPage implements OnInit {
     // Lấy videoId từ query param và lấy playlist từ service
     this.route.queryParamMap.subscribe((params) => {
       const videoId = params.get('v');
-      const playlistId = params.get('list');
       // Lấy playlist từ signal
       const playlist = this.ytPlayerService.currentPlaylist();
       this.playlist = playlist || [];
@@ -81,37 +80,7 @@ export class YtPlayerPage implements OnInit {
     });
   }
 
-  // setPlaylistWithRelated(videoId: string) {
-  //   this.ytMusicService.getPlaylistWithRelated(videoId).subscribe({
-  //     next: (data) => {
-  //       console.log(data);
-  //       this.playlist = data.watch.tracks || [];
-  //       this.currentIndex = this.playlist.findIndex(
-  //         (s: any) => s.videoId === videoId
-  //       );
-  //       this.currentSong = this.playlist[this.currentIndex] || null;
-  //       this.isPlaying = true;
-  //       // this.updateSafeUrl();
-  //       this.setSongInfoFromApi(videoId, this.currentSong);
-  //     },
-  //     error: () => {
-  //       this.playlist = [];
-  //       this.currentIndex = 0;
-  //       this.currentSong = null;
-  //     },
-  //   });
-  // }
 
-
-
-  private parseDurationToSeconds(length: string): string {
-    if (!length) return '0';
-    const parts = length.split(':').map(Number);
-    if (parts.length === 2) {
-      return (parts[0] * 60 + parts[1]).toString();
-    }
-    return '0';
-  }
 
   formatDuration(seconds: string): string {
     const sec = parseInt(seconds, 10);
