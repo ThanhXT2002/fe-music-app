@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
 import { Router } from '@angular/router';
 import { LoadingService } from 'src/app/services/loading.service';
+import { Capacitor } from '@capacitor/core';
 
 
 @Component({
@@ -29,6 +30,8 @@ export class SearchPage implements OnInit {
   private ytPlayerService = inject(YtPlayerService);
   private loadingService = inject(LoadingService);
   private router = inject(Router);
+
+  isNative = Capacitor.isNativePlatform();
 
   // Signals
   searchQuery = signal('');
@@ -70,6 +73,8 @@ export class SearchPage implements OnInit {
         this.searchYouTube(query);
       });
   }
+
+
 
   async onSearchInput(event: any) {
     const query = event.target.value;
@@ -170,9 +175,6 @@ export class SearchPage implements OnInit {
       },
     });
   }
-
-
-
 
   onSongOptions(song: Song) {
     // Xử lý khi click vào nút options của bài hát

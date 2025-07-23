@@ -1,4 +1,6 @@
-<ion-header mode="md" [translucent]="true" class="p-4 bg-black">
+<ion-header mode="md" [translucent]="true" class="p-4 bg-black"
+[ngClass]="isNative? 'pt-10': 'pt-4'"
+>
   <div class="relative bg-black">
     <input
       type="text"
