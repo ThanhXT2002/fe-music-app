@@ -15,13 +15,15 @@ import { YtMusicService } from '../../services/api/ytmusic.service';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
 import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
+import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
+import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
 
 @Component({
   selector: 'app-yt-player',
   templateUrl: './yt-player.page.html',
   styleUrls: ['./yt-player.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, ProgressBarComponent],
+  imports: [CommonModule, FormsModule, ProgressBarComponent, PlayerInfoComponent, PlayerHeaderComponent],
 })
 export class YtPlayerPage implements OnInit {
   @ViewChild('ytIframe', { static: false })
@@ -409,5 +411,9 @@ seekToEvent(time: number) {
     if (this.dragging) return this.tempProgress;
     if (!this.videoDuration) return 0;
     return (this.videoCurrentTime / this.videoDuration) * 100;
+  }
+
+  openPlaylist(){
+
   }
 }

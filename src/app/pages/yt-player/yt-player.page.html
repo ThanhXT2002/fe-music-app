@@ -12,60 +12,27 @@
     />
   </div>
 
-  <!-- Header -->
-  <div class="relative z-10 flex items-center justify-between p-4 pt-6">
-    <button
-      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
-      (click)="handleBack()"
-    >
-      <i class="fa-solid fa-chevron-down text-xl"></i>
-    </button>
-    <div class="text-center">
-      <p class="font-medium">NOW PLAYING</p>
-      <p class="font-medium">_ ___ _</p>
-    </div>
-    <button
-      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
-    >
-      <i class="fa-solid fa-bars text-xl"></i>
-    </button>
-  </div>
+  <app-player-header
+    (back)="handleBack()"
+    (menu)="openPlaylist()"
+  ></app-player-header>
 
   <!-- Main Content -->
   <div
     class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between"
   >
     <!-- Album Art -->
-    <div class="flex-1 flex items-center justify-center my-4">
-      <div
-        class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill"
-        [ngClass]="{ 'spin-paused': !isPlaying }"
-      >
-        <img
-          [src]="songThumbnail"
-          [alt]="songTitle"
-          class="w-full h-full object-cover"
-          *ngIf="songThumbnail"
-        />
-        <div
-          *ngIf="!songThumbnail"
-          class="w-full h-full flex items-center justify-center"
-        >
-          <i
-            class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-          ></i>
-        </div>
-      </div>
+
+    <div class="flex-1 flex items-center justify-center ">
+        <app-player-info
+      [thumbnail]="songThumbnail"
+      [title]="songTitle"
+      [artist]="songArtist"
+      [isPlaying]="isPlaying"
+    ></app-player-info>
+
     </div>
-    <!-- Song Info -->
-    <div
-      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
-    >
-      <h1 class="text-xl font-medium mb-2 text-white">
-        {{ songTitle || 'No song selected' }}
-      </h1>
-      <p class="text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
-    </div>
+
 
     <iframe
       *ngIf="iframeKey > 0 && showIframe && safeVideoUrl"

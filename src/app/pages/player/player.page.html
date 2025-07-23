@@ -16,68 +16,26 @@
   </div>
 
   <!-- Header -->
-  <div class="relative z-10 flex items-center justify-between p-4 pt-6">
-    <button
-      (click)="closeModal()"
-      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
-    >
-      <i class="fa-solid fa-chevron-down text-xl"></i>
-    </button>
-
-    <div class="text-center">
-      <p class="font-medium">NOW PLAYING</p>
-      <p class="font-medium">_ ___ _</p>
-    </div>
-
-    <button
-      (click)="openPlaylist()"
-      class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
-    >
-      <i class="fa-solid fa-bars text-xl"></i>
-    </button>
-  </div>
+ <app-player-header
+  (back)="closeModal()"
+  (menu)="openPlaylist()"
+></app-player-header>
 
   <!-- Main Content -->
   <div
     class="relative z-10 flex flex-col h-[calc(100%-4rem)] px-6 justify-between"
   >
-    <!-- Album Art -->
-    <div class="flex-1 flex items-center justify-center my-4">
-      <div
-        class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl"
-        [ngClass]="{
-          'spin-with-fill': true,
-          'spin-paused': !isPlaying()
-        }"
-      >
-        @if (currentSong()?.thumbnail_url) {
-        <img
-          [src]="currentSong()!.thumbnail_url"
-          [alt]="currentSong()!.title"
-          (error)="onImageError($event)"
-          class="w-full h-full object-cover"
-        />
-        } @else {
-        <div class="w-full h-full flex items-center justify-center">
-          <i
-            class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-          ></i>
-        </div>
-        }
-      </div>
-    </div>
 
-    <!-- Song Info -->
-    <div
-      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
-    >
-      <h1 class="font-medium mb-2 text-white">
-        {{ currentSong()?.title || 'No song selected' }}
-      </h1>
-      <p class="text-lg text-white/70">
-        {{ currentSong()?.artist || 'Unknown Artist' }}
-      </p>
-    </div>
+  <div class="flex-1 flex items-center justify-center">
+    <app-player-info
+      [thumbnail]="currentSong()?.thumbnail_url"
+      [title]="currentSong()?.title"
+      [artist]="currentSong()?.artist"
+      [isPlaying]="isPlaying()"
+    ></app-player-info>
+
+  </div>
+
 
     <!-- Progress Bar -->
     <div class="mb-8">
@@ -85,12 +43,11 @@
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
         <ng-container *ngIf="currentSong() as song">
-            <app-btn-add-playlist [songId]="song.id" />
-          </ng-container>
-     <ng-container *ngIf="currentSong() as song">
-           <app-btn-down-and-heart [song]="song"/>
-      </ng-container>
-
+          <app-btn-add-playlist [songId]="song.id" />
+        </ng-container>
+        <ng-container *ngIf="currentSong() as song">
+          <app-btn-down-and-heart [song]="song" />
+        </ng-container>
       </div>
       <app-progress-bar
         [progress]="progress()"

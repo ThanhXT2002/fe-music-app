@@ -1,0 +1,19 @@
+
+<div class="relative z-10 flex items-center justify-between p-4 pt-6">
+  <button
+    class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
+    (click)="back.emit()"
+  >
+    <i class="fa-solid fa-chevron-down text-xl"></i>
+  </button>
+  <div class="text-center">
+    <p class="font-medium">{{ title }}</p>
+    <p class="font-medium">{{ subtitle }}</p>
+  </div>
+  <button
+    class="h-10 w-10 flex items-center justify-center rounded-full backdrop-blur-sm hover:bg-black/30 transition-colors"
+    (click)="menu.emit()"
+  >
+    <i class="fa-solid fa-bars text-xl"></i>
+  </button>
+</div>

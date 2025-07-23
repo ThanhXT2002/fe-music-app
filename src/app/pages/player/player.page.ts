@@ -27,11 +27,13 @@ import { DataSong } from '../../interfaces/song.interface';
 import { BtnDownAndHeartComponent } from "src/app/components/btn-down-and-heart/btn-down-and-heart.component";
 import { BtnAddPlaylistComponent } from "src/app/components/btn-add-playlist/btn-add-playlist.component";
 import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
+import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
+import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
 
 @Component({
   selector: 'app-player',
   standalone: true,
-  imports: [CommonModule, IonicModule, BtnDownAndHeartComponent, BtnAddPlaylistComponent, ProgressBarComponent],
+  imports: [CommonModule, IonicModule, BtnDownAndHeartComponent, BtnAddPlaylistComponent, ProgressBarComponent, PlayerInfoComponent, PlayerHeaderComponent],
   templateUrl: './player.page.html',
   styleUrls: ['./player.page.scss'],
 })
