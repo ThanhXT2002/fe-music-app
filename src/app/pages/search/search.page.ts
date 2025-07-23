@@ -150,11 +150,17 @@ export class SearchPage implements OnInit {
   onSongClick(song: Song) {
     this.ytMusicService.getPlaylistWithSong(song.id).subscribe({
       next: (res) => {
-        this.ytPlayerService.currentPlaylist.set(res.tracks);
-        this.ytPlayerService.playlistId.set(res.playlistId ?? null);
-        this.ytPlayerService.ralated.set(res.related ?? null);
-        console.log(this.ytPlayerService.currentPlaylist());
-        this.router.navigate(['/yt-player', song.id]);
+        const tracks = res.tracks;
+        const playlistId = res.playlistId ?? null;
+        const related = res.related ?? null;
+        localStorage.setItem('yt-tracks', JSON.stringify(tracks));
+        localStorage.setItem('yt-playlistId', JSON.stringify(playlistId));
+        localStorage.setItem('yt-related', JSON.stringify(related));
+        this.ytPlayerService.currentPlaylist.set(tracks);
+        this.ytPlayerService.playlistId.set(playlistId);
+        this.ytPlayerService.ralated.set(related);
+
+        this.router.navigate(['/yt-player'], { queryParams: { v: song.id, list: res.playlistId } });
       },
       error: (err) => {
         console.error('Error fetching playlist with related:', err);

@@ -6,14 +6,15 @@ import {
   ViewChild,
   ElementRef,
   NgZone,
+  inject,
 } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Song } from '../../interfaces/song.interface';
 import { YtMusicService } from '../../services/api/ytmusic.service';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
+import { YtPlayerService } from 'src/app/services/yt-player.service';
 
 @Component({
   selector: 'app-yt-player',
@@ -51,18 +52,31 @@ export class YtPlayerPage implements OnInit {
     private sanitizer: DomSanitizer,
     private router: Router,
     private ytMusicService: YtMusicService,
+   private  ytPlayerService: YtPlayerService,
     private ngZone: NgZone
   ) {}
 
   ngOnInit() {
-    // Lấy videoId từ route
-    this.route.paramMap.subscribe((params) => {
-      this.videoId = params.get('videoId') || '';
-      this.updateSafeUrl();
-      // Gọi API lấy thông tin chi tiết bài hát
-      if (this.videoId) {
-        // // this.setSongInfoFromApi(this.videoId, this.currentSong);
-        // this.setPlaylistWithRelated(this.videoId);
+    // Lấy videoId từ query param và lấy playlist từ service
+    this.route.queryParamMap.subscribe((params) => {
+      const videoId = params.get('v');
+      const playlistId = params.get('list');
+      // Lấy playlist từ signal
+      const playlist = this.ytPlayerService.currentPlaylist();
+      this.playlist = playlist || [];
+      this.currentIndex = this.playlist.findIndex((s) => s.videoId === videoId);
+      this.currentSong = this.playlist[this.currentIndex] || null;
+      if (videoId) {
+        this.videoId = videoId;
+        this.updateSafeUrl(videoId);
+        // Hiển thị thông tin bài hát lên giao diện
+        this.songTitle = this.currentSong?.title || '';
+        this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
+          ? this.currentSong.artists[0].name || '' : '';
+        this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
+          ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
+        this.songDuration = this.currentSong?.length || '';
+        this.songViews = this.currentSong?.views || '';
       }
     });
   }
@@ -88,50 +102,7 @@ export class YtPlayerPage implements OnInit {
   //   });
   // }
 
-  setSongInfoFromApi(videoId: string, fallbackSong: YTPlayerTrack | null) {
-    this.ytMusicService.getSong(videoId).subscribe({
-      next: (data: any) => {
-        this.ytApiData = data;
-        this.audioUrl = data.audio_url || '';
-        this.songTitle = data.videoDetails?.title || fallbackSong?.title || '';
-        this.songArtist =
-          data.videoDetails?.author ||
-          (fallbackSong?.artists && fallbackSong.artists.length > 0
-            ? fallbackSong.artists[0].name || ''
-            : '');
-        this.songThumbnail =
-          data.microformat?.microformatDataRenderer?.thumbnail?.thumbnails?.slice(
-            -1
-          )[0]?.url ||
-          (fallbackSong?.thumbnail && fallbackSong.thumbnail.length > 0
-            ? fallbackSong.thumbnail[fallbackSong.thumbnail.length - 1].url ||
-              ''
-            : '');
-        this.songDuration = this.formatDuration(
-          data.videoDetails?.lengthSeconds ||
-            (fallbackSong?.length
-              ? this.parseDurationToSeconds(fallbackSong.length)
-              : '0')
-        );
-        this.songViews = data.videoDetails?.viewCount || '';
-      },
-      error: () => {
-        this.audioUrl = '';
-        this.songTitle = fallbackSong?.title || '';
-        this.songArtist =
-          fallbackSong?.artists && fallbackSong.artists.length > 0
-            ? fallbackSong.artists[0].name || ''
-            : '';
-        this.songThumbnail =
-          fallbackSong?.thumbnail && fallbackSong.thumbnail.length > 0
-            ? fallbackSong.thumbnail[fallbackSong.thumbnail.length - 1].url ||
-              ''
-            : '';
-        this.songDuration = fallbackSong?.length || '';
-        this.songViews = '';
-      },
-    });
-  }
+
 
   private parseDurationToSeconds(length: string): string {
     if (!length) return '0';
@@ -149,14 +120,14 @@ export class YtPlayerPage implements OnInit {
     return `${min}:${s < 10 ? '0' : ''}${s}`;
   }
 
-  updateSafeUrl() {
+  updateSafeUrl(videoId:string) {
     // Hủy player cũ nếu có
     if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
       this.ytPlayer.destroy();
       this.ytPlayer = null;
     }
     this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-      `https://www.youtube.com/embed/${this.videoId}?autoplay=1&enablejsapi=1`
+      `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`
     );
   }
 
@@ -181,9 +152,16 @@ export class YtPlayerPage implements OnInit {
       this.currentSong = this.playlist[this.currentIndex];
       this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      this.router.navigate(['/yt-player', this.videoId]);
-      this.updateSafeUrl();
-      this.setSongInfoFromApi(this.videoId, this.currentSong);
+      // Cập nhật thông tin bài hát
+      this.songTitle = this.currentSong?.title || '';
+      this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
+        ? this.currentSong.artists[0].name || '' : '';
+      this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
+        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
+      this.songDuration = this.currentSong?.length || '';
+      this.songViews = this.currentSong?.views || '';
+      this.router.navigate(['/yt-player'], { queryParams: { v: this.videoId, list: this.ytPlayerService.playlistId() } });
+      this.updateSafeUrl(this.videoId);
     }
   }
 
@@ -193,9 +171,16 @@ export class YtPlayerPage implements OnInit {
       this.currentSong = this.playlist[this.currentIndex];
       this.videoId = this.currentSong.videoId;
       this.isPlaying = true;
-      this.router.navigate(['/yt-player', this.videoId]);
-      this.updateSafeUrl();
-      this.setSongInfoFromApi(this.videoId, this.currentSong);
+      // Cập nhật thông tin bài hát
+      this.songTitle = this.currentSong?.title || '';
+      this.songArtist = this.currentSong?.artists && this.currentSong.artists.length > 0
+        ? this.currentSong.artists[0].name || '' : '';
+      this.songThumbnail = this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
+        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1].url || '' : '';
+      this.songDuration = this.currentSong?.length || '';
+      this.songViews = this.currentSong?.views || '';
+      this.router.navigate(['/yt-player'], { queryParams: { v: this.videoId, list: this.ytPlayerService.playlistId() } });
+      this.updateSafeUrl(this.videoId);
     }
   }
 
