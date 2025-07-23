@@ -1,0 +1,52 @@
+<div class="relative px-2 enhanced-progress-bar">
+  <!-- Main Progress Container -->
+
+  <div
+    #progressContainer
+    data-progress-container
+    class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none"
+    (click)="onProgressClick($event)"
+    (mousedown)="onProgressStart($event)"
+    (touchstart)="onProgressStart($event)"
+    (mousemove)="onProgressMove($event)"
+    (touchmove)="onProgressMove($event)"
+    (mouseup)="onProgressEnd($event)"
+    (touchend)="onProgressEnd($event)"
+    (mouseleave)="onProgressLeave()"
+  >
+    <!-- Buffer Bar (đã preload) -->
+    <div
+      class="progress-buffer absolute h-full rounded-full"
+      [style.width.%]="buffer"
+    ></div>
+
+    <!-- Progress Bar (đã nghe) -->
+    <div
+      class="progress-fill absolute h-full rounded-full"
+      [class.dragging]="dragging"
+      [style.width.%]="dragging ? tempProgress : progress"
+    ></div>
+
+    <!-- Hover Preview -->
+    <div
+      *ngIf="hoverPercent >= 0"
+      class="progress-hover absolute h-full rounded-full pointer-events-none"
+      [style.width.%]="hoverPercent"
+    ></div>
+
+    <!-- Thumb (điểm kéo) -->
+    <div
+      class="progress-thumb absolute w-4 h-4 rounded-full transform -translate-y-1/2 top-1/2 -translate-x-1/2"
+      [class.opacity-0]="!isHovering && !dragging"
+      [class.opacity-100]="isHovering || dragging"
+      [class.dragging]="dragging"
+      [style.left.%]="dragging ? tempProgress : progress"
+    ></div>
+  </div>
+
+  <!-- Time Markers (tuỳ ý, có thể truyền @Input hoặc tự tính toán ngoài component) -->
+  <div class="flex items-center justify-between text-sm text-white/70 mt-3">
+    <span>{{ formatTime(currentTime) }}</span>
+    <span>{{ formatTime(duration) }}</span>
+  </div>
+</div>

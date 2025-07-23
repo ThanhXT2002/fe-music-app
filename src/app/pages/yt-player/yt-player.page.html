@@ -57,6 +57,15 @@
         </div>
       </div>
     </div>
+    <!-- Song Info -->
+    <div
+      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
+    >
+      <h1 class="text-xl font-medium mb-2 text-white">
+        {{ songTitle || 'No song selected' }}
+      </h1>
+      <p class="text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
+    </div>
 
     <iframe
       *ngIf="iframeKey > 0 && showIframe && safeVideoUrl"
@@ -72,15 +81,6 @@
       (load)="onIframeLoad()"
     >
     </iframe>
-    <!-- Song Info -->
-    <div
-      class="text-center mb-8 max-h-[100px] h-[100px] flex flex-col justify-end"
-    >
-      <h1 class="text-xl font-medium mb-2 text-white">
-        {{ songTitle || 'No song selected' }}
-      </h1>
-      <p class="text-white/70">{{ songArtist || 'Unknown Artist' }}</p>
-    </div>
 
     <!-- Progress Bar -->
     <div class="mb-8">
@@ -90,59 +90,18 @@
         <!-- Có thể thêm nút yêu thích, thêm playlist ở đây nếu muốn -->
       </div>
       <!-- Enhanced Progress Bar -->
-      <div class="relative px-2 enhanced-progress-bar">
-        <!-- Main Progress Container -->
-        <div
-          #progressContainer
-          data-progress-container
-          class="progress-track relative h-2 bg-white/10 rounded-full cursor-pointer group overflow-visible touch-action-none"
-          (click)="onProgressClick($event)"
-          (mousedown)="onProgressStart($event)"
-          (touchstart)="onProgressStart($event)"
-          (mousemove)="onProgressMove($event)"
-          (touchmove)="onProgressMove($event)"
-          (mouseup)="onProgressEnd($event)"
-          (touchend)="onProgressEnd($event)"
-          (mouseleave)="onProgressLeave()"
-        >
-          <!-- Buffer Bar (đã preload) -->
-          <div
-            class="progress-buffer absolute h-full rounded-full"
-            [style.width.%]="bufferProgress()"
-          ></div>
-
-          <!-- Progress Bar (đã nghe) -->
-          <div
-            class="progress-fill absolute h-full rounded-full"
-            [class.dragging]="isDragging()"
-            [style.width.%]="progress()"
-          ></div>
-
-          <!-- Hover Preview -->
-          <div
-            *ngIf="hoverProgress() >= 0"
-            class="progress-hover absolute h-full rounded-full pointer-events-none"
-            [style.width.%]="hoverProgress()"
-          ></div>
-
-          <!-- Thumb (điểm kéo) -->
-          <div
-            class="progress-thumb absolute w-4 h-4 rounded-full transform -translate-y-1/2 top-1/2 -translate-x-1/2"
-            [class.opacity-0]="!isHoveringProgress() && !isDragging()"
-            [class.opacity-100]="isHoveringProgress() || isDragging()"
-            [class.dragging]="isDragging()"
-            [style.left.%]="progress()"
-          ></div>
-        </div>
-
-        <!-- Time Markers -->
-        <div
-          class="flex items-center justify-between text-sm text-white/70 mt-3"
-        >
-          <span>{{ progressTime() }}</span>
-          <span>{{ durationTime() }}</span>
-        </div>
-      </div>
+      <app-progress-bar
+        [progress]="progress()"
+        [duration]="videoDuration"
+        [currentTime]="videoCurrentTime"
+        [isDragging]="dragging"
+        [isHovering]="hoverPercent >= 0"
+        [hover]="hoverPercent"
+        (seek)="seekToEvent($event)"
+        (dragStart)="dragging = true"
+        (dragEnd)="dragging = false"
+        (hoverChange)="hoverPercent = $event"
+      ></app-progress-bar>
     </div>
 
     <!-- Main Controls -->
