@@ -56,8 +56,6 @@ export class YtPlayerPage implements OnInit {
   private shouldInitPlayer = false;
   showIframe: boolean = false;
 
-
-
   constructor(
     private route: ActivatedRoute,
     private sanitizer: DomSanitizer,
@@ -66,7 +64,7 @@ export class YtPlayerPage implements OnInit {
     private ytPlayerService: YtPlayerService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
-     private location: Location
+    private location: Location
   ) {}
 
   ngOnInit() {
@@ -141,7 +139,9 @@ export class YtPlayerPage implements OnInit {
 
     // Tạo URL mới với timestamp để tránh cache
     const timestamp = Date.now();
-    const newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
+    const newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(
+      window.location.origin
+    )}&t=${timestamp}`;
     this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(newUrl);
     // Tăng iframe key
     this.iframeKey++;
@@ -157,11 +157,14 @@ export class YtPlayerPage implements OnInit {
     }, 200);
   }
 
-
   onIframeLoad() {
     this.iframeReady = true;
     setTimeout(() => {
-      if (this.shouldInitPlayer && !this.ytPlayer && this.ytIframe?.nativeElement) {
+      if (
+        this.shouldInitPlayer &&
+        !this.ytPlayer &&
+        this.ytIframe?.nativeElement
+      ) {
         this.initPlayer();
       }
     }, 300);
@@ -286,7 +289,6 @@ export class YtPlayerPage implements OnInit {
         this.initPlayer();
       }
     }
-
   }
 
   initPlayer() {
@@ -306,28 +308,39 @@ export class YtPlayerPage implements OnInit {
     }
 
     try {
-      this.ytPlayer = new (window as any).YT.Player(this.ytIframe.nativeElement, {
-        events: {
-          onReady: (event: any) => {
-            this.ngZone.run(() => {
-              this.videoDuration = event.target.getDuration();
-              this.isPlaying = true;
-              event.target.playVideo();
-              this.syncProgress();
-            });
+      this.ytPlayer = new (window as any).YT.Player(
+        this.ytIframe.nativeElement,
+        {
+          events: {
+            onReady: (event: any) => {
+              this.ngZone.run(() => {
+                this.videoDuration = event.target.getDuration();
+                this.isPlaying = true;
+                event.target.playVideo();
+                setTimeout(() => {
+                  const state = event.target.getPlayerState();
+                  if (state !== 1) {
+                    console.warn('Autoplay bị chặn hoặc video không phát!');
+                    this.isPlaying = false;
+                    // Có thể hiển thị overlay yêu cầu user click để phát
+                  }
+                }, 500);
+                this.syncProgress();
+              });
+            },
+            onStateChange: (event: any) => {
+              this.ngZone.run(() => {
+                if (event.data === 0) this.next(); // Ended
+                if (event.data === 2) this.isPlaying = false; // Paused
+                if (event.data === 1) this.isPlaying = true; // Playing
+              });
+            },
+            onError: (event: any) => {
+              console.error('YouTube Player Error:', event.data);
+            },
           },
-          onStateChange: (event: any) => {
-            this.ngZone.run(() => {
-              if (event.data === 0) this.next(); // Ended
-              if (event.data === 2) this.isPlaying = false; // Paused
-              if (event.data === 1) this.isPlaying = true; // Playing
-            });
-          },
-          onError: (event: any) => {
-            console.error('YouTube Player Error:', event.data);
-          }
-        },
-      });
+        }
+      );
     } catch (error) {
       console.error('Error creating YouTube Player:', error);
       setTimeout(() => {
