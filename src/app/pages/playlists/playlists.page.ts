@@ -126,17 +126,6 @@ export class PlaylistsPage implements OnInit, OnDestroy {
     this.showPlaylistContextMenu(event.item as Album, event.event);
   }
 
-  formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
-  }
-
   trackByPlaylistId(index: number, playlist: Album): string {
     return playlist.id;
   }

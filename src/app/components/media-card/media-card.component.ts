@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Album } from '../../interfaces/song.interface';
+import { formatDuration } from 'src/app/utils/format-time.util';
 
 export interface MediaItem {
   id?: string;
@@ -56,22 +57,12 @@ export class MediaCardComponent {
   get displayInfo(): string {
     if (this.type === 'album') {
       const songCount = this.item.songs?.length || (this.item as any).songCount || 0;
-      const duration = (this.item as any).totalDurationFormatted || this.formatDuration(this.item.totalDuration || 0);
+      const duration = (this.item as any).totalDurationFormatted || formatDuration(this.item.totalDuration || 0);
       return `${songCount} bài • ${duration}`;
     } else {
       const songCount = (this.item as any).songCount || 0;
       const duration = (this.item as any).totalDurationFormatted || '';
       return `${songCount} bài - ${duration}`;
     }
-  }
-
-  private formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
   }
 }

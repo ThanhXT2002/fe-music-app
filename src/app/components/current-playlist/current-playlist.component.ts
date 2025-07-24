@@ -7,14 +7,13 @@ import {
   computed,
   ChangeDetectorRef,
   ChangeDetectionStrategy,
-  Output,
-  EventEmitter,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Song } from 'src/app/interfaces/song.interface';
 import { Subject } from 'rxjs';
 import { DatabaseService } from 'src/app/services/database.service';
+import { formatTime } from 'src/app/utils/format-time.util';
 
 import {
   IonReorderGroup,
@@ -22,8 +21,7 @@ import {
   ItemReorderEventDetail,
   IonItem,
 } from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import { reorderThreeOutline } from 'ionicons/icons';
+
 import { SongItemComponent } from '../song-item/song-item.component';
 import { BtnDownAndHeartComponent } from '../btn-down-and-heart/btn-down-and-heart.component';
 import { BtnAddPlaylistComponent } from '../btn-add-playlist/btn-add-playlist.component';
@@ -70,7 +68,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   });
 
   // Formatted time strings
-  progressTime = computed(() => this.formatTime(this.currentTime()));
+  progressTime = computed(() => formatTime(this.currentTime()));
 
   // Countdown time - thời gian còn lại
   remainingTime = computed(() => {
@@ -82,25 +80,22 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
   // Formatted countdown time
   durationTime = computed(() => {
     const remaining = this.remainingTime();
-    return `-${this.formatTime(remaining)}`;
+    return `-${formatTime(remaining)}`;
   });
 
   constructor() {
-    // Force change detection when any signal changes - THIS IS THE KEY FIX
     effect(() => {
-      // Track all signals that should trigger UI updates
-      const song = this.currentSong();
-      const playing = this.isPlaying();
-      const shuffling = this.isShuffling();
-      const index = this.currentIndex();
-      const time = this.currentTime();
-      const dur = this.duration();
-      const state = this.playbackState(); // Force change detection to ensure UI updates
-      // Use requestAnimationFrame to ensure it runs in next tick
+      this.currentSong();
+      this.isPlaying();
+      this.isShuffling();
+      this.currentIndex();
+      this.currentTime();
+      this.duration();
+      this.playbackState();
       requestAnimationFrame(() => {
         this.cdr.detectChanges();
       });
-    }); // Listen for custom events from PlayerPage to force change detection
+    });
     if (typeof window !== 'undefined') {
       window.addEventListener(
         'player-action-triggered',
@@ -110,15 +105,12 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
     effect(() => {
       const deletedId = this.databaseService.deletedSongId();
-      console.log('Deleted song ID:', deletedId);
       if (deletedId) {
         this.removeSongByIdFromCurrentPlaylist(deletedId);
         // Reset signal để tránh lặp lại
         this.databaseService.deletedSongId.set(null);
       }
     });
-
-    addIcons({ reorderThreeOutline });
   }
 
   ngOnInit() {}
@@ -265,28 +257,9 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Force UI refresh method
-  forceRefresh() {
-    this.cdr.markForCheck();
-    this.cdr.detectChanges();
-  }
 
-  // Utility methods
-  formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '0:00';
 
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
 
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs
-        .toString()
-        .padStart(2, '0')}`;
-    } else {
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-  }
 
   onImageError(event: any): void {
     event.target.src = './assets/images/musical-note.webp';

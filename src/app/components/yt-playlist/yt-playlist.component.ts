@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, effect, Input, OnInit } from '@angular/core';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 import {
   IonReorderGroup,
@@ -8,6 +8,7 @@ import {
 } from '@ionic/angular/standalone';
 import { SongItemComponent } from '../song-item/song-item.component';
 import { Song } from 'src/app/interfaces/song.interface';
+import { YtPlayerService } from 'src/app/services/yt-player.service';
 
 @Component({
   selector: 'app-yt-playlist',
@@ -23,24 +24,29 @@ import { Song } from 'src/app/interfaces/song.interface';
 })
 export class YtPlaylistComponent implements OnInit {
   @Input() playlist: YTPlayerTrack[] = [];
-  @Input() currentIndex: number = 0;
-  @Input() currentSong: YTPlayerTrack | null = null;
-  @Input() isPlaying: boolean = true;
-  @Input() isShuffling: boolean = false;
-  @Input() songTitle: string = '';
-  @Input() songArtist: string = '';
-  @Input() songThumbnail: string = '';
-  @Input() songDuration: string = '';
 
   @Input() progressPercentage: () => number = () => 0;
 
   // Các hàm callback truyền từ cha xuống
-  @Input() onPlaySong!: (event: { song: Song; playlist: Song[]; index: number }) => void;
+  @Input() onPlaySong!: (event: {
+    song: Song;
+    playlist: Song[];
+    index: number;
+  }) => void;
   @Input() onPreviousTrack!: () => void;
   @Input() onNextTrack!: () => void;
   @Input() onTogglePlayPause!: () => void;
   @Input() onToggleShuffle!: () => void;
   @Input() onReorder!: (from: number, to: number) => void;
+
+  currentIndex = 0;
+  currentSong: YTPlayerTrack | null = null;
+  isPlaying = true;
+  isShuffling = false;
+  songTitle = '';
+  songArtist = '';
+  songThumbnail = '';
+  songDuration = '';
 
   ytTrackToSong(track: YTPlayerTrack): Song {
     return {
@@ -61,12 +67,20 @@ export class YtPlaylistComponent implements OnInit {
     return this.playlist.map(this.ytTrackToSong);
   }
 
-  constructor() {}
+  constructor(public ytPlayerService: YtPlayerService) {
+    effect(() => {
+      this.currentIndex = this.ytPlayerService.currentIndex();
+      this.currentSong = this.ytPlayerService.currentSong();
+      this.isPlaying = this.ytPlayerService.isPlaying();
+      this.isShuffling = this.ytPlayerService.isShuffling();
+      this.songTitle = this.ytPlayerService.songTitle();
+      this.songArtist = this.ytPlayerService.songArtist();
+      this.songThumbnail = this.ytPlayerService.songThumbnail();
+      this.songDuration = this.ytPlayerService.songDuration();
+    });
+  }
 
   ngOnInit() {}
-
-
-
 
   playSong(event: { song: Song; playlist: Song[]; index: number }) {
     this.onPlaySong?.(event);
@@ -91,6 +105,4 @@ export class YtPlaylistComponent implements OnInit {
     }
     event.detail.complete(true);
   }
-
-
 }

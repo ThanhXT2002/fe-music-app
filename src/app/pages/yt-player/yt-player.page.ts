@@ -14,9 +14,9 @@ import { Subject, takeUntil } from 'rxjs';
 import { YtMusicService } from '../../services/api/ytmusic.service';
 import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
-import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
-import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
-import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
+import { ProgressBarComponent } from 'src/app/components/progress-bar/progress-bar.component';
+import { PlayerInfoComponent } from 'src/app/components/player-info/player-info.component';
+import { PlayerHeaderComponent } from 'src/app/components/player-header/player-header.component';
 import { ModalController } from '@ionic/angular';
 
 @Component({
@@ -25,7 +25,13 @@ import { ModalController } from '@ionic/angular';
   styleUrls: ['./yt-player.page.scss'],
   standalone: true,
   providers: [ModalController],
-  imports: [CommonModule, FormsModule, ProgressBarComponent, PlayerInfoComponent, PlayerHeaderComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ProgressBarComponent,
+    PlayerInfoComponent,
+    PlayerHeaderComponent,
+  ],
 })
 export class YtPlayerPage implements OnInit {
   @ViewChild('ytIframe', { static: false })
@@ -45,48 +51,6 @@ export class YtPlayerPage implements OnInit {
   songArtist: string = '';
   songThumbnail: string = '';
   songDuration: string = '';
-  // Handle play song event from playlist modal
-  handlePlaySong(event: { song: any; playlist: any[]; index: number }) {
-    // Update currentIndex and currentSong, then play
-    this.currentIndex = event.index;
-    this.currentSong = this.playlist[this.currentIndex];
-    this.videoId = this.currentSong.videoId;
-    this.isPlaying = true;
-    this.updateSongInfo(false);
-    this.updateSafeUrl(this.videoId);
-    this.updateUrlWithLocation();
-  }
-
-  // Toggle play/pause from playlist modal
-  togglePlayPause() {
-    if (this.isPlaying) {
-      this.pause();
-    } else {
-      this.play();
-    }
-  }
-
-  // Toggle shuffle from playlist modal
-  toggleShuffle() {
-    this.isShuffling = !this.isShuffling;
-    // You can add shuffle logic here if needed
-  }
-
-  // Handle reorder event from playlist modal
-  handleReorder(from: number, to: number) {
-    if (from !== to && this.playlist.length > 0) {
-      const movedItem = this.playlist.splice(from, 1)[0];
-      this.playlist.splice(to, 0, movedItem);
-      // Update currentIndex if needed
-      if (this.currentSong) {
-        this.currentIndex = this.playlist.findIndex(
-          (s) => s.videoId === this.currentSong?.videoId
-        );
-      }
-    }
-    // Force update if needed
-    this.cdr.detectChanges();
-  }
 
   private destroy$ = new Subject<void>();
 
@@ -99,7 +63,6 @@ export class YtPlayerPage implements OnInit {
   private iframeReady = false;
   private shouldInitPlayer = false;
   showIframe: boolean = false;
-
 
   constructor(
     private route: ActivatedRoute,
@@ -115,6 +78,7 @@ export class YtPlayerPage implements OnInit {
 
   ngOnInit() {
     this.updateCurrentTrackFromParams();
+    this.syncPlayerStateToService();
   }
 
   private updateCurrentTrackFromParams() {
@@ -219,6 +183,7 @@ export class YtPlayerPage implements OnInit {
     if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
       this.ytPlayer.playVideo();
     }
+    this.syncPlayerStateToService();
   }
 
   pause() {
@@ -226,6 +191,7 @@ export class YtPlayerPage implements OnInit {
     if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
       this.ytPlayer.pauseVideo();
     }
+    this.syncPlayerStateToService();
   }
 
   next() {
@@ -237,6 +203,7 @@ export class YtPlayerPage implements OnInit {
       this.updateSongInfo(false);
       this.updateSafeUrl(this.videoId);
       this.updateUrlWithLocation();
+      this.syncPlayerStateToService();
     }
   }
 
@@ -249,6 +216,7 @@ export class YtPlayerPage implements OnInit {
       this.updateSongInfo(false);
       this.updateSafeUrl(this.videoId);
       this.updateUrlWithLocation();
+      this.syncPlayerStateToService();
     }
   }
 
@@ -416,23 +384,23 @@ export class YtPlayerPage implements OnInit {
   }
 
   updateProgress(event: MouseEvent | TouchEvent) {
-  this.tempProgress = this.getProgressPercent(event);
-}
+    this.tempProgress = this.getProgressPercent(event);
+  }
 
   updateProgressFromGlobalEvent(event: MouseEvent | TouchEvent) {
-  this.tempProgress = this.getProgressPercent(event);
-}
+    this.tempProgress = this.getProgressPercent(event);
+  }
 
   calculateProgress(event: MouseEvent | TouchEvent): number {
-  return this.getProgressPercent(event);
-}
-
-seekToEvent(time: number) {
-  if (this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
-    this.ytPlayer.seekTo(time, true);
-    this.videoCurrentTime = time;
+    return this.getProgressPercent(event);
   }
-}
+
+  seekToEvent(time: number) {
+    if (this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
+      this.ytPlayer.seekTo(time, true);
+      this.videoCurrentTime = time;
+    }
+  }
 
   private getProgressPercent(event: MouseEvent | TouchEvent): number {
     let clientX = 0;
@@ -457,7 +425,7 @@ seekToEvent(time: number) {
     return (this.videoCurrentTime / this.videoDuration) * 100;
   }
 
-  async openPlaylist(){
+  async openPlaylist() {
     try {
       const { YtPlaylistComponent } = await import(
         '../../components/yt-playlist/yt-playlist.component'
@@ -465,17 +433,10 @@ seekToEvent(time: number) {
       const modal = await this.modalCtrl.create({
         component: YtPlaylistComponent,
         componentProps: {
-         playlist: this.playlist,
-          currentIndex: this.currentIndex,
-          currentSong: this.currentSong,
-          isPlaying: this.isPlaying,
-          isShuffling: this.isShuffling,
-          songTitle: this.songTitle,
-          songArtist: this.songArtist,
-          songThumbnail: this.songThumbnail,
-          songDuration: this.songDuration,
+          playlist: this.playlist,
           progressPercentage: this.progress.bind(this),
-          onPlaySong: (event: { song: any; playlist: any[]; index: number }) => this.handlePlaySong(event),
+          onPlaySong: (event: { song: any; playlist: any[]; index: number }) =>
+            this.handlePlaySong(event),
           onPreviousTrack: () => this.previous(),
           onNextTrack: () => this.next(),
           onTogglePlayPause: () => this.togglePlayPause(),
@@ -483,8 +444,8 @@ seekToEvent(time: number) {
           onReorder: (from: number, to: number) => this.handleReorder(from, to),
         },
         presentingElement: undefined, // Allow full-screen modal
-        breakpoints: [0, 0.6, 1],
-        initialBreakpoint: 0.6,
+        breakpoints: [0, 1],
+        initialBreakpoint: 1,
         handle: true,
         backdropDismiss: true,
         mode: 'ios',
@@ -494,5 +455,62 @@ seekToEvent(time: number) {
     } catch (error) {
       console.error('Error opening playlist modal:', error);
     }
+  }
+
+  // Handle play song event from playlist modal
+  handlePlaySong(event: { song: any; playlist: any[]; index: number }) {
+    // Update currentIndex and currentSong, then play
+    this.currentIndex = event.index;
+    this.currentSong = this.playlist[this.currentIndex];
+    this.videoId = this.currentSong.videoId;
+    this.isPlaying = true;
+    this.updateSongInfo(false);
+    this.updateSafeUrl(this.videoId);
+    this.updateUrlWithLocation();
+
+    this.syncPlayerStateToService();
+  }
+
+  private syncPlayerStateToService() {
+    this.ytPlayerService.currentIndex.set(this.currentIndex);
+    this.ytPlayerService.currentSong.set(this.currentSong);
+    this.ytPlayerService.isPlaying.set(this.isPlaying);
+    this.ytPlayerService.isShuffling.set(this.isShuffling);
+    this.ytPlayerService.songTitle.set(this.songTitle);
+    this.ytPlayerService.songArtist.set(this.songArtist);
+    this.ytPlayerService.songThumbnail.set(this.songThumbnail);
+    this.ytPlayerService.songDuration.set(this.songDuration);
+  }
+
+  // Toggle play/pause from playlist modal
+  togglePlayPause() {
+    if (this.isPlaying) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  // Toggle shuffle from playlist modal
+  toggleShuffle() {
+    this.isShuffling = !this.isShuffling;
+    this.syncPlayerStateToService();
+    // You can add shuffle logic here if needed
+  }
+
+  // Handle reorder event from playlist modal
+  handleReorder(from: number, to: number) {
+    if (from !== to && this.playlist.length > 0) {
+      const movedItem = this.playlist.splice(from, 1)[0];
+      this.playlist.splice(to, 0, movedItem);
+      // Update currentIndex if needed
+      if (this.currentSong) {
+        this.currentIndex = this.playlist.findIndex(
+          (s) => s.videoId === this.currentSong?.videoId
+        );
+      }
+    }
+    // Force update if needed
+    this.cdr.detectChanges();
   }
 }

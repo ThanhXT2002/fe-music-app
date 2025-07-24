@@ -37,4 +37,14 @@ export class YtPlayerService {
       }
     } catch {}
   }
+
+
+  currentIndex = signal<number>(0);
+  currentSong = signal<YTPlayerTrack | null>(null);
+  isPlaying = signal<boolean>(true);
+  isShuffling = signal<boolean>(false);
+  songTitle = signal<string>('');
+  songArtist = signal<string>('');
+  songThumbnail = signal<string>('');
+  songDuration = signal<string>('');
 }

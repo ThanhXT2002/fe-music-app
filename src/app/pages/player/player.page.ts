@@ -29,6 +29,7 @@ import { BtnAddPlaylistComponent } from "src/app/components/btn-add-playlist/btn
 import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
 import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
 import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
+import { formatTime } from 'src/app/utils/format-time.util';
 
 @Component({
   selector: 'app-player',
@@ -83,10 +84,10 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     const current = this.isDragging()
       ? (this.tempProgress() / 100) * this.duration()
       : this.currentTime();
-    return this.formatTime(current);
+    return formatTime(current);
   });
 
-  durationTime = computed(() => this.formatTime(this.duration()));
+  durationTime = computed(() => formatTime(this.duration()));
 
   ngOnInit() {
   }
@@ -287,22 +288,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  // Utility methods
-  formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '0:00';
 
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${mins.toString().padStart(2, '0')}:${secs
-        .toString()
-        .padStart(2, '0')}`;
-    } else {
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    }
-  }
 
   getRepeatColor(): string {
     return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';

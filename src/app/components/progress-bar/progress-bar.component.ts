@@ -8,6 +8,7 @@ import {
   ViewChild,
   ElementRef,
 } from '@angular/core';
+import { formatTime } from 'src/app/utils/format-time.util';
 
 @Component({
   selector: 'app-progress-bar',
@@ -35,6 +36,8 @@ export class ProgressBarComponent implements OnInit {
   tempProgress: number = 0;
   dragging: boolean = false;
   hoverPercent: number = -1;
+
+  public formatTime = formatTime;
 
   ngOnInit() {}
 
@@ -149,14 +152,5 @@ export class ProgressBarComponent implements OnInit {
     return Math.max(0, Math.min(100, percent));
   }
 
-  formatTime(seconds: number): string {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    if (h > 0) {
-      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-    return `${m}:${s.toString().padStart(2, '0')}`;
-}
+
 }
