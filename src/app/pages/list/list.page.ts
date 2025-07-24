@@ -21,6 +21,7 @@ import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-mod
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { BtnCustomComponent } from "../../components/btn-custom/btn-custom.component";
 import { MediaCardComponent } from "../../components/media-card/media-card.component";
+import { formatDuration } from 'src/app/utils/format-time.util';
 
 @Component({
   selector: 'app-list',
@@ -225,7 +226,7 @@ export class ListPage implements OnInit, OnDestroy {
         songCount: artist.songCount,
         thumbnail: artist.thumbnail,
         totalDuration: artist.totalDuration,
-        totalDurationFormatted: this.formatDuration(artist.totalDuration),
+        totalDurationFormatted: formatDuration(artist.totalDuration),
       }))
       .sort((a, b) => b.songCount - a.songCount);
 
@@ -236,15 +237,7 @@ export class ListPage implements OnInit, OnDestroy {
     return result;
   }
 
-  private formatDuration(totalSeconds: number): string {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes} phút`;
-  }
 
   getTabClass(tabId: string): string {
     const baseClasses =
