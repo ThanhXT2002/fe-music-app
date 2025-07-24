@@ -38,6 +38,7 @@ export class SongItemComponent implements OnInit {
   @Input() index: number = 0;
   @Input() showRemoveButton: boolean = false; // ✨ Enable remove button
   @Input() checked: boolean = false;
+  @Input() currentSongId: string = '';
 
   // @Input() isSelected!: string;
   // @Input() showRemoveButton: boolean = false;
@@ -111,7 +112,7 @@ export class SongItemComponent implements OnInit {
   }
 
   get isCurrentSong(): boolean {
-    return this.currentSong?.id === this.song.id;
+    return this.currentSong?.id === this.song.id || this.currentSongId === this.song.id;
   }
 
   get isThisSongPlaying(): boolean {

@@ -117,6 +117,7 @@
               [song]="playlistAsSong[i]"
               [playlist]="playlistAsSong"
               [index]="i"
+              [currentSongId]="currentSong?.videoId || ''"
               (play)="playSong($event)"
               [modePage]="'current-play'"
               class="w-full"
