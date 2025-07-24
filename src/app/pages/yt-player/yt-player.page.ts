@@ -63,6 +63,7 @@ export class YtPlayerPage implements OnInit {
   private iframeReady = false;
   private shouldInitPlayer = false;
   showIframe: boolean = false;
+  private rafId: number | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -78,7 +79,7 @@ export class YtPlayerPage implements OnInit {
 
   ngOnInit() {
     this.updateCurrentTrackFromParams();
-    this.syncPlayerStateToService();
+
   }
 
   private updateCurrentTrackFromParams() {
@@ -87,14 +88,11 @@ export class YtPlayerPage implements OnInit {
       .subscribe((params) => {
         const videoId = params.get('v');
         const playlist = this.ytPlayerService.currentPlaylist();
-        this.playlist = playlist || [];
-        this.currentIndex = this.playlist.findIndex(
-          (s) => s.videoId === videoId
-        );
-        this.currentSong = this.playlist[this.currentIndex] || null;
         if (videoId) {
           this.videoId = videoId;
-          this.updateSongInfo();
+          this.checkExitPlaylist(playlist ?? [], videoId);
+        }else{
+          this.router.navigate(['/']);
         }
       });
   }
@@ -114,17 +112,50 @@ export class YtPlayerPage implements OnInit {
       this.ytPlayer = null;
     }
 
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+
     // Reset states
     this.iframeReady = false;
     this.shouldInitPlayer = false;
   }
 
-  formatDuration(seconds: string): string {
-    const sec = parseInt(seconds, 10);
-    const min = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${min}:${s < 10 ? '0' : ''}${s}`;
+  private setPlaylistAndCurrent(playlist: YTPlayerTrack[], videoId: string) {
+    this.playlist = playlist;
+    this.currentIndex = playlist.findIndex(track => track.videoId === videoId);
+    this.currentSong = this.playlist[this.currentIndex] || null;
+    this.updateSongInfo();
+    this.syncPlayerStateToService();
   }
+
+  checkExitPlaylist(playlist: YTPlayerTrack[], videoId: string) {
+    if (playlist && playlist.some(track => track.videoId === videoId)) {
+      this.setPlaylistAndCurrent(playlist, videoId);
+    } else {
+      this.getPlaylistFallBack(videoId);
+    }
+  }
+
+  getPlaylistFallBack(videoId: string) {
+    this.ytMusicService.getPlaylistWithSong(videoId).subscribe({
+      next: (res) => {
+        const tracks = res.tracks;
+        const playlistId = res.playlistId ?? null;
+        localStorage.setItem('yt-tracks', JSON.stringify(tracks));
+        localStorage.setItem('yt-playlistId', JSON.stringify(playlistId));
+        this.ytPlayerService.currentPlaylist.set(tracks);
+        this.ytPlayerService.playlistId.set(playlistId);
+        this.setPlaylistAndCurrent(tracks, videoId);
+      },
+      error: (err) => {
+        console.error('Error fetching playlist with related:', err);
+      },
+    });
+  }
+
+
 
   updateSafeUrl(videoId: string) {
     // Hủy player cũ nếu có
@@ -194,30 +225,27 @@ export class YtPlayerPage implements OnInit {
     this.syncPlayerStateToService();
   }
 
-  next() {
-    if (this.currentIndex < this.playlist.length - 1) {
-      this.currentIndex++;
-      this.currentSong = this.playlist[this.currentIndex];
-      this.videoId = this.currentSong.videoId;
-      this.isPlaying = true;
-      this.updateSongInfo(false);
-      this.updateSafeUrl(this.videoId);
-      this.updateUrlWithLocation();
-      this.syncPlayerStateToService();
-    }
+next() {
+  if (this.currentIndex < this.playlist.length - 1) {
+    this.updatePlayerState(this.currentIndex + 1, true);
   }
+}
 
   previous() {
     if (this.currentIndex > 0) {
-      this.currentIndex--;
-      this.currentSong = this.playlist[this.currentIndex];
-      this.videoId = this.currentSong.videoId;
-      this.isPlaying = true;
-      this.updateSongInfo(false);
-      this.updateSafeUrl(this.videoId);
-      this.updateUrlWithLocation();
-      this.syncPlayerStateToService();
+      this.updatePlayerState(this.currentIndex - 1, true);
     }
+  }
+
+  private updatePlayerState(index: number, play: boolean = true) {
+    this.currentIndex = index;
+    this.currentSong = this.playlist[this.currentIndex];
+    this.videoId = this.currentSong.videoId;
+    this.isPlaying = play;
+    this.updateSongInfo(false);
+    this.updateSafeUrl(this.videoId);
+    this.updateUrlWithLocation();
+    this.syncPlayerStateToService();
   }
 
   private updateUrlWithLocation() {
@@ -370,7 +398,7 @@ export class YtPlayerPage implements OnInit {
           this.videoDuration = this.ytPlayer.getDuration();
         });
       }
-      requestAnimationFrame(update);
+      this.rafId = requestAnimationFrame(update);
     };
     update();
   }
@@ -459,16 +487,7 @@ export class YtPlayerPage implements OnInit {
 
   // Handle play song event from playlist modal
   handlePlaySong(event: { song: any; playlist: any[]; index: number }) {
-    // Update currentIndex and currentSong, then play
-    this.currentIndex = event.index;
-    this.currentSong = this.playlist[this.currentIndex];
-    this.videoId = this.currentSong.videoId;
-    this.isPlaying = true;
-    this.updateSongInfo(false);
-    this.updateSafeUrl(this.videoId);
-    this.updateUrlWithLocation();
-
-    this.syncPlayerStateToService();
+    this.updatePlayerState(event.index, true);
   }
 
   private syncPlayerStateToService() {
