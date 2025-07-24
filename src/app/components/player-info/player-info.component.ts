@@ -13,4 +13,9 @@ export class PlayerInfoComponent {
   @Input() title?: string | null;
   @Input() artist?: string | null;
   @Input() isPlaying: boolean = false;
+
+    onImageError(event: any): void {
+    event.target.src = 'assets/images/musical-note.webp';
+  }
+
 }

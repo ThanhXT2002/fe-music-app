@@ -17,12 +17,14 @@ import { YtPlayerService } from 'src/app/services/yt-player.service';
 import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
 import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
 import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
+import { ModalController } from '@ionic/angular';
 
 @Component({
   selector: 'app-yt-player',
   templateUrl: './yt-player.page.html',
   styleUrls: ['./yt-player.page.scss'],
   standalone: true,
+  providers: [ModalController],
   imports: [CommonModule, FormsModule, ProgressBarComponent, PlayerInfoComponent, PlayerHeaderComponent],
 })
 export class YtPlayerPage implements OnInit {
@@ -36,14 +38,55 @@ export class YtPlayerPage implements OnInit {
   currentIndex: number = 0;
   currentSong: YTPlayerTrack | null = null;
   isPlaying: boolean = true;
+  isShuffling: boolean = false; // Add isShuffling property
   safeVideoUrl: SafeResourceUrl = '';
-  ytApiData: any = null;
   audioUrl: string = '';
   songTitle: string = '';
   songArtist: string = '';
   songThumbnail: string = '';
   songDuration: string = '';
-  songViews: string = '';
+  // Handle play song event from playlist modal
+  handlePlaySong(event: { song: any; playlist: any[]; index: number }) {
+    // Update currentIndex and currentSong, then play
+    this.currentIndex = event.index;
+    this.currentSong = this.playlist[this.currentIndex];
+    this.videoId = this.currentSong.videoId;
+    this.isPlaying = true;
+    this.updateSongInfo(false);
+    this.updateSafeUrl(this.videoId);
+    this.updateUrlWithLocation();
+  }
+
+  // Toggle play/pause from playlist modal
+  togglePlayPause() {
+    if (this.isPlaying) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  // Toggle shuffle from playlist modal
+  toggleShuffle() {
+    this.isShuffling = !this.isShuffling;
+    // You can add shuffle logic here if needed
+  }
+
+  // Handle reorder event from playlist modal
+  handleReorder(from: number, to: number) {
+    if (from !== to && this.playlist.length > 0) {
+      const movedItem = this.playlist.splice(from, 1)[0];
+      this.playlist.splice(to, 0, movedItem);
+      // Update currentIndex if needed
+      if (this.currentSong) {
+        this.currentIndex = this.playlist.findIndex(
+          (s) => s.videoId === this.currentSong?.videoId
+        );
+      }
+    }
+    // Force update if needed
+    this.cdr.detectChanges();
+  }
 
   private destroy$ = new Subject<void>();
 
@@ -57,6 +100,7 @@ export class YtPlayerPage implements OnInit {
   private shouldInitPlayer = false;
   showIframe: boolean = false;
 
+
   constructor(
     private route: ActivatedRoute,
     private sanitizer: DomSanitizer,
@@ -65,7 +109,8 @@ export class YtPlayerPage implements OnInit {
     private ytPlayerService: YtPlayerService,
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
-    private location: Location
+    private location: Location,
+    private modalCtrl: ModalController
   ) {}
 
   ngOnInit() {
@@ -230,7 +275,6 @@ export class YtPlayerPage implements OnInit {
             .url || ''
         : '';
     this.songDuration = this.currentSong?.length || '';
-    this.songViews = this.currentSong?.views || '';
     if (callUpdateSafeUrl) {
       this.updateSafeUrl(this.videoId);
     }
@@ -413,7 +457,42 @@ seekToEvent(time: number) {
     return (this.videoCurrentTime / this.videoDuration) * 100;
   }
 
-  openPlaylist(){
+  async openPlaylist(){
+    try {
+      const { YtPlaylistComponent } = await import(
+        '../../components/yt-playlist/yt-playlist.component'
+      );
+      const modal = await this.modalCtrl.create({
+        component: YtPlaylistComponent,
+        componentProps: {
+         playlist: this.playlist,
+          currentIndex: this.currentIndex,
+          currentSong: this.currentSong,
+          isPlaying: this.isPlaying,
+          isShuffling: this.isShuffling,
+          songTitle: this.songTitle,
+          songArtist: this.songArtist,
+          songThumbnail: this.songThumbnail,
+          songDuration: this.songDuration,
+          progressPercentage: this.progress.bind(this),
+          onPlaySong: (event: { song: any; playlist: any[]; index: number }) => this.handlePlaySong(event),
+          onPreviousTrack: () => this.previous(),
+          onNextTrack: () => this.next(),
+          onTogglePlayPause: () => this.togglePlayPause(),
+          onToggleShuffle: () => this.toggleShuffle(),
+          onReorder: (from: number, to: number) => this.handleReorder(from, to),
+        },
+        presentingElement: undefined, // Allow full-screen modal
+        breakpoints: [0, 0.6, 1],
+        initialBreakpoint: 0.6,
+        handle: true,
+        backdropDismiss: true,
+        mode: 'ios',
+      });
 
+      await modal.present();
+    } catch (error) {
+      console.error('Error opening playlist modal:', error);
+    }
   }
 }

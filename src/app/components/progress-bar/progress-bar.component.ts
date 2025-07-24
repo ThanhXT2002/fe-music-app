@@ -45,7 +45,9 @@ export class ProgressBarComponent implements OnInit {
   }
 
   onProgressStart(event: MouseEvent | TouchEvent) {
-    event.preventDefault();
+    if (event.cancelable) {
+      event.preventDefault();
+    }
     this.dragging = true;
     this.tempProgress = this.getProgressPercent(event);
     this.dragStart.emit();
@@ -98,7 +100,9 @@ export class ProgressBarComponent implements OnInit {
   };
   private onGlobalTouchMove = (event: TouchEvent) => {
     if (this.dragging) {
-      event.preventDefault();
+      if (event.cancelable) {
+        event.preventDefault();
+      }
       this.tempProgress = this.getProgressPercent(event);
     }
   };

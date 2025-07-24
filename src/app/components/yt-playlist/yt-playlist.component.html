@@ -1,0 +1,135 @@
+<div class="current-playlist-container h-full flex flex-col bg-black">
+  <!-- Header -->
+  <div
+    class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600"
+  >
+    <div class="absolute inset-0 opacity-50">
+      @if (songThumbnail) {
+      <img
+        [src]="songThumbnail"
+        [alt]="songTitle"
+        class="w-full h-full object-cover blur-md scale-110"
+      />
+      }
+    </div>
+    <div class="relative z-10 py-4 px-4 flex flex-col justify-between h-full">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-white">
+            Danh sách phát hiện tại
+          </h2>
+          <p class="text-sm text-gray-200" *ngIf="playlist.length > 0">
+            {{ playlist.length }} bài hát •
+            {{ currentIndex + 1 }}/{{ playlist.length }}
+          </p>
+        </div>
+        <div class="flex items-center space-x-5 pr-3">
+          <!-- <app-btn-add-playlist [songId]="currentSong()?.id!" /> -->
+
+          <button
+  (click)="toggleShuffle()"
+  [class]="isShuffling ? 'text-purple-400' : 'text-gray-200'"
+  class="h-10 w-10 rounded-full"
+>
+  <i class="fas fa-random text-xl m-auto"></i>
+</button>
+           <!-- <app-btn-down-and-heart [song]="currentSong()!"/> -->
+        </div>
+      </div>
+      <div *ngIf="currentSong">
+        <h4
+          class="font-bold text-white text-lg max-h-[56px] overflow-hidden text-ellipsis"
+        >
+          {{ songTitle }}
+        </h4>
+        <p class="text-sm text-gray-200 truncate">
+          {{songArtist }}
+        </p>
+      </div>
+      <div class="flex items-end justify-start gap-10">
+        <!-- Previous -->
+        <button
+          (click)="previousTrack()"
+          class="!w-10 !h-10 rounded-full transition-colors"
+        >
+          <i class="fas fa-step-backward text-2xl text-white"></i>
+        </button>
+
+        <!-- Play/Pause -->
+        <button
+          (click)="togglePlayPause()"
+          class="!w-10 !h-10 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105"
+        >
+          <i
+            class="fas text-3xl"
+            [ngClass]=" isPlaying ? 'fa-pause' : 'fa-play'"
+          ></i>
+        </button>
+
+        <!-- Next -->
+        <button
+          (click)="nextTrack()"
+          class="!w-10 !h-10 rounded-full transition-colors"
+        >
+          <i class="fas fa-step-forward text-2xl text-white"></i>
+        </button>
+      </div>
+      <!-- Progress Bar -->
+      <div class="space-y-1 absolute bottom-0 left-0 right-0">
+        <div class="text-sm text-end text-gray-300 mr-8">
+          <span title="Thời gian còn lại">{{ songDuration }}</span>
+        </div>
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-300 rounded-full h-1">
+          <div
+            class="bg-purple-500 h-1 rounded-full transition-all duration-300"
+            [style.width.%]="progressPercentage()"
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <ion-content class="flex-1">
+    <!-- Playlist -->
+    <div class="px-3 py-2">
+      <div *ngIf="playlist.length === 0" class="text-center py-16">
+        <i class="fas fa-list-ul text-4xl text-gray-600 mb-4"></i>
+        <h3 class="text-lg font-medium text-white mb-2">
+          Danh sách phát trống
+        </h3>
+        <p class="text-gray-400">Chọn bài hát để bắt đầu phát nhạc</p>
+      </div>
+      <div *ngIf="playlist.length > 0" class="space-y-1">
+        <ion-reorder-group
+          [disabled]="false"
+          (ionItemReorder)="onIonReorder($any($event))"
+          class="ios-reorder-fix"
+          no-haptics
+        >
+          <ion-item
+            *ngFor="
+              let song of playlist;
+              let i = index;
+            "
+            class="reorder-item-wrapper"
+            lines="none"
+          >
+            <app-song-item
+              [song]="playlistAsSong[i]"
+              [playlist]="playlistAsSong"
+              [index]="i"
+             (play)="playSong($event)"
+              [modePage]="'current-play'"
+              class="w-full"
+            >
+            </app-song-item>
+          </ion-item>
+        </ion-reorder-group>
+      </div>
+    </div>
+
+    <!-- Bottom Spacing -->
+    <div class="h-4"></div>
+  </ion-content>
+  </div>

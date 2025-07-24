@@ -12,7 +12,7 @@ export class YtPlayerService {
   constructor() {
     // Auto-save to localStorage on signal change using effect
     effect(() => {
-      this.saveToStorage('yt-tracks', this.currentPlaylist());   
+      this.saveToStorage('yt-tracks', this.currentPlaylist());
       this.saveToStorage('yt-playlistId', this.playlistId());
       this.saveToStorage('yt-related', this.ralated());
     });

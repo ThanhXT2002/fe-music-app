@@ -8,16 +8,9 @@
     <img
       [src]="thumbnail"
       [alt]="title || 'Album Art'"
+      (error)="onImageError($event)"
       class="w-full h-full object-cover"
     />
-    }@else {
-    <div
-      class="w-full h-full flex items-center justify-center"
-    >
-      <i
-        class="fa-solid fa-compact-disc text-[20rem] bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
-      ></i>
-    </div>
     }
   </div>
 </div>
