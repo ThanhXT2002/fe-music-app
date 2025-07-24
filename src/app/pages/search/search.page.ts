@@ -13,6 +13,7 @@ import { YtPlayerService } from 'src/app/services/yt-player.service';
 import { Router } from '@angular/router';
 import { LoadingService } from 'src/app/services/loading.service';
 import { Capacitor } from '@capacitor/core';
+import { PageContextService } from 'src/app/services/page-context.service';
 
 
 @Component({
@@ -29,6 +30,7 @@ export class SearchPage implements OnInit {
   private location = inject(Location);
   private ytPlayerService = inject(YtPlayerService);
   private loadingService = inject(LoadingService);
+  private pageContext = inject(PageContextService);
   private router = inject(Router);
 
   isNative = Capacitor.isNativePlatform();
@@ -63,6 +65,7 @@ export class SearchPage implements OnInit {
   private searchSubject = new Subject<string>();
 
   ngOnInit() {
+    this.pageContext.setCurrentPage('search');
     // Sử dụng takeUntilDestroyed để tự động unsubscribe
     this.searchSubject
       .pipe(

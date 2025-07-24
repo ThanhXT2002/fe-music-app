@@ -1,11 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, Input, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  inject,
+  Input,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+  effect,
+} from '@angular/core';
 import { DataSong, Song } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { DatabaseService } from 'src/app/services/database.service';
-import { DownloadService, DownloadTask } from 'src/app/services/download.service';
+import {
+  DownloadService,
+  DownloadTask,
+} from 'src/app/services/download.service';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { Subscription } from 'rxjs';
+import { PageContextService } from 'src/app/services/page-context.service';
 
 @Component({
   selector: 'app-btn-down-and-heart',
@@ -20,23 +32,41 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   private refreshService = inject(RefreshService);
   private audioPlayerService = inject(AudioPlayerService);
   private cdr = inject(ChangeDetectorRef);
+  private pageContext = inject(PageContextService);
 
   @Input() song!: Song;
+  isLoading = false;
+  isDownloaded: boolean = false;
 
-  isDownloaded = false;
   private songDownloadedSub?: Subscription;
+  isSearchPage = false;
 
-  constructor() {}
+  get downloadTask(): DownloadTask | undefined {
+    return this.downloadService.getDownloadBySongId(this.song.id);
+  }
 
-  ngOnInit() {
-    // Lắng nghe trạng thái đã download từ service
-    this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(data => {
-      if (data && data.songId === this.song.id) {
-        console.log('BtnDownAndHeartComponent nhận sự kiện:', data.downloaded);
-        this.isDownloaded = data.downloaded;
-         this.cdr.markForCheck();
+  get isDownloading(): boolean {
+    return (
+      !!this.downloadTask &&
+      (this.downloadTask.status === 'downloading' ||
+        this.downloadTask.status === 'pending')
+    );
+  }
+
+  get downloadProgress(): number {
+    return this.downloadTask?.progress ?? 0;
+  }
+
+  constructor() {
+    effect(() => {
+      const page = this.pageContext.getCurrentPage()();
+      if (page === 'search') {
+        this.isSearchPage = true;
       }
     });
+  }
+
+  ngOnInit() {
     // Kiểm tra trạng thái ban đầu
     this.checkDownloaded();
   }
@@ -45,8 +75,11 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
     this.songDownloadedSub?.unsubscribe();
   }
 
-  private async checkDownloaded() {
-    await this.downloadService.isSongDownloadedDB(this.song.id);
+  async checkDownloaded() {
+    this.isDownloaded = await this.downloadService.isSongDownloadedDB(
+      this.song.id
+    );
+    this.cdr.markForCheck(); // Nếu dùng ChangeDetectionStrategy.OnPush
   }
 
   async toggleFavorite() {
@@ -63,6 +96,7 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   }
 
   async toggleDownload(): Promise<void> {
+    this.isLoading = true;
     const song: DataSong = {
       id: this.song.id,
       title: this.song.title,
@@ -80,18 +114,19 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
     try {
       await this.downloadService.downloadSong(song);
-     const sub = this.downloadService.downloads$.subscribe(downloads => {
-      const task = downloads.find(d => d.songData?.id === this.song.id);
-      if (task && task.status === 'completed') {
-        setTimeout(() => {
-          this.checkDownloaded();
-           this.refreshService.triggerRefresh();
-        }, 300); 
-        sub.unsubscribe();
-      }
-    });
-
+      const sub = this.downloadService.downloads$.subscribe((downloads) => {
+        const task = downloads.find((d) => d.songData?.id === this.song.id);
+        if (task && task.status === 'completed') {
+          setTimeout(() => {
+            this.checkDownloaded();
+            this.refreshService.triggerRefresh();
+          }, 300);
+          sub.unsubscribe();
+          this.isLoading = false;
+        }
+      });
     } catch (error) {
+      this.isLoading = false;
       console.error('Download failed:', error);
     }
   }
@@ -104,6 +139,10 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
   getDownloadTask(downloads: DownloadTask[] | null): DownloadTask | null {
     if (!downloads) return null;
-    return downloads.find(d => d.songData?.id === this.song.id) || null;
+    return downloads.find((d) => d.songData?.id === this.song.id) || null;
+  }
+
+  isPolling(songId: string): boolean {
+    return this.downloadService.isPolling(songId);
   }
 }

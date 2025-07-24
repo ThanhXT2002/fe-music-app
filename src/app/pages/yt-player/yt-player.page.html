@@ -23,16 +23,14 @@
   >
     <!-- Album Art -->
 
-    <div class="flex-1 flex items-center justify-center ">
-        <app-player-info
-      [thumbnail]="songThumbnail"
-      [title]="songTitle"
-      [artist]="songArtist"
-      [isPlaying]="isPlaying"
-    ></app-player-info>
-
+    <div class="flex-1 flex items-center justify-center">
+      <app-player-info
+        [thumbnail]="songThumbnail"
+        [title]="songTitle"
+        [artist]="songArtist"
+        [isPlaying]="isPlaying"
+      ></app-player-info>
     </div>
-
 
     <iframe
       *ngIf="iframeKey > 0 && showIframe && safeVideoUrl"
@@ -41,7 +39,7 @@
       width="0"
       height="0"
       [src]="safeVideoUrl"
-      frameborder="0"   
+      frameborder="0"
       allow="autoplay; encrypted-media"
       allowfullscreen
       class="rounded-lg opacity-0 pointer-events-none absolute z-[-1]"
@@ -54,7 +52,12 @@
       <div
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
-        <!-- Có thể thêm nút yêu thích, thêm playlist ở đây nếu muốn -->
+        <ng-container *ngIf="currentSong as song">
+            <app-btn-add-playlist [songId]="song.videoId" />
+          </ng-container>
+          <ng-container *ngIf="song">
+            <app-btn-down-and-heart [song]="song" />
+          </ng-container>
       </div>
       <!-- Enhanced Progress Bar -->
       <app-progress-bar

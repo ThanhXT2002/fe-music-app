@@ -208,7 +208,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       this.toastService.info(`Đang tải "${songData.title}"...`);
 
       // Tạo download task bằng downloadService
-      const downloadTaskId = await this.downloadService.downloadSong(songData);
+      await this.downloadService.downloadSong(songData);
 
       // Download task đã được tạo và bắt đầu process tự động thông qua downloadService
       // UI sẽ tự động update thông qua reactive streams
@@ -673,12 +673,9 @@ Hoặc paste thủ công:
    * Check if song is in polling state - use service
    */
   isPolling(songId: string): boolean {
-    const status = this.downloadService.getSongStatusSync(songId);
-    return status
-      ? (status.status === 'pending' || status.status === 'processing') &&
-          !status.ready
-      : false;
+    return this.downloadService.isPolling(songId)
   }
+
 
   /**
    * Get polling progress for display - use service

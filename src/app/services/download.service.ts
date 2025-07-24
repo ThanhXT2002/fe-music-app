@@ -7,11 +7,7 @@ import {
   takeUntil,
   timeout,
 } from 'rxjs';
-import {
-  Song,
-  DataSong,
-  SongsResponse
-} from '../interfaces/song.interface';
+import { Song, DataSong, SongsResponse } from '../interfaces/song.interface';
 import {
   HttpErrorResponse,
   HttpEvent,
@@ -21,7 +17,6 @@ import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
 import { MusicApiService } from './api/music-api.service';
-import { environment } from 'src/environments/environment';
 import { ToastService } from './toast.service';
 import { SongConverter } from '../utils/song.converter';
 
@@ -58,8 +53,6 @@ export interface StatusNotification {
   providedIn: 'root',
 })
 export class DownloadService {
-  private apiUrl = environment.apiUrl;
-
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
   // Track notifications sent to prevent duplicates (persist across app restarts)
@@ -371,7 +364,6 @@ export class DownloadService {
     return result;
   }
 
-
   // Private methods
   private updateDownload(id: string, updates: Partial<DownloadTask>) {
     const currentDownloads = this.currentDownloads;
@@ -408,18 +400,60 @@ export class DownloadService {
    * @param signal - AbortSignal để cancel download
    */
   private async realDownload(id: string, signal: AbortSignal) {
+    const download = this.getDownload(id);
     try {
-      const download = this.getDownload(id);
       if (!download || !download.songData) return;
-
       // All platforms now use IndexedDB for storage
       await this.handleWebDownload(id, signal);
     } catch (error) {
       if (!signal.aborted) {
         console.error('Download error:', error);
-        this.failDownload(id, 'Download failed: ' + error);
+        this.handleDownloadFallback(error, download, id);
       }
     }
+  }
+
+  /**
+   * Fallback khi download lỗi: gọi getSongInfo để server process lại, rồi polling tiếp
+   */
+  private handleDownloadFallback(
+    error: any,
+    download: DownloadTask | undefined,
+    id: string
+  ) {
+    // Fallback: Nếu lỗi là not found hoặc not ready thì gọi getSongInfo
+    if (
+      error?.message?.includes('not found') ||
+      error?.message?.includes('not ready')
+    ) {
+      // Tạo youtube_url từ songId (giả sử có dạng https://youtu.be/{id})
+      const songId = download?.songData?.id;
+      const youtubeUrl = songId
+        ? this.createYoutubeUrlFromId(songId)
+        : undefined;
+      if (youtubeUrl) {
+        this.getSongInfo(youtubeUrl).subscribe({
+          next: (res) => {
+            console.log(`Server đã nhận yêu cầu tải lại bài hát ${songId}`);
+            // Sau khi server nhận, tiếp tục polling lại
+            if (download?.songData) {
+              this.startStatusPolling(download.songData);
+            }
+          },
+          error: (err) => {
+            this.toastService.error('Không thể gửi yêu cầu tải bài hát!');
+          },
+        });
+      }
+    }
+    this.failDownload(id, 'Download failed: ' + error);
+  }
+
+  /**
+   * Utility: Tạo youtube_url từ songId (dạng https://youtu.be/{id})
+   */
+  private createYoutubeUrlFromId(songId: string): string {
+    return `https://youtu.be/${songId}`;
   }
   /**
    * Xử lý download cho tất cả platforms - download cả audio và thumbnail
@@ -1028,6 +1062,15 @@ export class DownloadService {
     string,
     { status: string; progress: number; ready: boolean }
   >();
+
+  // Kiểm tra xem bài hát có đang được polling không
+  isPolling(songId: string): boolean {
+    const status = this.getSongStatusSync(songId);
+    return status
+      ? (status.status === 'pending' || status.status === 'processing') &&
+          !status.ready
+      : false;
+  }
 
   /**
    * Bắt đầu quá trình kiểm tra trạng thái bài hát (polling) - tập trung xử lý tại service
