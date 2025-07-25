@@ -114,6 +114,7 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
     try {
       await this.downloadService.downloadSong(song);
+      this.isLoading = false;
       const sub = this.downloadService.downloads$.subscribe((downloads) => {
         const task = downloads.find((d) => d.songData?.id === this.song.id);
         if (task && task.status === 'completed') {
