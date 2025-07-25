@@ -22,6 +22,7 @@ import { BtnAddPlaylistComponent } from 'src/app/components/btn-add-playlist/btn
 import { BtnDownAndHeartComponent } from 'src/app/components/btn-down-and-heart/btn-down-and-heart.component';
 import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
 import { Song } from 'src/app/interfaces/song.interface';
+import { formatTime } from 'src/app/utils/format-time.util';
 
 @Component({
   selector: 'app-yt-player',
@@ -488,6 +489,7 @@ export class YtPlayerPage implements OnInit {
           onTogglePlayPause: () => this.togglePlayPause(),
           onToggleShuffle: () => this.toggleShuffle(),
           onReorder: (from: number, to: number) => this.handleReorder(from, to),
+          countdownTime: this.getCountdownTime.bind(this),
         },
         presentingElement: undefined, // Allow full-screen modal
         breakpoints: [0, 1],
@@ -565,6 +567,10 @@ export class YtPlayerPage implements OnInit {
     }
     // Force update if needed
     this.cdr.detectChanges();
+  }
+
+  getCountdownTime(): string {
+    return formatTime(this.videoDuration - this.videoCurrentTime);
   }
 
   setCurrentSong(track: YTPlayerTrack) {

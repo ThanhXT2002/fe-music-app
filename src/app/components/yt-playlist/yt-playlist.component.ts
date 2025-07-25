@@ -27,6 +27,7 @@ export class YtPlaylistComponent implements OnInit {
 
   @Input() progressPercentage: () => number = () => 0;
 
+
   // Các hàm callback truyền từ cha xuống
   @Input() onPlaySong!: (event: {
     song: Song;
@@ -38,6 +39,7 @@ export class YtPlaylistComponent implements OnInit {
   @Input() onTogglePlayPause!: () => void;
   @Input() onToggleShuffle!: () => void;
   @Input() onReorder!: (from: number, to: number) => void;
+  @Input() countdownTime: () => string = () => '0:00';
 
   currentIndex = 0;
   currentSong: YTPlayerTrack | null = null;

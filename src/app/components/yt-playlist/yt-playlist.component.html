@@ -78,7 +78,9 @@
       <!-- Progress Bar -->
       <div class="space-y-1 absolute bottom-0 left-0 right-0">
         <div class="text-sm text-end text-gray-300 mr-8">
-          <span title="Thời gian còn lại">{{ songDuration }}</span>
+          <span title="Thời gian còn lại">
+            - {{ countdownTime() === '0:00' ? '0:00' : countdownTime() }}
+          </span>
         </div>
         <!-- Progress Bar -->
         <div class="w-full bg-gray-300 rounded-full h-1">
