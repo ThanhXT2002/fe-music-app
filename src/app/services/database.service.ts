@@ -141,6 +141,8 @@ export class DatabaseService {
     }
   }
 
+
+
   /**
    * Lấy bài hát theo ID
    */
@@ -277,9 +279,17 @@ export class DatabaseService {
    * Lấy bài hát đã download (offline) - check bằng URL pattern
    */
   async getDownloadedSongs(): Promise<Song[]> {
-    const allSongs = await this.getAllSongs();
-    return allSongs.filter((song) => SongConverter.isDownloaded(song));
-  }
+  const allSongs = await this.getAllSongs();
+  // Kiểm tra tồn tại file audio cho từng bài hát
+  const checks = await Promise.all(
+    allSongs.map(async (song) => {
+      const hasAudio = await this.indexedDB.hasFile('audioFiles', song.id);
+      return hasAudio ? song : null;
+    })
+  );
+  // Lọc ra những bài hát thực sự có file audio
+  return checks.filter((s): s is Song => !!s);
+}
   // Playlist operations
   async addPlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
