@@ -10,7 +10,7 @@ export function ytPlayerTrackToSong(track: YTPlayerTrack): Song {
     duration_formatted: track.length || '00:00',
     keywords: [],
     audio_url: '',
-    thumbnail_url: track.thumbnail?.[0]?.url || '',
+    thumbnail_url: track.thumbnail?.[track.thumbnail.length - 1]?.url || '',
     isFavorite: false,
     addedDate: new Date(),
   };
