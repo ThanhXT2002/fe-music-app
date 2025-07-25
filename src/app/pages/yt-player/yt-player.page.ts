@@ -23,6 +23,7 @@ import { BtnDownAndHeartComponent } from 'src/app/components/btn-down-and-heart/
 import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
 import { Song } from 'src/app/interfaces/song.interface';
 import { formatTime } from 'src/app/utils/format-time.util';
+import { PlaylistModalLayoutComponent } from "src/app/components/playlist-modal-layout/playlist-modal-layout.component";
 
 @Component({
   selector: 'app-yt-player',
@@ -38,7 +39,7 @@ import { formatTime } from 'src/app/utils/format-time.util';
     PlayerHeaderComponent,
     BtnAddPlaylistComponent,
     BtnDownAndHeartComponent,
-  ],
+],
 })
 export class YtPlayerPage implements OnInit {
   @ViewChild('ytIframe', { static: false })

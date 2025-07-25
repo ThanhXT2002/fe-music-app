@@ -25,6 +25,7 @@ import {
 import { SongItemComponent } from '../song-item/song-item.component';
 import { BtnDownAndHeartComponent } from '../btn-down-and-heart/btn-down-and-heart.component';
 import { BtnAddPlaylistComponent } from '../btn-add-playlist/btn-add-playlist.component';
+import { PlaylistModalLayoutComponent } from "../playlist-modal-layout/playlist-modal-layout.component";
 
 @Component({
   selector: 'app-current-playlist',
@@ -39,7 +40,8 @@ import { BtnAddPlaylistComponent } from '../btn-add-playlist/btn-add-playlist.co
     SongItemComponent,
     BtnDownAndHeartComponent,
     BtnAddPlaylistComponent,
-  ],
+    PlaylistModalLayoutComponent
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CurrentPlaylistComponent implements OnInit, OnDestroy {

@@ -1,5 +1,5 @@
 
-<div class="current-playlist-container h-full flex flex-col bg-black">
+<div class="current-playlist-container h-screen  flex flex-col bg-black">
   <!-- Header -->
   <div
     class="border-b h-[25%] relative bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600"
@@ -117,6 +117,7 @@
               [index]="i"
               (play)="playSong.emit({ song: $event.song, index: $event.index })"
               [modePage]="'current-play'"
+              [currentSongId]="currentSong?.id"
               class="w-full"
             >
             </app-song-item>

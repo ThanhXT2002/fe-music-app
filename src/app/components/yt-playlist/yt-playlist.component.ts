@@ -8,18 +8,21 @@ import {
 } from '@ionic/angular/standalone';
 import { SongItemComponent } from '../song-item/song-item.component';
 import { Song } from 'src/app/interfaces/song.interface';
+import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
+import { PlaylistModalLayoutComponent } from "../playlist-modal-layout/playlist-modal-layout.component";
+import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
+import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
 
 @Component({
   selector: 'app-yt-playlist',
   templateUrl: './yt-playlist.component.html',
   imports: [
-    IonContent,
-    IonItem,
-    IonReorderGroup,
     CommonModule,
-    SongItemComponent,
-  ],
+    PlaylistModalLayoutComponent,
+    BtnDownAndHeartComponent,
+    BtnAddPlaylistComponent
+],
   styleUrls: ['./yt-playlist.component.scss'],
 })
 export class YtPlaylistComponent implements OnInit {
@@ -51,23 +54,13 @@ export class YtPlaylistComponent implements OnInit {
   songDuration = '';
 
   ytTrackToSong(track: YTPlayerTrack): Song {
-    return {
-      id: track.videoId,
-      title: track.title,
-      artist: track.artists?.[0]?.name || '',
-      duration: Number(track.length) || 0,
-      duration_formatted: '',
-      keywords: [],
-      audio_url: '',
-      thumbnail_url: track.thumbnail?.[track.thumbnail.length - 1]?.url || '',
-      isFavorite: false,
-      addedDate: new Date(),
-    };
+    return ytPlayerTrackToSong(track);
   }
 
   get playlistAsSong(): Song[] {
     return this.playlist.map(this.ytTrackToSong);
   }
+  trackBySongId = (index: number, song: Song) => song?.id || index;
 
   constructor(public ytPlayerService: YtPlayerService) {
     effect(() => {
