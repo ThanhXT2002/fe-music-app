@@ -19,6 +19,7 @@ import { RefreshService } from './refresh.service';
 import { MusicApiService } from './api/music-api.service';
 import { ToastService } from './toast.service';
 import { SongConverter } from '../utils/song.converter';
+import { environment } from 'src/environments/environment';
 
 // Define DownloadTask interface directly in this file
 export interface DownloadTask {
@@ -409,7 +410,10 @@ export class DownloadService {
       await this.handleWebDownload(id, signal);
     } catch (error) {
       if (!signal.aborted) {
-        console.error('Download error:', error);
+        if(!environment.production) {
+          console.error('Download error:', error);
+        }
+
         this.handleDownloadFallback(error, download, id);
       }
     }
