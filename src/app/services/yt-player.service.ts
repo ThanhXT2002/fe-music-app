@@ -2,12 +2,26 @@ import { Injectable, signal, effect } from '@angular/core';
 import { YTPlayerTrack } from '../interfaces/ytmusic.interface';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class YtPlayerService {
-  currentPlaylist = signal<YTPlayerTrack[] | null>(this.loadFromStorage<YTPlayerTrack[]>('yt-tracks'));
-  playlistId = signal<string | null>(this.loadFromStorage<string>('yt-playlistId'));
+  currentPlaylist = signal<YTPlayerTrack[] | null>(
+    this.loadFromStorage<YTPlayerTrack[]>('yt-tracks')
+  );
+  playlistId = signal<string | null>(
+    this.loadFromStorage<string>('yt-playlistId')
+  );
   ralated = signal<string | null>(this.loadFromStorage<string>('yt-related'));
+
+  currentIndex = signal<number>(0);
+  currentSong = signal<YTPlayerTrack | null>(null);
+  isPlaying = signal<boolean>(true);
+  isShuffling = signal<boolean>(false);
+  songTitle = signal<string>('');
+  songArtist = signal<string>('');
+  songThumbnail = signal<string>('');
+  songDuration = signal<string>('');
+  repeatModeSignal = signal<'none' | 'one' | 'all'>('none');
 
   constructor() {
     // Auto-save to localStorage on signal change using effect
@@ -37,14 +51,4 @@ export class YtPlayerService {
       }
     } catch {}
   }
-
-
-  currentIndex = signal<number>(0);
-  currentSong = signal<YTPlayerTrack | null>(null);
-  isPlaying = signal<boolean>(true);
-  isShuffling = signal<boolean>(false);
-  songTitle = signal<string>('');
-  songArtist = signal<string>('');
-  songThumbnail = signal<string>('');
-  songDuration = signal<string>('');
 }

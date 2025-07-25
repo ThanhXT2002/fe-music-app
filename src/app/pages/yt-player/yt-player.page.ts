@@ -51,13 +51,14 @@ export class YtPlayerPage implements OnInit {
   currentIndex: number = 0;
   currentSong: YTPlayerTrack | null = null;
   isPlaying: boolean = true;
-  isShuffling: boolean = false; // Add isShuffling property
+  isShuffling = this.ytPlayerService.isShuffling; // Add isShuffling property
   safeVideoUrl: SafeResourceUrl = '';
   audioUrl: string = '';
   songTitle: string = '';
   songArtist: string = '';
   songThumbnail: string = '';
   songDuration: string = '';
+  repeatMode = this.ytPlayerService.repeatModeSignal;
 
   private destroy$ = new Subject<void>();
 
@@ -233,7 +234,16 @@ export class YtPlayerPage implements OnInit {
   }
 
   next() {
-    if (this.currentIndex < this.playlist.length - 1) {
+    if (this.isShuffling()) {
+      // Phát ngẫu nhiên, tránh lặp lại bài hiện tại nếu có nhiều hơn 1 bài
+      let nextIndex = this.currentIndex;
+      if (this.playlist.length > 1) {
+        do {
+          nextIndex = Math.floor(Math.random() * this.playlist.length);
+        } while (nextIndex === this.currentIndex);
+      }
+      this.updatePlayerState(nextIndex, true);
+    } else if (this.currentIndex < this.playlist.length - 1) {
       this.updatePlayerState(this.currentIndex + 1, true);
     }
   }
@@ -502,7 +512,6 @@ export class YtPlayerPage implements OnInit {
     this.ytPlayerService.currentIndex.set(this.currentIndex);
     this.ytPlayerService.currentSong.set(this.currentSong);
     this.ytPlayerService.isPlaying.set(this.isPlaying);
-    this.ytPlayerService.isShuffling.set(this.isShuffling);
     this.ytPlayerService.songTitle.set(this.songTitle);
     this.ytPlayerService.songArtist.set(this.songArtist);
     this.ytPlayerService.songThumbnail.set(this.songThumbnail);
@@ -520,9 +529,26 @@ export class YtPlayerPage implements OnInit {
 
   // Toggle shuffle from playlist modal
   toggleShuffle() {
-    this.isShuffling = !this.isShuffling;
+    this.ytPlayerService.isShuffling.set(!this.ytPlayerService.isShuffling());
     this.syncPlayerStateToService();
-    // You can add shuffle logic here if needed
+  }
+
+  toggleRepeat() {
+    const current = this.ytPlayerService.repeatModeSignal();
+    let next: 'none' | 'all' | 'one';
+    if (current === 'none') next = 'all';
+    else if (current === 'all') next = 'one';
+    else next = 'none';
+    this.ytPlayerService.repeatModeSignal.set(next);
+    this.syncPlayerStateToService();
+  }
+
+  getShuffleColor(): string {
+    return this.isShuffling() ? 'text-purple-500' : 'text-white';
+  }
+
+  getRepeatColor(): string {
+    return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';
   }
 
   // Handle reorder event from playlist modal

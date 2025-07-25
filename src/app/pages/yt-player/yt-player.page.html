@@ -53,11 +53,11 @@
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
         <ng-container *ngIf="currentSong as song">
-            <app-btn-add-playlist [songId]="song.videoId" />
-          </ng-container>
-          <ng-container *ngIf="song">
-            <app-btn-down-and-heart [song]="song" />
-          </ng-container>
+          <app-btn-add-playlist [songId]="song.videoId" />
+        </ng-container>
+        <ng-container *ngIf="song">
+          <app-btn-down-and-heart [song]="song" />
+        </ng-container>
       </div>
       <!-- Enhanced Progress Bar -->
       <app-progress-bar
@@ -76,6 +76,14 @@
 
     <!-- Main Controls -->
     <div class="flex items-center justify-around w-full pb-16">
+      <button
+        (click)="toggleShuffle()"
+        [class]="getShuffleColor()"
+        class="p-3 rounded-full transition-colors"
+      >
+        <i class="fas fa-random text-xl"></i>
+      </button>
+
       <!-- Previous -->
       <button
         (click)="previous()"
@@ -96,6 +104,19 @@
       <!-- Next -->
       <button (click)="next()" class="p-3 rounded-full transition-colors">
         <i class="fas fa-step-forward text-2xl"></i>
+      </button>
+
+      <!-- Repeat -->
+      <button
+        (click)="toggleRepeat()"
+        [class]="getRepeatColor()"
+        class="p-3 rounded-full transition-colors"
+      >
+        @if (repeatMode() !== 'one') {
+        <i class="fas fa-sync-alt text-xl"></i>
+        } @else {
+        <i class="fas fa-redo-alt text-xl"></i>
+        }
       </button>
     </div>
   </div>
