@@ -35,8 +35,11 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   private pageContext = inject(PageContextService);
 
   @Input() song!: Song;
-  isLoading = false;
+  get isLoading(): boolean {
+  return !!this.song && this.downloadService.loadingFallbackSongIds().has(this.song.id);
+}
   isDownloaded: boolean = false;
+
 
   private songDownloadedSub?: Subscription;
   isSearchPage = false;
@@ -67,6 +70,15 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Lắng nghe trạng thái đã download từ service, phân biệt bài hát nào đang được hiển thị
+    this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(data => {
+      if (data && data.songId === this.song.id) {
+        this.isDownloaded = data.downloaded;
+         this.cdr.markForCheck();
+      }
+    });
+    // Kiểm tra trạng thái ban đầu
+    this.checkDownloaded();
     // Kiểm tra trạng thái ban đầu
     this.checkDownloaded();
   }
@@ -96,7 +108,6 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   }
 
   async toggleDownload(): Promise<void> {
-    this.isLoading = true;
     const song: DataSong = {
       id: this.song.id,
       title: this.song.title,
@@ -114,20 +125,20 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
     try {
       await this.downloadService.downloadSong(song);
-      this.isLoading = false;
       const sub = this.downloadService.downloads$.subscribe((downloads) => {
         const task = downloads.find((d) => d.songData?.id === this.song.id);
         if (task && task.status === 'completed') {
           setTimeout(() => {
             this.checkDownloaded();
             this.refreshService.triggerRefresh();
+
           }, 300);
           sub.unsubscribe();
-          this.isLoading = false;
+
+
         }
       });
     } catch (error) {
-      this.isLoading = false;
       console.error('Download failed:', error);
     }
   }

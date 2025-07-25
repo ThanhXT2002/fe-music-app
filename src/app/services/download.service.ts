@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import {
   BehaviorSubject,
   Observable,
@@ -68,6 +68,8 @@ export class DownloadService {
   public songDownloaded$ = this.songDownloadedSignal.asObservable();
 
   private activeDownloads = new Map<string, any>();
+  public loadingFallbackSongIds = signal<Set<string>>(new Set());
+
   constructor(
     private databaseService: DatabaseService,
     private indexedDBService: IndexedDBService,
@@ -431,9 +433,19 @@ export class DownloadService {
       const youtubeUrl = songId
         ? this.createYoutubeUrlFromId(songId)
         : undefined;
-      if (youtubeUrl) {
+      if (youtubeUrl && songId) {
+        this.loadingFallbackSongIds.update((set) => {
+          const newSet = new Set(set);
+          newSet.add(songId);
+          return newSet;
+        });
         this.getSongInfo(youtubeUrl).subscribe({
-          next: (res) => {
+          next: () => {
+            this.loadingFallbackSongIds.update(set => {
+              const newSet = new Set(set);
+              newSet.delete(songId);
+              return newSet;
+            });
             console.log(`Server đã nhận yêu cầu tải lại bài hát ${songId}`);
             // Sau khi server nhận, tiếp tục polling lại
             if (download?.songData) {
