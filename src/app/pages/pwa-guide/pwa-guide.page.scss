@@ -1,0 +1,26 @@
+.container {
+  @apply bg-black h-screen w-full max-w-none  overflow-auto mx-auto ;
+
+  section{
+    @apply w-full px-4 my-12 md:my-16;
+  }
+}
+
+.containerContent {
+  @apply lg:max-w-5xl  mx-auto;
+}
+
+.section-top {
+  @apply w-full px-4  text-center;
+  h1 {
+    @apply text-3xl md:text-4xl md:!leading-[3.5rem] font-bold mb-6;
+  }
+
+  p {
+    @apply text-base md:text-lg text-gray-300 max-w-2xl mx-auto;
+  }
+}
+
+.section-benefit {
+
+}

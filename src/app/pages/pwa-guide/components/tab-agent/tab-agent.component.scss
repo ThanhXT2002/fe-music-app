@@ -1,0 +1,7 @@
+.title{
+  @apply text-2xl md:text-3xl font-bold mb-8 md:mb-12 text-white text-center;
+}
+
+.btn-tab {
+  @apply w-36  gap-2 px-6 py-3 font-semibold focus:outline-none transition-all duration-200;
+}

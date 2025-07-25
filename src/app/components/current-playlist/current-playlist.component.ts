@@ -33,11 +33,7 @@ import { PlaylistModalLayoutComponent } from "../playlist-modal-layout/playlist-
   styleUrls: ['./current-playlist.component.scss'],
   standalone: true,
   imports: [
-    IonItem,
-    IonReorderGroup,
-    IonContent,
     CommonModule,
-    SongItemComponent,
     BtnDownAndHeartComponent,
     BtnAddPlaylistComponent,
     PlaylistModalLayoutComponent

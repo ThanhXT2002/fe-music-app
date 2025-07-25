@@ -150,4 +150,8 @@ export class SettingsPage implements OnInit {
     });
     await confirm.present();
   }
+
+  goToPwaGuide(){
+    this.router.navigate(['/pwa-guide']);
+  }
 }

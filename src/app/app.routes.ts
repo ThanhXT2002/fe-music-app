@@ -39,9 +39,12 @@ export const routes: Routes = [
           import('./pages/settings/settings.page').then((m) => m.SettingsPage),
       },
       {
-    path: 'playlists',
-    loadComponent: () => import('./pages/playlists/playlists.page').then( m => m.PlaylistsPage)
-  },
+        path: 'playlists',
+        loadComponent: () =>
+          import('./pages/playlists/playlists.page').then(
+            (m) => m.PlaylistsPage
+          ),
+      }
     ],
   },
   {
@@ -77,16 +80,28 @@ export const routes: Routes = [
   },
   {
     path: 'edit-playlist/:playlistId',
-    loadComponent: () => import('./pages/playlists/edit-playlist/edit-playlist.page').then( m => m.EditPlaylistPage)
+    loadComponent: () =>
+      import('./pages/playlists/edit-playlist/edit-playlist.page').then(
+        (m) => m.EditPlaylistPage
+      ),
   },
   {
     path: 'file-song',
-    loadComponent: () => import('./components/find-infor-song-with-file/find-infor-song-with-file.component').then( m => m.FindInforSongWithFileComponent)
+    loadComponent: () =>
+      import(
+        './components/find-infor-song-with-file/find-infor-song-with-file.component'
+      ).then((m) => m.FindInforSongWithFileComponent),
   },
   {
     path: 'yt-player',
-    loadComponent: () => import('./pages/yt-player/yt-player.page').then( m => m.YtPlayerPage)
+    loadComponent: () =>
+      import('./pages/yt-player/yt-player.page').then((m) => m.YtPlayerPage),
   },
-
-
+  {
+        path: 'pwa-guide',
+        loadComponent: () =>
+          import('./pages/pwa-guide/pwa-guide.page').then(
+            (m) => m.PwaGuidePage
+          ),
+      },
 ];

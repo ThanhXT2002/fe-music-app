@@ -16,7 +16,7 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-@import '@ionic/angular/css/palettes/dark.always.css';
+@import "@ionic/angular/css/palettes/dark.always.css";
 
 @tailwind base;
 @tailwind components;
@@ -56,7 +56,7 @@
     --surface: #1e293b;
     --on-surface: #f8fafc;
     --background: #000000;
-    --white:#ffffff;
+    --white: #ffffff;
     --h-header: 55px;
     --h-bottom-tabs: 55px; /* Header height */
   }
@@ -69,9 +69,13 @@
 }
 
 @layer components {
-
-  .bg-page{
-    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 20%, #000000 40%);
+  .bg-page {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.4) 20%,
+      #000000 40%
+    );
     padding: 10px 0px;
   }
 
@@ -92,7 +96,7 @@
     @apply p-2 rounded-full hover:bg-gray-800 transition-colors;
   }
 
-  .btn-header{
+  .btn-header {
     @apply block h-10 w-10 rounded-full hover:bg-gray-600 flex__middle;
   }
 
@@ -222,20 +226,6 @@
     outline: none;
     box-shadow: 0 0 0 2px #3b82f6;
     border-color: transparent;
-  }
-}
-
-@layer utilities {
-  .shadow-purple-glow {
-    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.4);
-  }
-
-  .shadow-purple-glow-light {
-    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.2);
-  }
-
-  .shadow-purple-glow-strong {
-    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.6);
   }
 }
 
@@ -376,31 +366,52 @@ ion-backdrop {
 }
 
 @layer utilities {
+  .shadow-purple-glow {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.4);
+  }
 
-  .containerDark{
+  .shadow-purple-glow-light {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.2);
+  }
+
+  .shadow-purple-glow-strong {
+    box-shadow: 0px 30px 90px rgba(168, 85, 247, 0.6);
+  }
+
+  .textColorCommon {
+    @apply bg-gradient-to-r from-purple-500 from-30% via-indigo-400 via-40% to-pink-500  bg-clip-text text-transparent;
+  }
+
+  .bgColorCommon {
+    @apply bg-gradient-to-r from-purple-500 from-30% via-indigo-400 via-40% to-pink-500;
+  }
+
+  .containerDark {
     background-color: var(--background);
-    color: var(--white)
+    color: var(--white);
   }
 
-  .containerDark{
-    background-color: var(--surface);
-    color: var(--on-surface);
-  }
-
-  .flex__middle{
+  .flex__middle {
     @apply flex items-center justify-center;
+  }
+
+  .flex__between {
+    @apply flex items-center justify-between;
+  }
+
+  .flex__start {
+    @apply flex items-center justify-start;
   }
 }
 
-
 // Panel kính mờ Liquid Glass - Always Dark
 .liquid-glass-panel {
-  @apply rounded-xl shadow-xl border border-gray-200 relative overflow-hidden ;
+  @apply rounded-xl shadow-xl border border-gray-200 relative overflow-hidden;
 }
 
 // Overlay nền glass cho panel - Always Dark
 .liquid-glass-bg {
-  @apply absolute inset-0 z-0 pointer-events-none ;
+  @apply absolute inset-0 z-0 pointer-events-none;
   .liquid-glass-blur {
     @apply w-full h-full bg-white/10 backdrop-blur-md saturate-150;
   }
@@ -413,7 +424,7 @@ ion-backdrop {
 .liquid-glass-header {
   @apply relative z-10 p-4 border-b border-gray-200 bg-transparent backdrop-blur-sm;
   .liquid-glass-title {
-    @apply text-lg font-semibold text-white drop-shadow-[0_1px_6px_rgba(255,255,255,0.2)] ;
+    @apply text-lg font-semibold text-white drop-shadow-[0_1px_6px_rgba(255,255,255,0.2)];
   }
 }
 
@@ -445,7 +456,7 @@ ion-backdrop {
 }
 
 .liquid-glass-row-between {
-  @apply flex items-center justify-between ;
+  @apply flex items-center justify-between;
 }
 
 // Action button wrapper
@@ -475,7 +486,6 @@ ion-backdrop {
 .ptAreanSave {
   padding-top: env(safe-area-inset-top);
 }
-
 
 .scrollbar-hide {
   -ms-overflow-style: none;
