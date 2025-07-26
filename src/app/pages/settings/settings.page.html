@@ -159,11 +159,14 @@
         <h2 class="liquid-glass-title">Giới thiệu & Hỗ trợ</h2>
       </div>
       <div class="liquid-glass-content space-y-3">
+        @if(!isNative && isPwa) {
         <button (click)="goToPwaGuide()" class="liquid-glass-button">
           <div class="flex items-center">
             <i class="fas fa-person-chalkboard text-blue-500 w-6"></i>
             <div class="ml-3 text-left">
-              <p class="text-sm font-medium text-white">Hướng dẫn cài đặt PWA</p>
+              <p class="text-sm font-medium text-white">
+                Hướng dẫn cài đặt PWA
+              </p>
               <p class="text-xs text-gray-400">
                 Trải nghiệm web như một ứng dụng mobile
               </p>
@@ -171,6 +174,7 @@
           </div>
           <i class="fas fa-chevron-right text-gray-400"></i>
         </button>
+        }
 
         <button (click)="showPrivacyPolicy()" class="liquid-glass-button">
           <div class="flex items-center">
@@ -196,27 +200,31 @@
           <i class="fas fa-chevron-right text-gray-400"></i>
         </button>
 
-        <div  class="liquid-glass-button">
-          <div class="flex flex-col items-center justify-center  w-full gap-y-2">
+        <div class="liquid-glass-button">
+          <div class="flex flex-col items-center justify-center w-full gap-y-2">
             <i class="fas fa-question-circle text-green-500 w-6"></i>
-            <div class="w-full  text-center">
+            <div class="w-full text-center">
               <p class="text-sm font-medium text-white">Trợ giúp & Hỗ trợ</p>
               <p class="text-xs text-gray-400">
-                Nếu cần trợ giúp, vui lòng liên hệ: <a class="text-blue-500 underline" href="mailto:{{emailSupport}}">{{emailSupport}}</a>
+                Nếu cần trợ giúp, vui lòng liên hệ:
+                <a
+                  class="text-blue-500 underline"
+                  href="mailto:{{emailSupport}}"
+                  >{{emailSupport}}</a
+                >
               </p>
             </div>
           </div>
         </div>
 
         <div class="liquid-glass-button">
-          <div class="flex flex-col items-center justify-center  w-full gap-y-2">
+          <div class="flex flex-col items-center justify-center w-full gap-y-2">
             <i class="fas fa-info-circle text-blue-500 w-6"></i>
-            <div class="w-full  text-center">
+            <div class="w-full text-center">
               <p class="text-sm font-medium text-white">Thông tin ứng dụng</p>
               <p class="text-sm text-gray-400">Phiên bản: {{appVersion}}</p>
             </div>
           </div>
-
         </div>
       </div>
     </div>

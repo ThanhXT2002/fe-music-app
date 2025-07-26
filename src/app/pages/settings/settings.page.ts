@@ -2,7 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlaylistService } from '../../services/playlist.service';
-import { AlertController } from '@ionic/angular';
+import { AlertController, Platform } from '@ionic/angular';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { Capacitor } from '@capacitor/core';
@@ -39,6 +39,7 @@ export class SettingsPage implements OnInit {
 
   currentSong = this.audioPlayerService.currentSong;
   isNative = Capacitor.isNativePlatform();
+  isPwa = Capacitor.getPlatform() === 'pwa';
   isLoadingImport = false;
   isLoadingExport = false;
   appVersion = environment.appVersion;
