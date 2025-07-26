@@ -90,13 +90,4 @@ Dự án sử dụng API backend riêng (FastAPI hoặc custom server) để l�
 - **Import/Export dữ liệu**: Backup/restore playlist, nhạc, audio.
 - **Tối ưu hiệu năng**: Cache thông minh, lazy load, responsive UI.
 
-## 📚 Tài liệu bổ sung
-
-- Xem thêm chi tiết về PWA, offline, database, ... trong các file:
-  - `PWA-README.md`
-  - `OFFLINE_DOWNLOAD_IMPLEMENTATION.md`
-  - `INDEXEDDB_INTEGRATION.md`
-
----
-
 **© 2025 XTMusic - ThanhXT2002**
