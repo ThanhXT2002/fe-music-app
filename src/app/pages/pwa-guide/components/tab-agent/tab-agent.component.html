@@ -14,10 +14,35 @@
     </button>
     }
   </div>
-  <div class="flex__between w-full gap-x-12">
+  <div class="flex__between flex-col lg:flex-row  w-full gap-x-4">
+    @for(item of listAgent; track item.id) {
+      <div class="w-full h-full mb-8 ">
+        <div
+          (click)="selectAgent(item)"
+          class="flex__start h-16 w-full gap-x-3 rounded-t-md border border-gray-400 bg-gray-700/70 p-4  "
+        >
+          <p
+            class="rounded-full w-7 h-7 flex__middle shrink-0 bgColorCommon font-semibold"
+          >
+            {{ item.id }}
+          </p>
+          <p class="">
+            {{ item.content }}
+          </p>
+        </div>
+        <div class="w-full p-2 border border-gray-400 border-t-0 rounded-b-md bg-gray-700/70">
+          <div class="w-full  border-8 border-black rounded-xl">
+            <img [src]="item.img" class="w-full h-full object-fit " alt="" />
+          </div>
+        </div>
+      </div>
+      }
+
+  </div>
+  <!-- <div class="flex__between w-full gap-x-12">
     <div class="w-full lg:w-1/2 h-full self-start">
       @for(item of listAgent; track item.id) {
-      <div class="w-full h-full mb-8">
+      <div class="w-full h-full mb-8 lg:mb-12">
         <div
           (click)="selectAgent(item)"
           class="flex__start w-full gap-x-3 rounded-md border border-gray-500 bg-gray-800/70 p-4  cursor-pointer lg:hover:bg-purple-500/50 lg:hover:border-white lg:hover:scale-105 transition-all duration-250 ease-linear text-gray-300 lg:hover:text-white"
@@ -43,5 +68,5 @@
         <img [src]="imgSelect" class="w-full" alt="" />
       </div>
     </div>
-  </div>
+  </div> -->
 </div>

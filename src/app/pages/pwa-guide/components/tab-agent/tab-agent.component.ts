@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
+import { Platform } from '@ionic/angular';
 
 @Component({
   selector: 'app-tab-agent',
@@ -22,12 +23,21 @@ export class TabAgentComponent implements OnInit {
   }
 
   listAgent: any[] = [];
-  imgSelect = 'assets/images/musical-note.webp';
+  imgSelect = 'assets/images/ios_1.webp';
 
-  constructor() {}
+  constructor(
+    private platform: Platform
+  ) {}
 
   ngOnInit() {
-    this.setTab('ios');
+    if( this.platform.is('ios') || this.platform.is('ipad') || this.platform.is('iphone') ) {
+      this.setTab('ios');
+
+    }else if (this.platform.is('android') || this.platform.is('tablet') || this.platform.is('mobileweb')) {
+      this.setTab('android');
+    } else {
+      this.setTab('ios');
+    }
     this.loadAgentContent();
   }
 
@@ -51,25 +61,20 @@ export class TabAgentComponent implements OnInit {
       items: [
         {
           id: 1,
-          content: 'Mở trình duyệt Safari trên iPhone hoặc iPad.',
-          img: 'assets/images/musical-note.webp',
+          content:
+            'Nhấn nút "Chia sẻ" ở phí dưới.',
+          img: 'assets/images/ios_1.webp',
         },
         {
           id: 2,
-          content: 'Truy cập vào website XTMusic.',
-          img: 'assets/images/musical-note.webp',
+          content:
+            'Chọn "Thêm vào màn hình chính".',
+          img: 'assets/images/ios_2.webp',
         },
-        {
+         {
           id: 3,
-          content:
-            'Nhấn nút "Chia sẻ" (Share) ở dưới cùng, chọn "Thêm vào Màn hình chính".',
-          img: 'assets/images/musical-note.webp',
-        },
-        {
-          id: 4,
-          content:
-            'Xác nhận và hoàn tất, biểu tượng XTMusic sẽ xuất hiện trên màn hình chính.',
-          img: 'assets/images/musical-note.webp',
+          content: 'Xác nhận "Thêm" để hoàn tất.',
+          img: 'assets/images/ios_3.webp',
         },
       ],
     },
@@ -78,25 +83,19 @@ export class TabAgentComponent implements OnInit {
       items: [
         {
           id: 1,
-          content: 'Mở trình duyệt Chrome trên thiết bị Android.',
-          img: 'assets/images/musical-note.webp',
+          content: 'Nhấn vào menu (3 chấm) ở góc trên bên phải.',
+          img: 'assets/images/android_1.webp',
         },
         {
           id: 2,
-          content: 'Truy cập vào website XTMusic.',
-          img: 'assets/images/musical-note.webp',
+          content: 'Chọn "Thêm vào màn hình chính".',
+          img: 'assets/images/android_2.webp',
         },
         {
           id: 3,
           content:
-            'Nhấn vào menu (3 chấm), chọn "Thêm vào Màn hình chính" hoặc "Cài đặt ứng dụng".',
-          img: 'assets/images/musical-note.webp',
-        },
-        {
-          id: 4,
-          content:
-            'Xác nhận và hoàn tất, biểu tượng XTMusic sẽ xuất hiện trên màn hình chính.',
-          img: 'assets/images/musical-note.webp',
+            'Chọn "Cài đặt ứng dụng" để hoàn tất.',
+          img: 'assets/images/android_3.webp',
         },
       ],
     },
