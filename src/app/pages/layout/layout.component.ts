@@ -20,7 +20,7 @@ import {
   IonModal,
   IonNav,
   IonRefresher,
-  IonRefresherContent
+  IonRefresherContent,
 } from '@ionic/angular/standalone';
 
 import { Platform } from '@ionic/angular';
@@ -28,10 +28,9 @@ import { RefreshService } from 'src/app/services/refresh.service';
 import { PlayerPage } from '../player/player.page';
 import { CurrentPlaylistComponent } from 'src/app/components/current-playlist/current-playlist.component';
 import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { NavbarBottomComponent } from "../../components/navbar-bottom/navbar-bottom.component";
-import { HeaderComponent } from "../../components/header/header.component";
-
-
+import { NavbarBottomComponent } from '../../components/navbar-bottom/navbar-bottom.component';
+import { HeaderComponent } from '../../components/header/header.component';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 @Component({
   selector: 'app-layout',
@@ -48,8 +47,8 @@ import { HeaderComponent } from "../../components/header/header.component";
     IonRefresherContent,
     CurrentPlaylistComponent,
     NavbarBottomComponent,
-    HeaderComponent
-],
+    HeaderComponent,
+  ],
   standalone: true,
   templateUrl: './layout.component.html',
   styleUrls: ['./layout.component.scss'],
@@ -86,23 +85,30 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
     private searchService: SearchService,
     private platform: Platform,
     private refreshService: RefreshService,
-    private playlistModalService: GlobalPlaylistModalService
+    private playlistModalService: GlobalPlaylistModalService,
+    private breakpointObserver: BreakpointObserver
   ) {
     // Đơn giản hóa - không cần subscribe signals phức tạp nữa
   }
-
 
   onWillPresentPlayer() {
     this.navPlayer.setRoot(PlayerPage);
   }
 
-  openSearchModal() {
-    this.searchModal.present();
+  openPlayerModal() {
+    this.breakpointObserver
+      .observe([Breakpoints.Tablet, Breakpoints.Web])
+      .subscribe((result) => {
+        if (result.matches) {
+          // Nếu là tablet trở lên
+          this.router.navigate(['/player']);
+        } else {
+          // Nếu là mobile
+          this.playerModal.present();
+        }
+      });
   }
 
-  openPlayerModal() {
-    this.playerModal.present();
-  }
   openPlaylistModal() {
     this.playlistModal.present();
   }
@@ -169,47 +175,6 @@ export class LayoutComponent implements OnDestroy, AfterViewInit {
 
   async nextSong() {
     await this.audioPlayerService.playNext();
-  }
-
-  openFullPlayer() {
-    this.router.navigate(['/player']);
-  }
-
-  toggleSearch() {
-    if (!this.showSearch) {
-      // Mở: cho hiện luôn và áp hiệu ứng
-      this.isVisible = true;
-      setTimeout(() => {
-        this.showSearch = true;
-      }, 10); // delay nhỏ để áp class `slide-down`
-    } else {
-      // Đóng: áp hiệu ứng trước rồi ẩn hẳn
-      this.showSearch = false;
-      setTimeout(() => {
-        this.isVisible = false;
-      }, 300); // chờ hiệu ứng `slide-up` xong rồi mới ẩn
-    }
-  }
-
-  async onSearchInput() {
-    if (this.searchQuery.trim().length < 2) {
-      this.searchResults = [];
-      return;
-    }
-
-    const results = await this.searchService.searchAll(this.searchQuery);
-    this.searchResults = results.songs.slice(0, 5); // Show top 5 results
-  }
-
-  clearSearch() {
-    this.searchQuery = '';
-    this.searchResults = [];
-  }
-
-  async selectSearchResult(song: Song) {
-    await this.audioPlayerService.playSong(song);
-    this.clearSearch();
-    this.showSearch = false;
   }
 
   onImageError(event: any): void {

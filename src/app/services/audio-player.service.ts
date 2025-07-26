@@ -1,11 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { Song, PlaybackState } from '../interfaces/song.interface';
 import { SavedPlaybackState } from '../interfaces/playback-state.interface';
-import { DatabaseService } from './database.service';
 import { IndexedDBService } from './indexeddb.service';
-import { Capacitor } from '@capacitor/core';
-import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import { Platform } from '@ionic/angular';
 import { CapacitorMusicControls } from 'capacitor-music-controls-plugin';
 import { DownloadService } from './download.service';
@@ -458,6 +454,7 @@ export class AudioPlayerService {
       });
     }
   }
+
   async resume() {
     try {
       if (this.audio.paused && this._playbackState().currentSong) {

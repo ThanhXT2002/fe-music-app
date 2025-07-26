@@ -8,6 +8,6 @@ import { Component, Output, EventEmitter, Input } from '@angular/core';
 export class PlayerHeaderComponent {
   @Output() back = new EventEmitter<void>();
   @Output() menu = new EventEmitter<void>();
-  @Input() title: string = 'NOW PLAYING';
+  @Input() title: string = 'ĐANG NGHE';
   @Input() subtitle: string = '_ ___ _';
 }

@@ -1,7 +1,8 @@
-<!-- Album Art -->
-<div class="flex-1 flex items-center justify-center mb-10">
+<div class="flex flex-col md:flex-row items-center justify-center h-full">
+  <!-- Album Art -->
+<div class="w-full md:w-1/2 flex items-center justify-center mb-10  max-w-md mx-auto">
   <div
-    class="w-[90%] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill"
+    class="w-[90%] max-w-[300px] aspect-square rounded-full overflow-hidden shadow-2xl spin-with-fill "
     [ngClass]="{ 'spin-paused': !isPlaying }"
   >
     @if(thumbnail){
@@ -15,9 +16,10 @@
   </div>
 </div>
 <!-- Song Info -->
-<div class="text-center  max-h-[100px] h-[100px] flex flex-col justify-end">
+<div class="md:w-1/2 text-center  max-h-[100px] h-[100px] flex flex-col justify-end">
   <h1 class="text-xl font-medium mb-2 text-white">
     {{ title || "No song selected" }}
   </h1>
   <p class="text-white/70">{{ artist || "Unknown Artist" }}</p>
+</div>
 </div>

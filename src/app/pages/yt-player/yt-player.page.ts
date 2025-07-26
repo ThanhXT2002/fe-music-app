@@ -23,7 +23,7 @@ import { BtnDownAndHeartComponent } from 'src/app/components/btn-down-and-heart/
 import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
 import { Song } from 'src/app/interfaces/song.interface';
 import { formatTime } from 'src/app/utils/format-time.util';
-import { PlaylistModalLayoutComponent } from "src/app/components/playlist-modal-layout/playlist-modal-layout.component";
+import { AudioPlayerService } from 'src/app/services/audio-player.service';
 
 @Component({
   selector: 'app-yt-player',
@@ -84,8 +84,11 @@ export class YtPlayerPage implements OnInit {
     private ngZone: NgZone,
     private cdr: ChangeDetectorRef,
     private location: Location,
-    private modalCtrl: ModalController
-  ) {}
+    private modalCtrl: ModalController,
+    private audioPlayerService: AudioPlayerService
+  ) {
+    this.audioPlayerService.pause()
+  }
 
   ngOnInit() {
     this.updateCurrentTrackFromParams();
