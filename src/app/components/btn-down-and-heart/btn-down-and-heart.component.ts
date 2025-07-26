@@ -16,7 +16,7 @@ import {
   DownloadTask,
 } from 'src/app/services/download.service';
 import { RefreshService } from 'src/app/services/refresh.service';
-import { Subscription } from 'rxjs';
+import { Subscription, takeWhile } from 'rxjs';
 import { PageContextService } from 'src/app/services/page-context.service';
 
 @Component({
@@ -36,10 +36,12 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
   @Input() song!: Song;
   get isLoading(): boolean {
-  return !!this.song && this.downloadService.loadingFallbackSongIds().has(this.song.id);
-}
+    return (
+      !!this.song &&
+      this.downloadService.loadingFallbackSongIds().has(this.song.id)
+    );
+  }
   isDownloaded: boolean = false;
-
 
   private songDownloadedSub?: Subscription;
   isSearchPage = false;
@@ -71,12 +73,14 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     // Lắng nghe trạng thái đã download từ service, phân biệt bài hát nào đang được hiển thị
-    this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(data => {
-      if (data && data.songId === this.song.id) {
-        this.isDownloaded = data.downloaded;
-         this.cdr.markForCheck();
+    this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(
+      (data) => {
+        if (data && data.songId === this.song.id) {
+          this.isDownloaded = data.downloaded;
+          this.cdr.markForCheck();
+        }
       }
-    });
+    );
     // Kiểm tra trạng thái ban đầu
     this.checkDownloaded();
     // Kiểm tra trạng thái ban đầu
@@ -125,19 +129,22 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
     try {
       await this.downloadService.downloadSong(song);
-      const sub = this.downloadService.downloads$.subscribe((downloads) => {
-        const task = downloads.find((d) => d.songData?.id === this.song.id);
-        if (task && task.status === 'completed') {
-          setTimeout(() => {
-            this.checkDownloaded();
-            this.refreshService.triggerRefresh();
-
-          }, 300);
-          sub.unsubscribe();
-
-
-        }
-      });
+      this.downloadService.downloads$
+        .pipe(
+          takeWhile((downloads) => {
+            const task = downloads.find((d) => d.songData?.id === this.song.id);
+            return !(task && task.status === 'completed');
+          }, true) // true: emit the last value when condition fails
+        )
+        .subscribe((downloads) => {
+          const task = downloads.find((d) => d.songData?.id === this.song.id);
+          if (task && task.status === 'completed') {
+            setTimeout(() => {
+              this.checkDownloaded();
+              this.refreshService.triggerRefresh();
+            }, 300);
+          }
+        });
     } catch (error) {
       console.error('Download failed:', error);
     }
