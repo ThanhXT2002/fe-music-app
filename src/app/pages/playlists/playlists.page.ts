@@ -26,7 +26,7 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './playlists.page.html',
   styleUrls: ['./playlists.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, MediaCardComponent]
+  imports: [CommonModule, FormsModule, MediaCardComponent, RouterLink],
 })
 export class PlaylistsPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
