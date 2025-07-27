@@ -166,6 +166,7 @@ export class YtPlayerPage implements OnInit {
       },
       error: (err) => {
         console.error('Error fetching playlist with related:', err);
+        this.router.navigate(['/oops-404']);
       },
     });
   }
