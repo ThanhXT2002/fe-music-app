@@ -34,6 +34,8 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
   private pageContext = inject(PageContextService);
 
+  private downloadStatusSub?: Subscription;
+
   @Input() song!: Song;
   get isLoading(): boolean {
     return (
@@ -89,6 +91,8 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.songDownloadedSub?.unsubscribe();
+    this.songDownloadedSub?.unsubscribe();
+    this.downloadStatusSub?.unsubscribe();
   }
 
   async checkDownloaded() {
@@ -129,12 +133,16 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
 
     try {
       await this.downloadService.downloadSong(song);
-      this.downloadService.downloads$
+
+      // Hủy subscription cũ nếu có
+      this.downloadStatusSub?.unsubscribe();
+
+      this.downloadStatusSub = this.downloadService.downloads$
         .pipe(
           takeWhile((downloads) => {
             const task = downloads.find((d) => d.songData?.id === this.song.id);
             return !(task && task.status === 'completed');
-          }, true) // true: emit the last value when condition fails
+          }, true)
         )
         .subscribe((downloads) => {
           const task = downloads.find((d) => d.songData?.id === this.song.id);
