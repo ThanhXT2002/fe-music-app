@@ -368,7 +368,7 @@ export class PlaylistsPage implements OnInit, OnDestroy {
   }
 
   onImageError(event: any): void {
-    event.target.src = 'assets/images/musical-note.webp';
+    event.target.src = 'assets/images/background.webp';
   }
 
   // ✅ Setup effect to watch current song changes

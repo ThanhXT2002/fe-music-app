@@ -43,11 +43,11 @@ export class MediaCardComponent {
   }
 
   onImageError(event: any) {
-    event.target.src = 'assets/images/musical-note.webp';
+    event.target.src = 'assets/images/background.webp';
   }
 
   getImageSrc(): string {
-    return this.item.thumbnail || (this.item as any).thumbnail_url || 'assets/images/musical-note.webp';
+    return this.item.thumbnail || (this.item as any).thumbnail_url || 'assets/images/background.webp';
   }
 
   get displayName(): string {

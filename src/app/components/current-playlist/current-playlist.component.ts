@@ -260,7 +260,7 @@ export class CurrentPlaylistComponent implements OnInit, OnDestroy {
 
 
   onImageError(event: any): void {
-    event.target.src = './assets/images/musical-note.webp';
+    event.target.src = './assets/images/background.webp';
   }
 
   onIonReorder(event: CustomEvent<ItemReorderEventDetail>) {

@@ -96,7 +96,7 @@ export class AppComponent implements OnInit {
   }
 
   onImageError(event: any): void {
-    event.target.src = '/assets/images/img-body.webp';
+    event.target.src = '/assets/images/background.webp';
   }
 
   private async requestNativePermissions(): Promise<void> {

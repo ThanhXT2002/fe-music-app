@@ -15,7 +15,7 @@ export class PlayerInfoComponent {
   @Input() isPlaying: boolean = false;
 
     onImageError(event: any): void {
-    event.target.src = 'assets/images/musical-note.webp';
+    event.target.src = 'assets/images/background.webp';
   }
 
 }
