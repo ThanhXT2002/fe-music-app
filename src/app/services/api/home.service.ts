@@ -2,7 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable, of } from "rxjs";
 import { tap, catchError, map } from "rxjs/operators";
-import { Song, SongsResponse, DataSong } from "src/app/interfaces/song.interface";
+import { Song, SongsResponse } from "src/app/interfaces/song.interface";
 import { SongConverter } from "src/app/utils/song.converter";
 import { environment } from "src/environments/environment";
 

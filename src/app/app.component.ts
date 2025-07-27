@@ -1,57 +1,56 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PWAService } from './services/pwa.service';
-import {
-  IonApp,
-  IonRouterOutlet,
-  IonModal,
-  IonContent,
-} from '@ionic/angular/standalone';
+import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { Platform } from '@ionic/angular';
-import { SafeAreaService } from './services/safe-area.service';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
 import { AudioPlayerService } from './services/audio-player.service';
-import { getRedirectResult } from '@angular/fire/auth';
-import { AuthService } from './services/auth.service';
-import { LoadingComponent } from "./components/loading/loading.component";
-import { PwaGuidePage } from "./pages/pwa-guide/pwa-guide.page";
+import { LoadingComponent } from './components/loading/loading.component';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-
+import { HealthCheckService } from './services/api/health-check.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
-  imports: [IonRouterOutlet, IonApp, CommonModule, LoadingComponent,FormsModule],
+  imports: [
+    IonRouterOutlet,
+    IonApp,
+    CommonModule,
+    LoadingComponent,
+    FormsModule,
+  ],
   standalone: true,
 })
 export class AppComponent implements OnInit {
   private audioPlayerService = inject(AudioPlayerService);
+  private healthCheckService = inject(HealthCheckService);
   currentSong = this.audioPlayerService.currentSong;
 
   isNative = Capacitor.isNativePlatform();
   isDesktop = this.platform.is('desktop');
 
   // Biến trạng thái modal
-hideMobileNotice: boolean = false;
-dontShowMobileNotice: boolean = false;
+  hideMobileNotice: boolean = false;
+  dontShowMobileNotice: boolean = false;
 
   constructor(
     private pwaService: PWAService,
-    private safeAreaService: SafeAreaService,
     private platform: Platform,
     private dbService: DatabaseService,
     private permissionService: PermissionService,
-    private authService: AuthService,
     private router: Router
-  ) {}
+  ) {
+    this.actionHealthCheck();
+  }
 
   ngOnInit() {
-    console.log(this.isDesktop);
+    console.log(navigator.onLine);
+
     this.initializeApp();
     this.pwaService.onNetworkStatusChange();
 
@@ -60,7 +59,7 @@ dontShowMobileNotice: boolean = false;
     }, 30 * 60 * 1000);
 
     this.dontShowMobileNotice = !!localStorage.getItem('hideMobileNotice');
-  this.hideMobileNotice = this.dontShowMobileNotice;
+    this.hideMobileNotice = this.dontShowMobileNotice;
   }
 
   async initializeApp() {
@@ -76,22 +75,25 @@ dontShowMobileNotice: boolean = false;
     }
   }
 
+  actionHealthCheck() {
+    if (!this.healthCheckService.isHealthy() || !navigator.onLine) {
+      this.router.navigate(['/tabs/list']);
+    }
+  }
 
   onDontShowAgainChange() {
-  if (this.dontShowMobileNotice) {
-    localStorage.setItem('hideMobileNotice', '1');
-  } else {
-    localStorage.removeItem('hideMobileNotice');
+    if (this.dontShowMobileNotice) {
+      localStorage.setItem('hideMobileNotice', '1');
+    } else {
+      localStorage.removeItem('hideMobileNotice');
+    }
   }
-}
 
-// Khi nhấn "Xem hướng dẫn cài đặt"
-goToGuide() {
-  this.hideMobileNotice = true;
-  this.router.navigate(['/pwa-guide']);
-
-}
-
+  // Khi nhấn "Xem hướng dẫn cài đặt"
+  goToGuide() {
+    this.hideMobileNotice = true;
+    this.router.navigate(['/pwa-guide']);
+  }
 
   onImageError(event: any): void {
     event.target.src = '/assets/images/img-body.webp';

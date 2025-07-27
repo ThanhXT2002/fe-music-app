@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
   Playlist,
-  SystemPlaylist,
   CreatePlaylistRequest,
   PlaylistStats,
   PlaylistExport

@@ -12,7 +12,6 @@ export class PWAService {
 
   constructor(
     private swUpdate: SwUpdate,
-    private alertController: AlertController,
     private toastService: ToastService,
     private platform: Platform
   ) {
