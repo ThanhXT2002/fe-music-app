@@ -374,6 +374,7 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
     return await this.indexedDB.clear('search_history');
   }
+  
   // Utility methods
   async clearAllData(): Promise<boolean> {
     if (!this.isDbReady) return false;
@@ -387,6 +388,8 @@ export class DatabaseService {
       await this.indexedDB.clear('songs');
       await this.indexedDB.clear('playlists');
       await this.indexedDB.clear('search_history');
+      await this.indexedDB.clear('audioFiles');
+      await this.indexedDB.clear('downloads');
       return true;
     } catch (error) {
       console.error('❌ Error clearing IndexedDB data:', error);

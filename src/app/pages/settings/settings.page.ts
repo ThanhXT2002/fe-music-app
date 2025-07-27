@@ -14,6 +14,7 @@ import { ToastService } from 'src/app/services/toast.service';
 import { Router } from '@angular/router';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { environment } from 'src/environments/environment';
+import { DatabaseService } from 'src/app/services/database.service';
 
 @Component({
   selector: 'app-settings',
@@ -28,7 +29,7 @@ import { environment } from 'src/environments/environment';
   animations: [routeAnimation],
 })
 export class SettingsPage implements OnInit {
-  private playlistService = inject(PlaylistService);
+  private databaseService = inject(DatabaseService);
   private alertController = inject(AlertController);
   private audioPlayerService = inject(AudioPlayerService);
   private downloadService = inject(DownloadService);
@@ -64,7 +65,7 @@ export class SettingsPage implements OnInit {
           text: 'Xóa tất cả',
           role: 'destructive',
           handler: async () => {
-            const success = await this.playlistService.clearAllDatabase();
+            const success = await this.databaseService.clearAllData();
             if (success) {
               this.downloadService.resetNotificationState();
               const alert = await this.alertController.create({
