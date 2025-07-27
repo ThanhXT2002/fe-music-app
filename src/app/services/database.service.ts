@@ -380,10 +380,7 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
     try {
       // Clear cache first
-      this.playlistsCache = null;
-      this.playlistsCacheTime = 0;
-      this.songsCache = null;
-      this.songsCacheTime = 0;
+      this.clearAllCache();
       // Clear all tables
       await this.indexedDB.clear('songs');
       await this.indexedDB.clear('playlists');
