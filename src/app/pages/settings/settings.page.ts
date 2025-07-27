@@ -1,13 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PlaylistService } from '../../services/playlist.service';
-import { AlertController, Platform } from '@ionic/angular';
+import { AlertController } from '@ionic/angular';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { Capacitor } from '@capacitor/core';
 import { AudioPlayerService } from '../../services/audio-player.service';
-import { DownloadService } from '../../services/download.service';
 import { AccountPanelComponent } from 'src/app/components/account-panel/account-panel.component';
 import { SaveFileZipService } from 'src/app/services/save-file-zip.service';
 import { ToastService } from 'src/app/services/toast.service';
@@ -32,7 +30,6 @@ export class SettingsPage implements OnInit {
   private databaseService = inject(DatabaseService);
   private alertController = inject(AlertController);
   private audioPlayerService = inject(AudioPlayerService);
-  private downloadService = inject(DownloadService);
   private saveFileZipService = inject(SaveFileZipService);
   private toastService = inject(ToastService);
   private refreshService = inject(RefreshService);
@@ -48,6 +45,35 @@ export class SettingsPage implements OnInit {
   appName = environment.appName;
 
   ngOnInit() {}
+
+  async clearCache() {
+    const confirm = await this.alertController.create({
+      mode: 'ios',
+      header: 'Xóa cache',
+      message:
+        'Thao tác này sẽ xóa cache thông báo và reset trạng thái download. Tiếp tục?',
+      buttons: [
+        {
+          text: 'Hủy',
+          role: 'cancel',
+        },
+        {
+          text: 'Xóa cache',
+          handler: async () => {
+            this.databaseService.clearAllCache();
+            const alert = await this.alertController.create({
+              mode: 'ios',
+              header: 'Thành công',
+              message: 'Đã xóa cache thành công!',
+              buttons: ['Đóng'],
+            });
+            await alert.present();
+          },
+        },
+      ],
+    });
+    await confirm.present();
+  }
 
   // Database Management
   async clearDatabase() {
@@ -90,7 +116,9 @@ export class SettingsPage implements OnInit {
     if (this.isNative) {
       locationFile = 'Documents';
     }
-    this.toastService.success(`Đã sao lưu dữ liệu vào thư mục ${locationFile}!`);
+    this.toastService.success(
+      `Đã sao lưu dữ liệu vào thư mục ${locationFile}!`
+    );
     this.isLoadingExport = false;
   }
 
@@ -113,7 +141,6 @@ export class SettingsPage implements OnInit {
     input.click();
   }
 
-
   async showPrivacyPolicy() {
     await this.router.navigate(['/privacy-policy']);
   }
@@ -122,37 +149,7 @@ export class SettingsPage implements OnInit {
     await this.router.navigate(['/terms-of-service']);
   }
 
-
-  async clearCache() {
-    const confirm = await this.alertController.create({
-      mode: 'ios',
-      header: 'Xóa cache',
-      message:
-        'Thao tác này sẽ xóa cache thông báo và reset trạng thái download. Tiếp tục?',
-      buttons: [
-        {
-          text: 'Hủy',
-          role: 'cancel',
-        },
-        {
-          text: 'Xóa cache',
-          handler: async () => {
-            this.databaseService.clearAllCache();
-            const alert = await this.alertController.create({
-              mode: 'ios',
-              header: 'Thành công',
-              message: 'Đã xóa cache thành công!',
-              buttons: ['Đóng'],
-            });
-            await alert.present();
-          },
-        },
-      ],
-    });
-    await confirm.present();
-  }
-
-  goToPwaGuide(){
+  goToPwaGuide() {
     this.router.navigate(['/pwa-guide']);
   }
 }
