@@ -138,7 +138,7 @@ export class SettingsPage implements OnInit {
         {
           text: 'Xóa cache',
           handler: async () => {
-            this.downloadService.resetNotificationState();
+            this.databaseService.clearAllCache();
             const alert = await this.alertController.create({
               mode: 'ios',
               header: 'Thành công',

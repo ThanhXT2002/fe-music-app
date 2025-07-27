@@ -5,7 +5,7 @@ import {
   Artist,
   Playlist,
   SearchHistoryItem,
-  DataSong
+  DataSong,
 } from '../interfaces/song.interface';
 import { IndexedDBService } from './indexeddb.service';
 import { RefreshService } from './refresh.service';
@@ -141,8 +141,6 @@ export class DatabaseService {
     }
   }
 
-
-
   /**
    * Lấy bài hát theo ID
    */
@@ -198,7 +196,11 @@ export class DatabaseService {
           playlist.songs = playlist.songs.filter((songItem) => {
             if (typeof songItem === 'string') {
               return songItem !== id;
-            } else if (songItem && typeof songItem === 'object' && 'id' in songItem) {
+            } else if (
+              songItem &&
+              typeof songItem === 'object' &&
+              'id' in songItem
+            ) {
               return songItem.id !== id;
             }
             return true;
@@ -279,17 +281,17 @@ export class DatabaseService {
    * Lấy bài hát đã download (offline) - check bằng URL pattern
    */
   async getDownloadedSongs(): Promise<Song[]> {
-  const allSongs = await this.getAllSongs();
-  // Kiểm tra tồn tại file audio cho từng bài hát
-  const checks = await Promise.all(
-    allSongs.map(async (song) => {
-      const hasAudio = await this.indexedDB.hasFile('audioFiles', song.id);
-      return hasAudio ? song : null;
-    })
-  );
-  // Lọc ra những bài hát thực sự có file audio
-  return checks.filter((s): s is Song => !!s);
-}
+    const allSongs = await this.getAllSongs();
+    // Kiểm tra tồn tại file audio cho từng bài hát
+    const checks = await Promise.all(
+      allSongs.map(async (song) => {
+        const hasAudio = await this.indexedDB.hasFile('audioFiles', song.id);
+        return hasAudio ? song : null;
+      })
+    );
+    // Lọc ra những bài hát thực sự có file audio
+    return checks.filter((s): s is Song => !!s);
+  }
   // Playlist operations
   async addPlaylist(playlist: Playlist): Promise<boolean> {
     if (!this.isDbReady) return false;
@@ -374,7 +376,7 @@ export class DatabaseService {
     if (!this.isDbReady) return false;
     return await this.indexedDB.clear('search_history');
   }
-  
+
   // Utility methods
   async clearAllData(): Promise<boolean> {
     if (!this.isDbReady) return false;
@@ -395,6 +397,14 @@ export class DatabaseService {
       console.error('❌ Error clearing IndexedDB data:', error);
       return false;
     }
+  }
+
+  clearAllCache(): void {
+    this.songsCache = null;
+    this.songsCacheTime = 0;
+    this.playlistsCache = null;
+    this.playlistsCacheTime = 0;
+    localStorage.clear();
   }
 
   isReady(): boolean {
