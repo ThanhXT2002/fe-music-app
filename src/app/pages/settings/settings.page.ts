@@ -47,6 +47,7 @@ export class SettingsPage implements OnInit {
   ngOnInit() {}
 
   async clearCache() {
+    console.log('Clearing cache...');
     const confirm = await this.alertController.create({
       mode: 'ios',
       header: 'Xóa cache',
@@ -60,6 +61,7 @@ export class SettingsPage implements OnInit {
         {
           text: 'Xóa cache',
           handler: async () => {
+            console.log('Clearing cache...2');
             this.databaseService.clearAllCache();
             this.toastService.success(
               `Đã xóa cache thành công!`
