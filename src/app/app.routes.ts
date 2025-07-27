@@ -44,7 +44,7 @@ export const routes: Routes = [
           import('./pages/playlists/playlists.page').then(
             (m) => m.PlaylistsPage
           ),
-      }
+      },
     ],
   },
   {
@@ -56,13 +56,6 @@ export const routes: Routes = [
     path: 'search',
     loadComponent: () =>
       import('./pages/search/search.page').then((m) => m.SearchPage),
-  },
-  {
-    path: 'database-test',
-    loadComponent: () =>
-      import('./pages/database-test/database-test.page').then(
-        (m) => m.DatabaseTestPage
-      ),
   },
   {
     path: 'privacy-policy',
@@ -98,10 +91,19 @@ export const routes: Routes = [
       import('./pages/yt-player/yt-player.page').then((m) => m.YtPlayerPage),
   },
   {
-        path: 'pwa-guide',
-        loadComponent: () =>
-          import('./pages/pwa-guide/pwa-guide.page').then(
-            (m) => m.PwaGuidePage
-          ),
-      },
+    path: 'pwa-guide',
+    loadComponent: () =>
+      import('./pages/pwa-guide/pwa-guide.page').then((m) => m.PwaGuidePage),
+  },
+  {
+    path: 'oops-404',
+    loadComponent: () =>
+      import('./pages/oops-404/oops-404.page').then((m) => m.Oops404Page),
+  },
+  // Wildcard route cho 404
+  {
+    path: '**',
+    redirectTo: 'oops-404',
+    pathMatch: 'full',
+  },
 ];
