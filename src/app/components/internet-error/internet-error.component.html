@@ -1,18 +1,14 @@
-
-<div class="container bg-[#0f0f1a] bg-grid relative min-h-screen flex flex-col justify-center items-center">
+<div class="bg-[#0f0f1a] bg-grid relative min-h-screen flex flex-col justify-center items-center w-full">
   <!-- Neon Blobs Background -->
   <div class="blob bg-[#ff00ff]/20 w-96 h-96 top-0 left-0 absolute"></div>
   <div class="blob bg-[#00ffff]/20 w-96 h-96 bottom-0 right-0 absolute"></div>
   <div class="blob bg-[#8b5cf6]/20 w-96 h-96 bottom-1/4 left-1/4 absolute"></div>
-  <!-- Glow Effect -->
-  <div class="glow top-0 left-1/2 -translate-x-1/2 absolute"></div>
-  <div class="glow bottom-0 left-1/2 -translate-x-1/2 absolute"></div>
 
-
-  <div class="relative z-10 flex flex-col items-center justify-center w-full px-4">
+  <div class="relative z-10 flex flex-col items-center justify-center -translate-y-20 w-full px-4">
     <!-- Logo -->
     <div class="mb-8 relative animate__animated animate__fadeInDown">
       <div class="text-4xl font-bold flex items-center drop-shadow-[0_2px_16px_rgba(255,0,255,0.4)]">
+        <!-- <span class="text-[#ff00ff]">XT</span><span class="text-white">Music</span> -->
         <h1
         class="font-extrabold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent"
       >
@@ -22,7 +18,7 @@
       </div>
     </div>
 
-    <!-- 404 Content -->
+    <!-- Internet Error Content -->
     <div class="text-center">
       <div class="flex items-center justify-center mb-6">
         <!-- Vinyl record 3D -->
@@ -37,37 +33,20 @@
             <circle cx="60" cy="60" r="20" fill="none" stroke="#555" stroke-width="0.5" />
           </svg>
         </div>
-        <!-- 404 Text -->
-        <h1 class="text-404 text-9xl font-bold glitch animate__animated animate__fadeIn animate-404-dance" data-text="404">404</h1>
+        <!-- Internet Error Text -->
+        <h1 class="text-404 text-9xl font-bold   animate__fadeIn " data-text="OFF">OFF</h1>
       </div>
       <h2 class="text-2xl md:text-3xl font-semibold mb-4 text-white animate__animated animate__fadeInUp">
-        <span class="text-[#00ffff]">Rất tiếc!</span> Giai điệu đã biến mất
+        <span class="text-[#00ffff]">Không có kết nối!</span> Bạn đang offline
       </h2>
       <p class="text-gray-300 max-w-md mx-auto mb-8 animate__animated animate__fadeInUp animate__delay-1s">
-        Bản nhạc bạn tìm kiếm không tồn tại hoặc đã bị xóa khỏi playlist của chúng tôi.<br/>
-        Hãy quay lại trang chủ hoặc khám phá thêm các bản nhạc khác nhé!
+        Kết nối Internet của bạn đã bị gián đoạn hoặc mất mạng.<br/>
+        Vui lòng kiểm tra lại kết nối và thử tải lại trang để tiếp tục nghe nhạc!
       </p>
-      <!-- Buttons -->
-      <div class="flex flex-col md:flex-row gap-4 justify-center animate__animated animate__fadeInUp animate__delay-2s">
-        <a routerLink="/" class="btn-hover bg-transparent border border-[#00ffff] text-[#00ffff] px-8 py-3 rounded-full font-medium hover:bg-[#00ffff]/10 transition-all">
-          Về trang chủ
-        </a>
-      </div>
-    </div>
 
-    <!-- Music controls -->
-    <div class="mt-12 flex items-center gap-4 animate__animated animate__fadeInUp animate__delay-3s">
-      <button id="playButton" class="w-12 h-12 rounded-full bg-[#8b5cf6] flex items-center justify-center hover:bg-[#7c4dff] transition-all shadow-lg active:scale-90 animate-bounce" style="box-shadow:0 0 32px #8b5cf6;">
-        <i class="fas fa-play text-white"></i>
-      </button>
-      <div class="h-1 w-48 bg-gray-700 rounded-full overflow-hidden animate-float-bar">
-        <div class="h-full w-1/3 bg-gradient-to-r from-[#ff00ff] to-[#00ffff] animate-pulse"></div>
-      </div>
     </div>
   </div>
 
-  <!-- Music notes container (for animation, optional) -->
-  <div id="musicNotes" class="absolute inset-0 pointer-events-none"></div>
   <!-- Music notes container (for animation, optional) -->
   <div id="musicNotes" class="absolute inset-0 pointer-events-none"></div>
 </div>

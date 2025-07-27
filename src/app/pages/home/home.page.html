@@ -1,4 +1,11 @@
-<div class="overflow-y-auto scrollbar-hide bg-page">
+@if(!isOnline){
+<app-internet-error />
+}
+@else if(!isHealthy()){
+<app-oops-505/>
+}
+@else {
+  <div class="overflow-y-auto scrollbar-hide bg-page">
   <!-- Main Container -->
   <div class="space-y-8 mt-3"
   >
@@ -45,3 +52,5 @@
     <app-footer></app-footer>
   </div>
 </div>
+}
+

@@ -1,4 +1,4 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, OnInit } from '@angular/core';
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -17,6 +17,9 @@ import {
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from 'src/app/services/database.service';
+import { InternetErrorComponent } from "src/app/components/internet-error/internet-error.component";
+import { HealthCheckService } from 'src/app/services/api/health-check.service';
+import { Oops505Component } from "src/app/components/oops-505/oops-505.component";
 
 @Component({
   selector: 'app-home',
@@ -28,27 +31,34 @@ import { DatabaseService } from 'src/app/services/database.service';
     CommonModule,
     FormsModule,
     FooterComponent,
-    SongSectionComponent
-  ],
+    SongSectionComponent,
+    InternetErrorComponent,
+    Oops505Component
+],
 })
 export class HomePage implements OnInit {
+   private healthCheckService = inject(HealthCheckService)
   listEveryoneToListens: Song[] = [];
   listRemixSongs: Song[] = [];
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
   isCurrentSong: boolean = false;
-  pbCustom!: string; // Default padding for non-current song
+  pbCustom!: string;
+
+  isOnline = navigator.onLine;
+  isHealthy = this.healthCheckService.isHealthy;
 
   constructor(
     private homeService: HomeService,
     private databaseService: DatabaseService,
     public audioPlayerService: AudioPlayerService,
-    private platform: Platform
+    private platform: Platform,
   ) {
     this.isCurrentSong = !!this.audioPlayerService.currentSong();
   }
 
   ngOnInit() {
+    console.log(this.isHealthy);
 
     if(Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song

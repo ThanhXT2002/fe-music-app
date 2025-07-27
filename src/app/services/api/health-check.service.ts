@@ -20,10 +20,11 @@ export class HealthCheckService {
     // Kiểm tra trạng thái sức khỏe khi khởi tạo service
     this.checkHealth().subscribe({
       next: (response) => {
+        console.log('Health check response:', response);
         this.isHealthy.set(response.success) ;
       },
       error: () => {
-         this.isHealthy.set(false) ;
+         this.isHealthy.set(false);
       }
     });
   }
@@ -31,8 +32,6 @@ export class HealthCheckService {
   checkHealth(): Observable<HealthCheckResponse> {
     return this.http.get<HealthCheckResponse>(this.apiUrl);
   }
-
-
 }
 
 

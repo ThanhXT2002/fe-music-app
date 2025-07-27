@@ -49,8 +49,6 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
-    console.log(navigator.onLine);
-
     this.initializeApp();
     this.pwaService.onNetworkStatusChange();
 
