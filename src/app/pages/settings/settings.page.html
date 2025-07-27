@@ -159,7 +159,7 @@
         <h2 class="liquid-glass-title">Giới thiệu & Hỗ trợ</h2>
       </div>
       <div class="liquid-glass-content space-y-3">
-        @if(!isNative && isPwa) {
+        @if(!isNative && !isPwa) {
         <button (click)="goToPwaGuide()" class="liquid-glass-button">
           <div class="flex items-center">
             <i class="fas fa-person-chalkboard text-blue-500 w-6"></i>
