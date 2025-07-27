@@ -30,7 +30,7 @@ import { Subject } from 'rxjs';
 })
 export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
-  downloadService = inject(DownloadService);
+  public downloadService = inject(DownloadService);
   private clipboardService = inject(ClipboardService);
   private alertController = inject(AlertController);
   private toastService = inject(ToastService);
