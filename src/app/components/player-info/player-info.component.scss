@@ -1,0 +1,9 @@
+.wImg {
+  @media (min-width: 300px) {
+    max-width: 220px;
+  }
+
+  @media (min-width: 385px) {
+    max-width: 345px;
+  }
+}
