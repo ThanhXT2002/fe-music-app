@@ -12,7 +12,7 @@ import {
 import { DataSong, SearchHistoryItem } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { ToastService } from 'src/app/services/toast.service';
-import { AlertController } from '@ionic/angular/standalone';
+// import { AlertController } from '@ionic/angular/standalone';
 import { firstValueFrom, takeUntil } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { SongItemComponent } from '../../components/song-item/song-item.component';
@@ -30,7 +30,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
   private databaseService = inject(DatabaseService);
   public downloadService = inject(DownloadService);
   private clipboardService = inject(ClipboardService);
-  private alertController = inject(AlertController);
+  // private alertController = inject(AlertController);
   private toastService = inject(ToastService);
   private platform = inject(Platform);
 
@@ -425,9 +425,9 @@ export class DownloadsPage implements OnInit, OnDestroy {
           clipboardText = result.content;
         } else if (result.error) {
           if (result.error === 'PERMISSION_DENIED') {
-            await this.showPermissionDeniedInstructions();
+            // await this.showPermissionDeniedInstructions();
           } else if (result.error === 'NOT_SUPPORTED') {
-            await this.showManualPasteInstructions();
+            // await this.showManualPasteInstructions();
           } else {
             this.toastService.warning(
               'Không thể đọc clipboard. Vui lòng paste thủ công.'
@@ -453,7 +453,7 @@ export class DownloadsPage implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Paste failed:', error);
-      await this.showManualPasteInstructions();
+      // await this.showManualPasteInstructions();
     } finally {
       this.isClipboardLoading.set(false);
     }
@@ -461,133 +461,133 @@ export class DownloadsPage implements OnInit, OnDestroy {
   /**
    * Hiển thị hướng dẫn paste thủ công với giao diện thân thiện theo platform
    */
-  private async showManualPasteInstructions() {
-    let message = '';
-    let header = '📋 Paste thủ công';
+//   private async showManualPasteInstructions() {
+//     let message = '';
+//     let header = '📋 Paste thủ công';
 
-    if (Capacitor.isNativePlatform()) {
-      // Native Android/iOS
-      if (this.platform.is('android')) {
-        header = '📱 Android - Hướng dẫn paste';
-        message = `Không thể đọc clipboard tự động.
+//     if (Capacitor.isNativePlatform()) {
+//       // Native Android/iOS
+//       if (this.platform.is('android')) {
+//         header = '📱 Android - Hướng dẫn paste';
+//         message = `Không thể đọc clipboard tự động.
 
-Cách paste:
-• Nhấn giữ vào ô tìm kiếm
-• Chọn "Dán" từ menu`;
-      } else if (this.platform.is('ios')) {
-        header = '📱 iOS - Hướng dẫn paste';
-        message = `Không thể đọc clipboard tự động.
+// Cách paste:
+// • Nhấn giữ vào ô tìm kiếm
+// • Chọn "Dán" từ menu`;
+//       } else if (this.platform.is('ios')) {
+//         header = '📱 iOS - Hướng dẫn paste';
+//         message = `Không thể đọc clipboard tự động.
 
-Cách paste:
-• Nhấn giữ vào ô tìm kiếm
-• Chọn "Paste" từ menu`;
-      } else {
-        // Native khác
-        header = '📱 Hướng dẫn paste';
-        message = `Không thể đọc clipboard tự động.
+// Cách paste:
+// • Nhấn giữ vào ô tìm kiếm
+// • Chọn "Paste" từ menu`;
+//       } else {
+//         // Native khác
+//         header = '📱 Hướng dẫn paste';
+//         message = `Không thể đọc clipboard tự động.
 
-Cách paste:
-• Nhấn giữ vào ô tìm kiếm
-• Chọn "Dán" từ menu`;
-      }
-    } else {
-      // Web/PWA - detect desktop vs mobile
-      if (this.platform.is('desktop')) {
-        header = '�️ Hướng dẫn paste trên Desktop';
-        // Detect Mac vs Windows/Linux through user agent
-        const isMac = navigator.userAgent.includes('Mac');
-        if (isMac) {
-          message = `Không thể đọc clipboard tự động.
+// Cách paste:
+// • Nhấn giữ vào ô tìm kiếm
+// • Chọn "Dán" từ menu`;
+//       }
+//     } else {
+//       // Web/PWA - detect desktop vs mobile
+//       if (this.platform.is('desktop')) {
+//         header = '�️ Hướng dẫn paste trên Desktop';
+//         // Detect Mac vs Windows/Linux through user agent
+//         const isMac = navigator.userAgent.includes('Mac');
+//         if (isMac) {
+//           message = `Không thể đọc clipboard tự động.
 
-Cách paste trên Mac:
-• Nhấn Cmd+V vào ô tìm kiếm
-• Hoặc chuột phải và chọn "Paste"`;
-        } else {
-          message = `Không thể đọc clipboard tự động.
+// Cách paste trên Mac:
+// • Nhấn Cmd+V vào ô tìm kiếm
+// • Hoặc chuột phải và chọn "Paste"`;
+//         } else {
+//           message = `Không thể đọc clipboard tự động.
 
-Cách paste trên Windows/Linux:
-• Nhấn Ctrl+V vào ô tìm kiếm
-• Hoặc chuột phải và chọn "Paste"`;
-        }
-      } else {
-        // Mobile web
-        header = '📱 Mobile Browser - Hướng dẫn paste';
-        message = `Không thể đọc clipboard tự động.
+// Cách paste trên Windows/Linux:
+// • Nhấn Ctrl+V vào ô tìm kiếm
+// • Hoặc chuột phải và chọn "Paste"`;
+//         }
+//       } else {
+//         // Mobile web
+//         header = '📱 Mobile Browser - Hướng dẫn paste';
+//         message = `Không thể đọc clipboard tự động.
 
-Cách paste:
-• Nhấn giữ vào ô tìm kiếm
-• Chọn "Dán" từ menu
-• Có thể cần cho phép quyền clipboard`;
-      }
-    }
+// Cách paste:
+// • Nhấn giữ vào ô tìm kiếm
+// • Chọn "Dán" từ menu
+// • Có thể cần cho phép quyền clipboard`;
+//       }
+//     }
 
-    const alert = await this.alertController.create({
-      mode: 'ios',
-      header,
-      message,
-      buttons: [
-        {
-          text: 'Thử lại',
-          cssClass: 'alert-button-confirm',
-          handler: () => {
-            this.onPaste(); // Thử lại
-          },
-        },
-        {
-          text: 'OK',
-          handler: () => {
-            this.focusSearchInput();
-          },
-        },
-      ],
-      cssClass: 'custom-info-alert',
-    });
+//     const alert = await this.alertController.create({
+//       mode: 'ios',
+//       header,
+//       message,
+//       buttons: [
+//         {
+//           text: 'Thử lại',
+//           cssClass: 'alert-button-confirm',
+//           handler: () => {
+//             this.onPaste(); // Thử lại
+//           },
+//         },
+//         {
+//           text: 'OK',
+//           handler: () => {
+//             this.focusSearchInput();
+//           },
+//         },
+//       ],
+//       cssClass: 'custom-info-alert',
+//     });
 
-    await alert.present();
-  }
+//     await alert.present();
+//   }
 
   /**
    * Hiển thị hướng dẫn khi permission bị từ chối
    */
-  private async showPermissionDeniedInstructions() {
-    const alert = await this.alertController.create({
-      mode: 'ios',
-      header: '🔐 Quyền clipboard bị từ chối',
-      message: `Trình duyệt đã từ chối quyền đọc clipboard.
+//   private async showPermissionDeniedInstructions() {
+//     const alert = await this.alertController.create({
+//       mode: 'ios',
+//       header: '🔐 Quyền clipboard bị từ chối',
+//       message: `Trình duyệt đã từ chối quyền đọc clipboard.
 
-Cách bật quyền:
+// Cách bật quyền:
 
-Chrome/Edge:
-• Nhấn vào biểu tượng khóa bên cạnh URL
-• Bật "Clipboard" permissions
+// Chrome/Edge:
+// • Nhấn vào biểu tượng khóa bên cạnh URL
+// • Bật "Clipboard" permissions
 
-Firefox:
-• Vào Settings → Privacy & Security
-• Tìm "Permissions" → Clipboard
+// Firefox:
+// • Vào Settings → Privacy & Security
+// • Tìm "Permissions" → Clipboard
 
-Hoặc paste thủ công:
-• Nhấn Ctrl+V (PC) / Cmd+V (Mac)
-• Mobile: Nhấn giữ và chọn "Dán"`,
-      buttons: [
-        {
-          text: 'Thử lại',
-          cssClass: 'alert-button-confirm',
-          handler: () => {
-            this.onPaste(); // Thử lại
-          },
-        },
-        {
-          text: 'Paste thủ công',
-          handler: () => {
-            this.focusSearchInput();
-          },
-        },
-      ],
-      cssClass: 'custom-permission-alert',
-    });
+// Hoặc paste thủ công:
+// • Nhấn Ctrl+V (PC) / Cmd+V (Mac)
+// • Mobile: Nhấn giữ và chọn "Dán"`,
+//       buttons: [
+//         {
+//           text: 'Thử lại',
+//           cssClass: 'alert-button-confirm',
+//           handler: () => {
+//             this.onPaste(); // Thử lại
+//           },
+//         },
+//         {
+//           text: 'Paste thủ công',
+//           handler: () => {
+//             this.focusSearchInput();
+//           },
+//         },
+//       ],
+//       cssClass: 'custom-permission-alert',
+//     });
 
-    await alert.present();
-  }
+//     await alert.present();
+//   }
 
   focusSearchInput() {
     setTimeout(() => {
@@ -623,7 +623,7 @@ Hoặc paste thủ công:
           result.suggestion || 'Đã tự động dán và xử lý link YouTube!';
         this.toastService.success(message);
       } else if (result.needsManualPaste) {
-        await this.showManualPasteInstructions();
+        // await this.showManualPasteInstructions();
       } else {
         // Hiển thị lỗi với suggestion từ service
         const errorMessage =
@@ -634,7 +634,7 @@ Hoặc paste thủ công:
     } catch (error) {
       console.error('Smart paste failed:', error);
       this.toastService.error('Lỗi khi đọc clipboard');
-      await this.showManualPasteInstructions();
+      // await this.showManualPasteInstructions();
     } finally {
       this.isClipboardLoading.set(false);
     }
