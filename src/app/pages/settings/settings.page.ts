@@ -61,13 +61,10 @@ export class SettingsPage implements OnInit {
           text: 'Xóa cache',
           handler: async () => {
             this.databaseService.clearAllCache();
-            const alert = await this.alertController.create({
-              mode: 'ios',
-              header: 'Thành công',
-              message: 'Đã xóa cache thành công!',
-              buttons: ['Đóng'],
-            });
-            await alert.present();
+            this.toastService.success(
+              `Đã xóa cache thành công!`
+            );
+            this.refreshService.triggerRefresh();
           },
         },
       ],
@@ -93,13 +90,10 @@ export class SettingsPage implements OnInit {
           handler: async () => {
             const success = await this.databaseService.clearAllData();
             if (success) {
-              const alert = await this.alertController.create({
-                mode: 'ios',
-                header: 'Thành công',
-                message: 'Đã xóa sạch dữ liệu và cache thông báo!',
-                buttons: ['Đóng'],
-              });
-              await alert.present();
+              this.toastService.success(
+              `Đã xóa toàn bộ dữ liệu thành công!`
+            );
+            this.refreshService.triggerRefresh();
             }
           },
         },

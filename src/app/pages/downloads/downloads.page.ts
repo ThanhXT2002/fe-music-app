@@ -8,14 +8,12 @@ import { DatabaseService } from '../../services/database.service';
 import {
   DownloadService,
   DownloadTask,
-  CompletionNotification,
-  StatusNotification,
 } from '../../services/download.service';
 import { DataSong, SearchHistoryItem } from '../../interfaces/song.interface';
 import { ClipboardService } from 'src/app/services/clipboard.service';
 import { ToastService } from 'src/app/services/toast.service';
 import { AlertController } from '@ionic/angular/standalone';
-import { firstValueFrom, skip, takeUntil } from 'rxjs';
+import { firstValueFrom, takeUntil } from 'rxjs';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { SongItemComponent } from '../../components/song-item/song-item.component';
 import { Subject } from 'rxjs';
