@@ -67,7 +67,6 @@ export class SettingsPage implements OnInit {
           handler: async () => {
             const success = await this.databaseService.clearAllData();
             if (success) {
-              this.downloadService.resetNotificationState();
               const alert = await this.alertController.create({
                 mode: 'ios',
                 header: 'Thành công',
