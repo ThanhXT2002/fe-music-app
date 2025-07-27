@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AlertController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular/standalone';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
 import { routeAnimation } from 'src/app/shared/route-animation';
 import { Capacitor } from '@capacitor/core';

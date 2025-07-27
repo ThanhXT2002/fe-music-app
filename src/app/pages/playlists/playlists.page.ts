@@ -15,7 +15,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { PlaylistService } from '../../services/playlist.service'; // ✨ Updated import
 import { Subject, takeUntil } from 'rxjs';
 import { RefreshService } from 'src/app/services/refresh.service';
-import { AlertController } from '@ionic/angular'; // ✨ Add AlertController for modal
+import { AlertController } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { MediaCardComponent } from "../../components/media-card/media-card.component";
 import { ToastService } from '../../services/toast.service';
