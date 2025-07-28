@@ -11,12 +11,9 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content
-  [fullscreen]="true"
-  class="bg-grid min-h-screen"
->
-  <div class="h-full flex flex-col items-center justify-start px-3">
-    <div class="flex__middle flex-col w-full mt-8 md:mt-16">
+<ion-content  class="bg-grid ">
+  <div class="h-full flex flex-col items-center justify-center  px-3 ">
+    <div class=" flex__middle  flex-col md:flex-row md:gap-x-10 lg:gap-x-36 w-full ">
       <input
         #fileInputRef
         id="fileInput"
@@ -26,9 +23,8 @@
         class="hidden"
       />
 
-
       <div
-        class="w-[75%] max-w-[300px] aspect-square relative flex items-center justify-center cursor-pointer px-3"
+        class="w-[75%] max-w-[280px] sm:max-w-[300px] aspect-square relative flex items-center justify-center cursor-pointer px-3"
         (click)="triggerFileInput()"
       >
         <!-- Border xoay riêng -->
@@ -37,10 +33,14 @@
           [ngClass]="{ 'animate-spin-slow': loading }"
         ></div>
         <!-- Nội dung giữ nguyên, không xoay -->
-        <div class="flex flex-col items-center justify-center text-center z-10 min-w-0">
+        <div
+          class="flex flex-col items-center justify-center text-center z-10 min-w-0"
+        >
           <i class="fa-solid fa-upload text-5xl text-white animate-bounce"></i>
           <!-- <i class="fa-solid fa-magnifying-glass text-3xl text-white animate-fade-in"></i> -->
-          <span class="block w-full max-w-full break-all text-center align-bottom">
+          <span
+            class="block w-full max-w-full break-all text-center align-bottom"
+          >
             @if(selectedFile){
             {{ selectedFile.name }}
             }@else { Chọn file âm thanh/video }
@@ -48,72 +48,89 @@
         </div>
       </div>
 
-      <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 mt-10 w-full max-w-[400px]">
-          <div class="flex items-center gap-2 py-4">
-            <div class="">
-              <span class="text-xl font-bold text-purple-300 ml-11">
-                @if (result) { Kết quả nhận diện } @else { Hướng dẫn nhận diện bài hát }
-              </span>
+      <div class="liquid-glass-panel mt-10 w-full max-w-[400px]">
+        <div class="liquid-glass-bg">
+          <div class="liquid-glass-blur"></div>
+          <div class="liquid-glass-highlight"></div>
+        </div>
+        <div class="liquid-glass-header flex items-center gap-2">
+          <span class="liquid-glass-title ml-11">
+              @if (result) { Kết quả nhận diện } @else { Hướng dẫn nhận diện bài
+              hát }
+            </span>
+        </div>
+        <div class="liquid-glass-content pb-4 px-3">
+          @if (result) { @if (result.success) {
+          <div class="space-y-2 ml-9">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-music text-pink-400"></i>
+              <span class="font-semibold text-white">{{
+                result.data.title || "Không có"
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-user text-purple-400"></i>
+              <span class="text-gray-200">{{
+                result.data.artist || "Không có"
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-compact-disc text-blue-400"></i>
+              <span class="text-gray-200">{{
+                result.data.album || "Không có"
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-calendar-days text-yellow-400"></i>
+              <span class="text-gray-200">{{
+                result.data.release_date || "Không rõ"
+              }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-star text-green-400"></i>
+              <span class="text-gray-200"
+                >Độ chính xác:
+                <b>{{ result.data.score || "Không rõ" }}</b></span
+              >
+            </div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-barcode text-gray-400"></i>
+              <span class="text-gray-200"
+                >ISRC: {{ result.data.external_ids.isrc || "Không có" }}</span
+              >
             </div>
           </div>
-          <div class=" pb-4 px-3">
-            @if (result) {
-              @if (result.success) {
-                <div class="space-y-2 ml-9">
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-music text-pink-400"></i>
-                    <span class="font-semibold text-white">{{ result.data.title || "Không có" }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-user text-purple-400"></i>
-                    <span class="text-gray-200">{{ result.data.artist || "Không có" }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-compact-disc text-blue-400"></i>
-                    <span class="text-gray-200">{{ result.data.album || "Không có" }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-days text-yellow-400"></i>
-                    <span class="text-gray-200">{{ result.data.release_date || "Không rõ" }}</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-star text-green-400"></i>
-                    <span class="text-gray-200">Độ chính xác: <b>{{ result.data.score || "Không rõ" }}</b></span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-barcode text-gray-400"></i>
-                    <span class="text-gray-200">ISRC: {{ result.data.external_ids.isrc || "Không có" }}</span>
-                  </div>
-                </div>
-              } @else {
-                <div class="flex items-center gap-2 py-2">
-                  <i class="fa-solid fa-circle-exclamation text-red-500 text-2xl"></i>
-                  <span class="font-semibold text-red-400">
-                    @if(result.data.status.code === 3016){
-                      File quá lớn, vui lòng chọn file nhỏ hơn 1MB hoặc cắt ngắn thời gian nhận diện (dưới 15 giây).
-                    }@else{
-                      Không tìm thấy thông tin bài hát phù hợp với file đã tải lên. Vui lòng thử lại với file khác!
-                    }
-                  </span>
-                </div>
-              }
-            } @else {
-              <div class="flex items-center gap-3">
-                <i class="fa-solid fa-circle-info text-purple-300 text-2xl"></i>
-                <div class="flex-1">
-                  <div class="text-sm text-gray-300">
-                    Tải lên file <span class="font-bold text-pink-300">audio hoặc video</span> (mp3, wav, m4a, mp4, webm...) để nhận diện bài hát.<br />
-                    <span class="block mt-1 text-xs text-yellow-300 font-medium">
-                      <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                      Lưu ý: Nên cắt file nhỏ (10-15s), dung lượng dưới <b>1MB</b> để tăng tốc độ nhận diện.<br />
-                      File sẽ được xử lý bảo mật, <span class="underline">không lưu trữ trên hệ thống</span>.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            }
+          } @else {
+          <div class="flex items-center gap-2 py-2">
+            <i class="fa-solid fa-circle-exclamation text-red-500 text-2xl"></i>
+            <span class="font-semibold text-red-400">
+              @if(result.data.status.code === 3016){ File quá lớn, vui lòng chọn
+              file nhỏ hơn 1MB hoặc cắt ngắn thời gian nhận diện (dưới 15 giây).
+              }@else{ Không tìm thấy thông tin bài hát phù hợp với file đã tải
+              lên. Vui lòng thử lại với file khác! }
+            </span>
           </div>
+          } } @else {
+          <div class="flex items-center gap-3">
+            <i class="fa-solid fa-circle-info text-purple-300 text-2xl"></i>
+            <div class="flex-1">
+              <div class="text-sm text-gray-300">
+                Tải lên file
+                <span class="font-bold text-pink-300">audio hoặc video</span>
+                (mp3, wav, m4a, mp4, webm...) để nhận diện bài hát.<br />
+                <span class="block mt-1 text-xs text-yellow-300 font-medium">
+                  <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                  Lưu ý: Nên cắt file nhỏ (10-15s), dung lượng dưới
+                  <b>1MB</b> để tăng tốc độ nhận diện.<br />
+                  File sẽ được xử lý bảo mật,
+                  <span class="underline">không lưu trữ trên hệ thống</span>.
+                </span>
+              </div>
+            </div>
+          </div>
+          }
         </div>
+      </div>
     </div>
   </div>
 </ion-content>
