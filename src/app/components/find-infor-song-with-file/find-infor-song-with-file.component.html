@@ -16,7 +16,7 @@
   class="bg-gradient-to-b from-black via-purple-950 to-black min-h-screen"
 >
   <div class="h-full flex flex-col items-center justify-start px-3">
-    <div class="flex__middle flex-col w-full mt-16">
+    <div class="flex__middle flex-col w-full mt-8 md:mt-16">
       <input
         #fileInputRef
         id="fileInput"
@@ -28,7 +28,7 @@
 
 
       <div
-        class="w-[75%] aspect-square relative flex items-center justify-center cursor-pointer px-3"
+        class="w-[75%] max-w-[300px] aspect-square relative flex items-center justify-center cursor-pointer px-3"
         (click)="triggerFileInput()"
       >
         <!-- Border xoay riêng -->
@@ -48,7 +48,7 @@
         </div>
       </div>
 
-      <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 mt-10 w-full">
+      <div class="shadow-2xl border border-purple-700 rounded-xl bg-gradient-to-br from-purple-900 via-black to-purple-800 mt-10 w-full max-w-[400px]">
           <div class="flex items-center gap-2 py-4">
             <div class="">
               <span class="text-xl font-bold text-purple-300 ml-11">

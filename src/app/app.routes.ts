@@ -79,7 +79,7 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'file-song',
+    path: 'find-song-with-file',
     loadComponent: () =>
       import(
         './components/find-infor-song-with-file/find-infor-song-with-file.component'

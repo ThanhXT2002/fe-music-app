@@ -1,5 +1,6 @@
 
-import { CommonModule } from '@angular/common';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { CommonModule, Location } from '@angular/common';
 import { Component, ElementRef, ViewChild, OnInit, OnDestroy } from '@angular/core';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { SongIdentifyApiService, IdentifySongResponse } from 'src/app/services/api/song-identify-api.service';
@@ -25,7 +26,9 @@ export class FindInforSongWithFileComponent implements OnInit, OnDestroy {
   constructor(
     private modalCtrl: ModalController,
     private songIdentifyApi: SongIdentifyApiService,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private breakpointObserver: BreakpointObserver,
+    private location: Location
   ) {}
   ngOnInit() {
     window.addEventListener('online', this.onlineListener);
@@ -93,6 +96,17 @@ export class FindInforSongWithFileComponent implements OnInit, OnDestroy {
   }
 
   onBack() {
-    this.modalCtrl.dismiss();
+
+     this.breakpointObserver
+        .observe([Breakpoints.Tablet, Breakpoints.Web])
+        .subscribe(async (result) => {
+          if (result.matches) {
+            this.location.back();
+          } else {
+            this.modalCtrl.dismiss();
+          }
+        });
+
+
   }
 }
