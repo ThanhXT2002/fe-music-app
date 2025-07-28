@@ -1,5 +1,13 @@
-import { AfterViewInit, Component, effect, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { IonModal, IonNav } from '@ionic/angular/standalone';
+import {
+  AfterViewInit,
+  Component,
+  effect,
+  inject,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
+import { IonModal, IonNav, ModalController } from '@ionic/angular/standalone';
 import { IonicModule, Platform } from '@ionic/angular';
 import { CurrentPlaylistComponent } from '../current-playlist/current-playlist.component';
 import { CommonModule } from '@angular/common';
@@ -17,8 +25,9 @@ import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-mod
   styleUrls: ['./mini-player.component.scss'],
   standalone: true,
   imports: [CurrentPlaylistComponent, CommonModule, IonicModule],
+  providers: [ModalController, GlobalPlaylistModalService],
 })
-export class MiniPlayerComponent implements OnInit, OnDestroy, AfterViewInit{
+export class MiniPlayerComponent implements OnInit, OnDestroy, AfterViewInit {
   private audioPlayerService = inject(AudioPlayerService);
   private platform = inject(Platform);
   private breakpointObserver = inject(BreakpointObserver);
@@ -44,7 +53,7 @@ export class MiniPlayerComponent implements OnInit, OnDestroy, AfterViewInit{
 
   ngOnInit() {}
 
-   ngAfterViewInit() {
+  ngAfterViewInit() {
     // Set modal reference để service có thể control
     this.playlistModalService.setModal(this.playlistModal);
   }
