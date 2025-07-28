@@ -22,7 +22,6 @@ import { DatabaseService } from 'src/app/services/database.service';
     FormsModule,
     InstallPromptComponent,
     AccountPanelComponent,
-    RouterLink
   ],
   templateUrl: './settings.page.html',
   animations: [routeAnimation],
