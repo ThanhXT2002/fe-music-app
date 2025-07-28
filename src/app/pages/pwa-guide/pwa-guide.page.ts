@@ -3,17 +3,10 @@ import {
   Component,
   ElementRef,
   OnDestroy,
-  OnInit,
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/angular/standalone';
 import { HeaderComponent } from 'src/app/components/header/header.component';
 import { NavbarBottomComponent } from 'src/app/components/navbar-bottom/navbar-bottom.component';
 import { BenefitCommonComponent } from './components/benefit-common/benefit-common.component';

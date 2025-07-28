@@ -2,10 +2,6 @@ import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, OnInit } from '@angular/core
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  IonContent,
-  IonHeader,
-  IonTitle,
-  IonToolbar,
   Platform,
 } from '@ionic/angular/standalone';
 import { FooterComponent } from '../../components/footer/footer.component';

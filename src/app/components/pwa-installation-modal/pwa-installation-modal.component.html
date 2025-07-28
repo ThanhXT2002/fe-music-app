@@ -1,0 +1,50 @@
+@if(isDesktop && !isNative && !hideMobileNotice){
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60  "
+
+  >
+    <div class="bg-[#23263a] rounded-2xl shadow-2xl max-w-[420px] w-full p-7 relative animate-fadeIn">
+      <!-- Close button -->
+      <button class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl" (click)="hideMobileNotice = true">
+        <i class="fa fa-times"></i>
+      </button>
+      <!-- Icon tròn tím -->
+      <div class="flex flex-col items-center mb-4">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-indigo-400 flex items-center justify-center mb-3">
+          <i class="fa fa-mobile-alt text-white text-2xl"></i>
+        </div>
+        <h2 class="text-2xl md:text-3xl font-bold text-center bg-gradient-to-r from-fuchsia-500 to-indigo-400 bg-clip-text text-transparent mb-2">Tối ưu cho thiết bị di động</h2>
+      </div>
+      <div class="text-gray-200 text-center mb-5 text-base">
+        XTMusic PWA được thiết kế để mang lại trải nghiệm tốt nhất trên thiết bị di động. Bạn có thể cài đặt ứng dụng web này lên màn hình chính của thiết bị để sử dụng như một ứng dụng thông thường.
+      </div>
+      <!-- Box info -->
+      <div class="flex items-start bg-[#23263a] border border-blue-500/30 rounded-lg p-3 mb-5">
+        <div class="mt-1 mr-3">
+          <i class="fa fa-info-circle text-blue-400"></i>
+        </div>
+        <div class="text-gray-300 text-sm">
+          Việc cài đặt PWA sẽ giúp bạn truy cập nhanh hơn, sử dụng offline và có trải nghiệm tốt hơn so với truy cập qua trình duyệt.
+        </div>
+      </div>
+      <!-- Mũi tên xuống -->
+      <div class="flex justify-center mb-5">
+        <i class="fa fa-arrow-down text-purple-400 text-2xl animate-bounce"></i>
+      </div>
+      <!-- Nút xem hướng dẫn -->
+      <button class="w-full py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-fuchsia-500 to-indigo-400 mb-3 flex items-center justify-center gap-2 text-base hover:scale-[1.03] transition" (click)="goToGuide()">
+        <i class="fa fa-book"></i> Xem hướng dẫn cài đặt
+      </button>
+      <!-- Nút tiếp tục -->
+      <button class="w-full py-3 rounded-lg font-semibold text-gray-200 bg-[#23263a] border border-gray-600 flex items-center justify-center gap-2 text-base hover:bg-gray-700 transition mb-4" (click)="hideMobileNotice = true">
+        <i class="fa fa-desktop"></i> Tiếp tục truy cập trang web
+      </button>
+      <!-- Checkbox không hiển thị lại -->
+      <div class="flex items-center mt-2">
+        <input type="checkbox" id="dontShowAgain" class="accent-fuchsia-500 mr-2" [(ngModel)]="dontShowMobileNotice" (change)="onDontShowAgainChange()" />
+        <label for="dontShowAgain" class="text-gray-400 text-sm select-none">Không hiển thị lại</label>
+      </div>
+    </div>
+  </div>
+}
+

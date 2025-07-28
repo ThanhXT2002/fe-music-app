@@ -12,6 +12,7 @@ import { LoadingComponent } from './components/loading/loading.component';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HealthCheckService } from './services/api/health-check.service';
+import { PWAInstallationModalComponent } from "./components/pwa-installation-modal/pwa-installation-modal.component";
 
 @Component({
   selector: 'app-root',
@@ -23,20 +24,14 @@ import { HealthCheckService } from './services/api/health-check.service';
     CommonModule,
     LoadingComponent,
     FormsModule,
-  ],
+    PWAInstallationModalComponent
+],
   standalone: true,
 })
 export class AppComponent implements OnInit {
   private audioPlayerService = inject(AudioPlayerService);
   private healthCheckService = inject(HealthCheckService);
   currentSong = this.audioPlayerService.currentSong;
-
-  isNative = Capacitor.isNativePlatform();
-  isDesktop = this.platform.is('desktop');
-
-  // Biến trạng thái modal
-  hideMobileNotice: boolean = false;
-  dontShowMobileNotice: boolean = false;
 
   constructor(
     private pwaService: PWAService,
@@ -56,8 +51,7 @@ export class AppComponent implements OnInit {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
 
-    this.dontShowMobileNotice = !!localStorage.getItem('hideMobileNotice');
-    this.hideMobileNotice = this.dontShowMobileNotice;
+
   }
 
   async initializeApp() {
@@ -79,19 +73,9 @@ export class AppComponent implements OnInit {
     }
   }
 
-  onDontShowAgainChange() {
-    if (this.dontShowMobileNotice) {
-      localStorage.setItem('hideMobileNotice', '1');
-    } else {
-      localStorage.removeItem('hideMobileNotice');
-    }
-  }
 
-  // Khi nhấn "Xem hướng dẫn cài đặt"
-  goToGuide() {
-    this.hideMobileNotice = true;
-    this.router.navigate(['/pwa-guide']);
-  }
+
+
 
   onImageError(event: any): void {
     event.target.src = '/assets/images/background.webp';
