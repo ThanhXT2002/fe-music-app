@@ -68,9 +68,11 @@ export class MiniPlayerComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   });
 
-  onWillPresentPlayer() {
+onWillPresentPlayer() {
+  if (this.navPlayer) {
     this.navPlayer.setRoot(PlayerPage);
   }
+}
 
   async previousSong() {
     await this.audioPlayerService.playPrevious();
