@@ -96,6 +96,7 @@ export class SettingsPage implements OnInit {
               `Đã xóa toàn bộ dữ liệu thành công!`
             );
             this.refreshService.triggerRefresh();
+            window.location.reload();
             }
           },
         },
