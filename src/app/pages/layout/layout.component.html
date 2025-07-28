@@ -11,9 +11,112 @@
   <ion-router-outlet></ion-router-outlet>
 </ion-content>
 
-<app-mini-player/>
+@if(currentSong){
+<div
+  class="mini-player fixed left-0 right-0  z-40 bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-600"
+  [ngClass]="bottomPosition"
+>
+  <div class="absolute inset-0 opacity-70 z-[-1]">
+    @if (currentSong.thumbnail_url) {
+    <img
+      [src]="currentSong!.thumbnail_url"
+      [alt]="currentSong!.title"
+      class="w-full h-full object-cover blur-lg"
+    />
+    }
+  </div>
+  <div class="px-3 py-2">
+    <div class="flex items-center space-x-3">
+      <!-- Player Controls -->
+      <div class="flex items-center space-x-4">
+        <button (click)="previousSong()" class="text-gray-00">
+          <i class="fas fa-step-backward"></i>
+        </button>
 
+        <button
+          (click)="togglePlayPause()"
+          class="bg-purple-500 rounded-full flex items-center justify-center text-white relative"
+        >
+          <img
+            [src]="currentSong.thumbnail_url || 'assets/images/default-song.png'"
+            [alt]="currentSong.title"
+            (error)="onImageError($event)"
+            class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-lime-500 shadow-2xl shadow-rose-900"
+            [ngClass]="{
+              'spin-with-fill': true,
+              'spin-paused': !isPlaying
+            }"
+          />
+          <i
+            class="absolute transition-opacity duration-300 opacity-60 hover:opacity-100"
+            [ngClass]="isPlaying ? 'fas fa-pause' : 'fas fa-play'"
+          ></i>
+        </button>
+
+        <button (click)="nextSong()" class="text-gray-100">
+          <i class="fas fa-step-forward"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 min-w-0" (click)="openPlayerModal()">
+        <marquee
+          behavior="scroll"
+          direction="left"
+          scrollamount="4"
+          scrolldelay="0"
+          loop="infinite"
+          class="text-sm font-medium text-white"
+        >
+          {{ currentSong.title }}
+        </marquee>
+        <p class="text-xs text-gray-200 truncate">
+          {{ currentSong.artist }}
+        </p>
+      </div>
+
+      <div class="h-full">
+        <button
+          (click)="openPlaylistModal()"
+          class="flex flex-col !justify-end items-center text-gray-200 mt-2"
+        >
+          <i class="fa-solid fa-list-ul fa-lg"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Progress Bar -->
+  <div class="w-full bg-gray-300 rounded-full h-1">
+    <div
+      class="bg-purple-500 h-1 rounded-full transition-all duration-300"
+      [style.width.%]="progressPercentage"
+    ></div>
+  </div>
+</div>
+}
 
 <app-navbar-bottom></app-navbar-bottom>
 
+<!-- Player Modal -->
+<ion-modal
+  #playerModal
+  trigger="openPlayerModal"
+  (willPresent)="onWillPresentPlayer()"
+>
+  <ng-template>
+    <ion-content>
+      <ion-nav #navPlayer></ion-nav>
+    </ion-content>
+  </ng-template>
+</ion-modal>
 
+<!-- Playlist Modal -->
+<ion-modal
+  #playlistModal
+  mode="ios"
+  [initialBreakpoint]="0.6"
+  [breakpoints]="[0, 0.6, 1]"
+>
+  <ng-template class="h-full">
+    <app-current-playlist class="h-full"></app-current-playlist>
+  </ng-template>
+</ion-modal>
