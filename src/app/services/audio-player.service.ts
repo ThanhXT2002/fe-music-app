@@ -851,18 +851,6 @@ export class AudioPlayerService {
     }
   }
 
-  // 🆕 Additional utility methods
-  getCacheSize(): number {
-    return this.audioCache.size;
-  }
-
-  getCachedUrls(): string[] {
-    return Array.from(this.audioCache.keys());
-  }
-
-  async clearCache(): Promise<void> {
-    this.clearAudioCache();
-  }
 
   // 🆕 Save current playback state to localStorage
   savePlaybackState(): void {

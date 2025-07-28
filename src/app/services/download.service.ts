@@ -56,11 +56,11 @@ export interface StatusNotification {
 export class DownloadService {
   private downloadsSubject = new BehaviorSubject<DownloadTask[]>([]);
   public downloads$ = this.downloadsSubject.asObservable();
-  // Track notifications sent to prevent duplicates (persist across app restarts)
-  private notificationSentCache = new Set<string>();
-  private readyNotificationSentCache = new Set<string>(); // For ready notifications
-  private readonly NOTIFICATION_CACHE_KEY = 'download_notifications_sent';
-  private readonly READY_NOTIFICATION_CACHE_KEY = 'ready_notifications_sent';
+  // // Track notifications sent to prevent duplicates (persist across app restarts)
+  // private notificationSentCache = new Set<string>();
+  // private readyNotificationSentCache = new Set<string>(); // For ready notifications
+  // private readonly NOTIFICATION_CACHE_KEY = 'download_notifications_sent';
+  // private readonly READY_NOTIFICATION_CACHE_KEY = 'ready_notifications_sent';
 
   private songDownloadedSignal = new BehaviorSubject<{
     songId: string;
@@ -79,54 +79,54 @@ export class DownloadService {
     private toastService: ToastService
   ) {
     this.initializeDownloads();
-    this.loadNotificationCache();
+    // this.loadNotificationCache();
   }
 
   /**
    * Load notification cache from localStorage to persist across app restarts
    */
-  private loadNotificationCache() {
-    try {
-      // Load completion notifications cache
-      const cache = localStorage.getItem(this.NOTIFICATION_CACHE_KEY);
-      if (cache) {
-        const cacheArray = JSON.parse(cache);
-        this.notificationSentCache = new Set(cacheArray);
-      }
+  // private loadNotificationCache() {
+  //   try {
+  //     // Load completion notifications cache
+  //     const cache = localStorage.getItem(this.NOTIFICATION_CACHE_KEY);
+  //     if (cache) {
+  //       const cacheArray = JSON.parse(cache);
+  //       this.notificationSentCache = new Set(cacheArray);
+  //     }
 
-      // Load ready notifications cache
-      const readyCache = localStorage.getItem(
-        this.READY_NOTIFICATION_CACHE_KEY
-      );
-      if (readyCache) {
-        const readyCacheArray = JSON.parse(readyCache);
-        this.readyNotificationSentCache = new Set(readyCacheArray);
-      }
-    } catch (error) {
-      console.warn('Failed to load notification cache:', error);
-    }
-  }
+  //     // Load ready notifications cache
+  //     const readyCache = localStorage.getItem(
+  //       this.READY_NOTIFICATION_CACHE_KEY
+  //     );
+  //     if (readyCache) {
+  //       const readyCacheArray = JSON.parse(readyCache);
+  //       this.readyNotificationSentCache = new Set(readyCacheArray);
+  //     }
+  //   } catch (error) {
+  //     console.warn('Failed to load notification cache:', error);
+  //   }
+  // }
 
   /**
    * Save notification cache to localStorage
    */
-  private saveNotificationCache() {
-    try {
-      const cacheArray = Array.from(this.notificationSentCache);
-      localStorage.setItem(
-        this.NOTIFICATION_CACHE_KEY,
-        JSON.stringify(cacheArray)
-      );
+  // private saveNotificationCache() {
+  //   try {
+  //     const cacheArray = Array.from(this.notificationSentCache);
+  //     localStorage.setItem(
+  //       this.NOTIFICATION_CACHE_KEY,
+  //       JSON.stringify(cacheArray)
+  //     );
 
-      const readyCacheArray = Array.from(this.readyNotificationSentCache);
-      localStorage.setItem(
-        this.READY_NOTIFICATION_CACHE_KEY,
-        JSON.stringify(readyCacheArray)
-      );
-    } catch (error) {
-      console.warn('Failed to save notification cache:', error);
-    }
-  }
+  //     const readyCacheArray = Array.from(this.readyNotificationSentCache);
+  //     localStorage.setItem(
+  //       this.READY_NOTIFICATION_CACHE_KEY,
+  //       JSON.stringify(readyCacheArray)
+  //     );
+  //   } catch (error) {
+  //     console.warn('Failed to save notification cache:', error);
+  //   }
+  // }
 
   private async initializeDownloads() {
     try {
@@ -246,14 +246,15 @@ export class DownloadService {
 
     // Send completion notification only once per song
     if (download.songData?.id) {
-      const songId = download.songData.id;
-      if (!this.notificationSentCache.has(songId)) {
-        this.notificationSentCache.add(songId);
-        this.saveNotificationCache();
-        this.toastService.success(
+      // const songId = download.songData.id;
+      this.toastService.success(
           `Bài hát ${download.title} đã được tải xuống thành công!`
         );
-      }
+      // if (!this.notificationSentCache.has(songId)) {
+      //   this.notificationSentCache.add(songId);
+      //   this.saveNotificationCache();
+
+      // }
     }
 
     // Remove from active downloads
@@ -784,20 +785,6 @@ export class DownloadService {
   }
 
   /**
-   * Tạo tên file an toàn
-   * @param title - Tên bài hát
-   * @param artist - Tên nghệ sĩ
-   * @returns string
-   */
-  private createSafeFileName(title: string, artist: string): string {
-    const combined = `${title} - ${artist}`;
-    return combined
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '_')
-      .substring(0, 100);
-  }
-
-  /**
    * Chuyển blob thành base64
    * @param blob - Blob data
    * @returns Promise<string>
@@ -900,10 +887,10 @@ export class DownloadService {
     // Xóa trạng thái khỏi songStatusMap
     this.songStatusMap.delete(songId);
 
-    // Xóa notification cache nếu có
-    this.notificationSentCache.delete(songId);
-    this.readyNotificationSentCache.delete(songId);
-    this.saveNotificationCache();
+    // // Xóa notification cache nếu có
+    // this.notificationSentCache.delete(songId);
+    // this.readyNotificationSentCache.delete(songId);
+    // this.saveNotificationCache();
   }
 
   /**
@@ -1021,32 +1008,32 @@ export class DownloadService {
   /**
    * Clear notification cache (useful for testing or reset)
    */
-  clearNotificationCache() {
-    this.notificationSentCache.clear();
-    this.readyNotificationSentCache.clear();
-    localStorage.removeItem(this.NOTIFICATION_CACHE_KEY);
-    localStorage.removeItem(this.READY_NOTIFICATION_CACHE_KEY);
-  }
+  // clearNotificationCache() {
+  //   this.notificationSentCache.clear();
+  //   this.readyNotificationSentCache.clear();
+  //   localStorage.removeItem(this.NOTIFICATION_CACHE_KEY);
+  //   localStorage.removeItem(this.READY_NOTIFICATION_CACHE_KEY);
+  // }
 
   /**
    * Check if notification was already sent for a song
    */
-  hasNotificationBeenSent(songId: string): boolean {
-    return this.notificationSentCache.has(songId);
-  }
+  // hasNotificationBeenSent(songId: string): boolean {
+  //   return this.notificationSentCache.has(songId);
+  // }
 
   /**
    * Check if ready notification was already sent for a song
    */
-  hasReadyNotificationBeenSent(songId: string): boolean {
-    return this.readyNotificationSentCache.has(songId);
-  }
+  // hasReadyNotificationBeenSent(songId: string): boolean {
+  //   return this.readyNotificationSentCache.has(songId);
+  // }
 
   /**
    * Clear all notification caches and reset polling state
    */
   resetNotificationState() {
-    this.clearNotificationCache();
+    // this.clearNotificationCache();
     this.pollingIntervals.forEach((interval) => {
       clearInterval(interval);
     });
@@ -1058,7 +1045,6 @@ export class DownloadService {
 
   // download youtube video (LEGACY - use getSongInfo instead)
   getYoutubeUrlInfo(url: string): Observable<SongsResponse> {
-    console.warn('⚠️ getYoutubeUrlInfo is deprecated, use getSongInfo instead');
     return this.getSongInfo(url);
   }
 
@@ -1118,12 +1104,13 @@ export class DownloadService {
           if (isReady) {
             this.stopStatusPolling(songId);
             this.downloadSong(songData);
+            this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
             // Chỉ gửi thông báo "sẵn sàng" một lần cho mỗi bài hát
-            if (!this.readyNotificationSentCache.has(songId)) {
-              this.readyNotificationSentCache.add(songId);
-              this.saveNotificationCache();
-              this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
-            }
+            // if (!this.readyNotificationSentCache.has(songId)) {
+            //   this.readyNotificationSentCache.add(songId);
+            //   this.saveNotificationCache();
+            //   this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
+            // }
           } else if (status.status === 'failed') {
             console.error('❌ Song processing failed:', status.error_message);
             this.stopStatusPolling(songId);

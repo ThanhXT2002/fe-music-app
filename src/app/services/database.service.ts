@@ -71,10 +71,6 @@ export class DatabaseService {
         // Simple data check
         await this.indexedDB.getAll('songs');
 
-        // Initialize system playlists (will be handled by PlaylistManagerService)
-        setTimeout(() => {
-          this.initializeSystemPlaylists();
-        }, 1000);
       } else {
         throw new Error(
           'Failed to initialize IndexedDB even after reset attempt'
@@ -88,10 +84,6 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Initialize system playlists (will be implemented by PlaylistManagerService)
-   */
-  private async initializeSystemPlaylists(): Promise<void> {}
 
   /**
    * Thêm bài hát mới vào database

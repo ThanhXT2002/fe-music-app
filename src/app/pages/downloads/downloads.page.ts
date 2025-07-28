@@ -312,15 +312,6 @@ export class DownloadsPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Show completion notification (one-time only)
-   */
-  private async showCompletedNotification(songTitle: string) {
-    this.toastService.success(
-      `Bài hát "${songTitle}" đã được tải xuống thành công!`
-    );
-  }
-
-  /**
    * Cancel download
    * @param songId - ID bài hát
    */

@@ -15,6 +15,6 @@ export class RefreshService {
     setTimeout(() => {
       this.refreshSubject.next();
       console.log('Refresh triggered');
-    }, 100);
+    }, 300);
   }
 }
