@@ -31,13 +31,13 @@ import player from 'lottie-web';
 import { register as registerSwiperElements } from 'swiper/element/bundle';
 
 
-if (environment.production) {
-  // Tắt toàn bộ log/error/warn/info khi production
-  window.console.log = () => {};
-  window.console.error = () => {};
-  window.console.warn = () => {};
-  window.console.info = () => {};
-}
+// if (environment.production) {
+//   // Tắt toàn bộ log/error/warn/info khi production
+//   window.console.log = () => {};
+//   window.console.error = () => {};
+//   window.console.warn = () => {};
+//   window.console.info = () => {};
+// }
 
 registerSwiperElements()
 bootstrapApplication(AppComponent, {
