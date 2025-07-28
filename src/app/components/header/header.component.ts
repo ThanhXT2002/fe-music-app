@@ -15,6 +15,7 @@ import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
   imports: [IonHeader, RouterLink],
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.scss'],
+  providers: [ModalController],
 })
 export class HeaderComponent implements OnInit {
   @ViewChild('navSearch') private navSearch!: IonNav;
