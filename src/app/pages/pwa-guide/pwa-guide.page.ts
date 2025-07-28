@@ -14,6 +14,7 @@ import { TabAgentComponent } from './components/tab-agent/tab-agent.component';
 import { CautionComponent } from "./components/caution/caution.component";
 import { Renderer2, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { DragBackComponent } from "src/app/components/drag-back/drag-back.component";
 
 @Component({
   selector: 'app-pwa-guide',
@@ -25,7 +26,8 @@ import { DOCUMENT } from '@angular/common';
     FormsModule,
     BenefitCommonComponent,
     TabAgentComponent,
-    CautionComponent
+    CautionComponent,
+    DragBackComponent
 ],
 })
 export class PwaGuidePage implements AfterViewInit, OnDestroy {
