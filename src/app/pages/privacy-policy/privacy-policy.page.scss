@@ -1,4 +1,45 @@
+.container {
+  @apply h-screen w-full max-w-none overflow-y-auto mx-auto;
+  /* bg-[#0f0f1a] và bg-grid đã thêm bằng Tailwind trong HTML */
+}
 
-ion-toolbar{
-  padding: 5px 2px;
+.containerContent {
+  @apply lg:max-w-5xl  mx-auto;
+}
+
+.section-top {
+  @apply w-full px-4 text-center  mt-12 md:mt-16;
+  h1 {
+    @apply text-3xl md:text-4xl md:!leading-[3.5rem] font-bold mb-6;
+  }
+
+  p {
+    @apply text-base md:text-lg text-gray-300 max-w-2xl mx-auto;
+  }
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.4;
+  z-index: 0;
+  animation: pulse 8s infinite alternate;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.1); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0.4; }
+}
+
+/* Glow conic effect */
+.glow {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  background: conic-gradient(from 180deg at 50% 50%, #ff00ff 0deg, #00ffff 180deg, #ff00ff 360deg);
+  filter: blur(100px);
+  opacity: 0.15;
+  border-radius: 50%;
+  z-index: 0;
 }

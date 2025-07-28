@@ -1,35 +1,107 @@
-<ion-header [translucent]="true" mode="ios">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button (click)="onBack()">
-        <i class="fa-solid fa-chevron-left fa-lg text-purple-600"></i>
-      </ion-button>
-    </ion-buttons>
-    <ion-title>
-      <!-- <span class="text-xl">Chính sách bảo mật</span> -->
-       <h1 class="text-2xl font-bold  text-purple-600">Điều khoản dịch vụ</h1>
-    </ion-title>
-  </ion-toolbar>
-</ion-header>
+<div class="container bg-grid">
+  <div class="blob bg-[#ff00ff]/20 w-96 h-96 top-0 left-0 absolute"></div>
+  <div class="blob bg-[#00ffff]/20 w-96 h-96 bottom-0 right-0 absolute"></div>
+  <div class="blob bg-[#8b5cf6]/20 w-96 h-96 bottom-1/4 left-1/4 absolute"></div>
+  <!-- Glow Effect -->
+  <div class="glow top-0 left-1/2 -translate-x-1/2 absolute"></div>
+  <div class="glow bottom-0 left-1/2 -translate-x-1/2 absolute"></div>
+  <!-- Music notes overlay -->
+  <div class="music-notes-container fixed inset-0 pointer-events-none z-50"></div>
+  <div class="containerContent">
+    <div class="section-top">
+      <h1 class="textColorCommon">Điều khoản dịch vụ</h1>
+      <p class="mb-2">Cập nhật lần cuối: 01/07/2025</p>
+      <p class="text-justify">
+        Bằng việc sử dụng ứng dụng XTMusic, bạn đồng ý với các điều khoản dưới
+        đây. Ứng dụng KHÔNG sử dụng cho mục đích thương mại hoặc kiếm tiền từ
+        bất kỳ cá nhân/tổ chức nào.
+      </p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2  gap-6 mt-8 px-4">
+      <!-- Card 1 -->
+      <section class="fade-in rounded-2xl bg-[#312e81] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-purple-700/30 rounded-full mr-3">
+            <i class="fas fa-scroll text-2xl text-purple-300"></i>
+          </span>
+          <span class="font-bold text-lg text-purple-100">Quy định sử dụng</span>
+        </div>
+        <ul class="ml-2 mb-2 space-y-2 text-gray-200">
+          <li>Chỉ sử dụng ứng dụng cho mục đích cá nhân, không thương mại</li>
+          <li>Không sử dụng ứng dụng cho các hành vi vi phạm pháp luật</li>
+          <li>Không tải lên hoặc chia sẻ nội dung vi phạm bản quyền</li>
+        </ul>
+      </section>
+      <!-- Card 2 -->
+      <section class="fade-in rounded-2xl bg-[#0f766e] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-teal-700/30 rounded-full mr-3">
+            <i class="fas fa-copyright text-2xl text-teal-200"></i>
+          </span>
+          <span class="font-bold text-lg text-teal-100">Quyền sở hữu trí tuệ</span>
+        </div>
+        <p class="ml-2 mb-2 text-gray-200">Toàn bộ mã nguồn, logo, giao diện thuộc sở hữu của tác giả Tran Xuan Thanh. Không được sao chép, chỉnh sửa, phân phối khi chưa có sự đồng ý.</p>
+      </section>
+      <!-- Card 3 -->
+      <section class="fade-in rounded-2xl bg-[#1e293b] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-slate-700/30 rounded-full mr-3">
+            <i class="fas fa-shield-alt text-2xl text-slate-200"></i>
+          </span>
+          <span class="font-bold text-lg text-slate-100">Giới hạn trách nhiệm</span>
+        </div>
+        <p class="ml-2 mb-2 text-gray-200">XTMusic cung cấp "nguyên trạng" (as is), không chịu trách nhiệm với bất kỳ thiệt hại nào phát sinh từ việc sử dụng ứng dụng.</p>
+      </section>
+      <!-- Card 4 -->
+      <section class="fade-in rounded-2xl bg-[#334155] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-blue-700/30 rounded-full mr-3">
+            <i class="fas fa-power-off text-2xl text-blue-200"></i>
+          </span>
+          <span class="font-bold text-lg text-blue-100">Thay đổi & chấm dứt dịch vụ</span>
+        </div>
+        <p class="ml-2 mb-2 text-gray-200">Chúng tôi có thể thay đổi hoặc ngừng cung cấp dịch vụ bất cứ lúc nào mà không cần báo trước.</p>
+      </section>
+      <!-- Card 5 -->
+      <section class="fade-in rounded-2xl bg-[#6d28d9] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-purple-900/30 rounded-full mr-3">
+            <i class="fas fa-envelope text-2xl text-purple-200"></i>
+          </span>
+          <span class="font-bold text-lg text-purple-100">Liên hệ</span>
+        </div>
+        <p class="ml-2 mb-2 text-gray-200">Mọi thắc mắc, khiếu nại vui lòng liên hệ:
+          <a href="mailto:tranxuanthanhtxt2002&#64;gmail.com" class="text-purple-300 underline hover:text-purple-200 transition-colors">tranxuanthanhtxt2002&#64;gmail.com</a>
+        </p>
+      </section>
+      <!-- Card 6 -->
+      <section class="fade-in rounded-2xl bg-[#f59e42] shadow-lg p-6 flex flex-col">
+        <div class="flex items-center mb-3">
+          <span class="flex items-center justify-center w-12 h-12 bg-orange-700/30 rounded-full mr-3">
+            <i class="fas fa-lightbulb text-2xl text-orange-200"></i>
+          </span>
+          <span class="font-bold text-lg text-orange-100">Lưu ý sử dụng</span>
+        </div>
+        <ul class="ml-2 mb-2 space-y-2 text-gray-200">
+          <li>Đảm bảo cập nhật ứng dụng và trình duyệt thường xuyên để có trải nghiệm tốt nhất.</li>
+        </ul>
+      </section>
+    </div>
 
-<ion-content [fullscreen]="true" class="bg-grid">
-  <div class="max-w-2xl mx-auto p-6 text-gray-200">
-    <p class="mb-2">Cập nhật lần cuối: 01/07/2025</p>
-    <p class="mb-4">Bằng việc sử dụng ứng dụng XTMusic, bạn đồng ý với các điều khoản dưới đây. Ứng dụng KHÔNG sử dụng cho mục đích thương mại hoặc kiếm tiền từ bất kỳ cá nhân/tổ chức nào.</p>
-    <h2 class="font-semibold text-lg mt-6 mb-2">1. Quy định sử dụng</h2>
-    <ul class="list-disc ml-6 mb-4">
-      <li>Chỉ sử dụng ứng dụng cho mục đích cá nhân, không thương mại</li>
-      <li>Không sử dụng ứng dụng cho các hành vi vi phạm pháp luật</li>
-      <li>Không tải lên hoặc chia sẻ nội dung vi phạm bản quyền</li>
-    </ul>
-    <h2 class="font-semibold text-lg mt-6 mb-2">2. Quyền sở hữu trí tuệ</h2>
-    <p class="mb-4">Toàn bộ mã nguồn, logo, giao diện thuộc sở hữu của tác giả Tran Xuan Thanh. Không được sao chép, chỉnh sửa, phân phối khi chưa có sự đồng ý.</p>
-    <h2 class="font-semibold text-lg mt-6 mb-2">3. Giới hạn trách nhiệm</h2>
-    <p class="mb-4">XTMusic cung cấp "nguyên trạng" (as is), không chịu trách nhiệm với bất kỳ thiệt hại nào phát sinh từ việc sử dụng ứng dụng.</p>
-    <h2 class="font-semibold text-lg mt-6 mb-2">4. Thay đổi & chấm dứt dịch vụ</h2>
-    <p class="mb-4">Chúng tôi có thể thay đổi hoặc ngừng cung cấp dịch vụ bất cứ lúc nào mà không cần báo trước.</p>
-    <h2 class="font-semibold text-lg mt-6 mb-2">5. Liên hệ</h2>
-    <p class="mb-4">Mọi thắc mắc, khiếu nại vui lòng liên hệ: <a href="mailto:tranxuanthanhtxt2002&#64;gmail.com" class="text-purple-500 underline">tranxuanthanhtxt2002&#64;gmail.com</a></p>
-    <p class="text-xs text-gray-500 mt-8">© 2025 XTMusic. Phi thương mại. Không quảng cáo. Không bán dữ liệu.</p>
+     <div class="mt-6 mb-4 pt-6 border-t border-purple-900/30 fade-in px-4">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div class="flex items-center">
+            <div class="text-2xl font-bold flex items-center">
+              <span class="text-purple-600">XT</span
+              ><span class="text-white">Music</span>
+              <i class="fas fa-music ml-2 text-purple-500"></i>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500">
+            © 2025 XTMusic. Phi thương mại. Không quảng cáo. Không bán dữ liệu.
+          </p>
+        </div>
+      </div>
   </div>
-</ion-content>
+  <app-drag-back />
+</div>

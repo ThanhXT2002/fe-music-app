@@ -49,3 +49,28 @@
   }
 }
 
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.4;
+  z-index: 0;
+  animation: pulse 8s infinite alternate;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.1); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0.4; }
+}
+
+/* Glow conic effect */
+.glow {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  background: conic-gradient(from 180deg at 50% 50%, #ff00ff 0deg, #00ffff 180deg, #ff00ff 360deg);
+  filter: blur(100px);
+  opacity: 0.15;
+  border-radius: 50%;
+  z-index: 0;
+}

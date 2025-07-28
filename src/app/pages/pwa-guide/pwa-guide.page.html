@@ -1,6 +1,14 @@
-<div #scrollContainer class="container">
+<div #scrollContainer class="container bg-[#0f0f1a] bg-grid">
+  <!-- Neon Blobs Background -->
+  <div class="blob bg-[#ff00ff]/20 w-96 h-96 top-0 left-0 absolute"></div>
+  <div class="blob bg-[#00ffff]/20 w-96 h-96 bottom-0 right-0 absolute"></div>
+  <div class="blob bg-[#8b5cf6]/20 w-96 h-96 bottom-1/4 left-1/4 absolute"></div>
+  <!-- Glow Effect -->
+  <div class="glow top-0 left-1/2 -translate-x-1/2 absolute"></div>
+  <div class="glow bottom-0 left-1/2 -translate-x-1/2 absolute"></div>
+  <!-- Music notes overlay -->
   <div class="music-notes-container fixed inset-0 pointer-events-none z-50"></div>
-  <div class="containerContent">
+  <div class="containerContent relative z-10">
     <section class="section-top">
       <h1 class="textColorCommon">
         Hướng dẫn cài đặt ứng dụng trên màn hình chính
@@ -22,6 +30,6 @@
       <app-caution />
     </section>
   </div>
-  <app-drag-back/>
+    <app-drag-back/>
 </div>
 
