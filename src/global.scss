@@ -69,15 +69,6 @@
 }
 
 @layer components {
-  .bg-page {
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      rgba(0, 0, 0, 0.4) 20%,
-      #000000 40%
-    );
-    padding: 10px 0px;
-  }
 
   /* Custom Button Styles */
   .btn {
