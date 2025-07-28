@@ -7,7 +7,6 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
-import { AudioPlayerService } from './services/audio-player.service';
 import { LoadingComponent } from './components/loading/loading.component';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -29,9 +28,7 @@ import { PWAInstallationModalComponent } from "./components/pwa-installation-mod
   standalone: true,
 })
 export class AppComponent implements OnInit {
-  private audioPlayerService = inject(AudioPlayerService);
   private healthCheckService = inject(HealthCheckService);
-  currentSong = this.audioPlayerService.currentSong;
 
   constructor(
     private pwaService: PWAService,
@@ -71,14 +68,6 @@ export class AppComponent implements OnInit {
     if (!this.healthCheckService.isHealthy() || !navigator.onLine) {
       this.router.navigate(['/tabs/list']);
     }
-  }
-
-
-
-
-
-  onImageError(event: any): void {
-    event.target.src = '/assets/images/background.webp';
   }
 
   private async requestNativePermissions(): Promise<void> {

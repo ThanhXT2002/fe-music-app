@@ -9,7 +9,7 @@ import { AudioPlayerService } from '../../services/audio-player.service';
 import { AccountPanelComponent } from 'src/app/components/account-panel/account-panel.component';
 import { SaveFileZipService } from 'src/app/services/save-file-zip.service';
 import { ToastService } from 'src/app/services/toast.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { environment } from 'src/environments/environment';
 import { DatabaseService } from 'src/app/services/database.service';
@@ -22,6 +22,7 @@ import { DatabaseService } from 'src/app/services/database.service';
     FormsModule,
     InstallPromptComponent,
     AccountPanelComponent,
+    RouterLink
   ],
   templateUrl: './settings.page.html',
   animations: [routeAnimation],
