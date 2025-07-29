@@ -1,4 +1,15 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  OnInit,
+  QueryList,
+  signal,
+  ViewChildren,
+} from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ModalController, IonicModule } from '@ionic/angular';
@@ -6,7 +17,7 @@ import { YtMusicService } from 'src/app/services/api/ytmusic.service';
 
 import { YTMusicSearchResult } from 'src/app/interfaces/ytmusic.interface';
 import { debounceTime, Subject } from 'rxjs';
-import { SongItemHomeComponent } from "src/app/components/song-item-home/song-item-home.component";
+import { SongItemHomeComponent } from 'src/app/components/song-item-home/song-item-home.component';
 import { Song } from 'src/app/interfaces/song.interface';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { YtPlayerService } from 'src/app/services/yt-player.service';
@@ -14,17 +25,22 @@ import { Router } from '@angular/router';
 import { LoadingService } from 'src/app/services/loading.service';
 import { Capacitor } from '@capacitor/core';
 import { PageContextService } from 'src/app/services/page-context.service';
-import { SkeletonSongItemComponent } from "src/app/components/skeleton-song-item/skeleton-song-item.component";
-
+import { SkeletonSongItemComponent } from 'src/app/components/skeleton-song-item/skeleton-song-item.component';
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, SongItemHomeComponent, SkeletonSongItemComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IonicModule,
+    SongItemHomeComponent,
+    SkeletonSongItemComponent,
+  ],
   styleUrls: ['./search.page.scss'],
 })
-export class SearchPage implements OnInit {
+export class SearchPage implements OnInit, AfterViewInit {
   private readonly modalCtrl = inject(ModalController);
   private readonly ytMusicService = inject(YtMusicService);
   private readonly destroyRef = inject(DestroyRef);
@@ -44,6 +60,9 @@ export class SearchPage implements OnInit {
   suggestions = signal<string[]>([]);
   showSuggestions = signal(false);
 
+  highlightedIndex = signal(-1);
+  @ViewChildren('suggestionItem') suggestionItems!: QueryList<ElementRef>;
+
   // Computed signal để tối ưu performance
   songSectionData = computed(() => {
     return this.searchResults()
@@ -51,16 +70,18 @@ export class SearchPage implements OnInit {
       .map((item: any) => ({
         id: item.videoId || '',
         title: item.title || '',
-        artist: item.artists && item.artists.length > 0
-          ? item.artists[0].artist || item.artists[0].name
-          : '',
+        artist:
+          item.artists && item.artists.length > 0
+            ? item.artists[0].artist || item.artists[0].name
+            : '',
         duration: item.duration_seconds || 0,
         duration_formatted: item.duration || '',
         keywords: [],
         audio_url: '',
-        thumbnail_url: item.thumbnails && item.thumbnails.length > 0
-          ? item.thumbnails[0].url
-          : '',
+        thumbnail_url:
+          item.thumbnails && item.thumbnails.length > 0
+            ? item.thumbnails[0].url
+            : '',
         isFavorite: false,
         addedDate: new Date(),
       }));
@@ -74,21 +95,25 @@ export class SearchPage implements OnInit {
     this.pageContext.setCurrentPage('search');
     // Sử dụng takeUntilDestroyed để tự động unsubscribe
     this.searchSubject
-      .pipe(
-        debounceTime(400),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(query => {
+      .pipe(debounceTime(400), takeUntilDestroyed(this.destroyRef))
+      .subscribe((query) => {
         this.searchYouTube(query);
       });
 
     // Gợi ý autocomplete
+    this.suggestion();
+  }
+
+  ngAfterViewInit() {
+    this.suggestionItems.changes.subscribe(() => {
+      this.scrollToHighlighted();
+    });
+  }
+
+  suggestion() {
     this.suggestionSubject
-      .pipe(
-        debounceTime(200),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(query => {
+      .pipe(debounceTime(200), takeUntilDestroyed(this.destroyRef))
+      .subscribe((query) => {
         if (query.trim().length < 1) {
           this.suggestions.set([]);
           this.showSuggestions.set(false);
@@ -98,16 +123,29 @@ export class SearchPage implements OnInit {
           next: (suggests) => {
             this.suggestions.set(suggests);
             this.showSuggestions.set(suggests.length > 0);
+            this.highlightedIndex.set(-1); // Reset highlight khi có gợi ý mới
           },
           error: () => {
             this.suggestions.set([]);
             this.showSuggestions.set(false);
-          }
+            this.highlightedIndex.set(-1);
+          },
         });
       });
   }
 
-
+  scrollToHighlighted() {
+    setTimeout(() => {
+      const items = this.suggestionItems.toArray();
+      const idx = this.highlightedIndex();
+      if (items[idx]) {
+        items[idx].nativeElement.scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth',
+        });
+      }
+    });
+  }
 
   async onSearchInput(event: any) {
     const query = event.target.value;
@@ -137,7 +175,6 @@ export class SearchPage implements OnInit {
 
   onSuggestionClick(s: string) {
     this.searchQuery.set(s);
-    this.showSuggestions.set(false);
     this.onSearchButtonClick();
   }
 
@@ -145,7 +182,7 @@ export class SearchPage implements OnInit {
     this.modalCtrl.dismiss();
   }
 
-  onBack(){
+  onBack() {
     const backUrl = localStorage.getItem('back-search');
     if (backUrl) {
       localStorage.removeItem('back-search');
@@ -171,7 +208,8 @@ export class SearchPage implements OnInit {
     }
 
     try {
-      this.ytMusicService.search(query, 'songs')
+      this.ytMusicService
+        .search(query, 'songs')
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (results) => {
@@ -203,6 +241,27 @@ export class SearchPage implements OnInit {
     this.searchYouTube(query);
   }
 
+  onInputKeydown(event: KeyboardEvent) {
+    const suggestions = this.suggestions();
+    if (!suggestions.length) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.highlightedIndex.set(
+        (this.highlightedIndex() + 1) % suggestions.length
+      );
+      this.scrollToHighlighted(); // Thêm dòng này
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.highlightedIndex.set(
+        (this.highlightedIndex() - 1 + suggestions.length) % suggestions.length
+      );
+      this.scrollToHighlighted(); // Thêm dòng này
+    } else if (event.key === 'Enter' && this.highlightedIndex() >= 0) {
+      this.onSuggestionClick(suggestions[this.highlightedIndex()]);
+    }
+  }
+
   onSongClick(song: Song) {
     this.loadingService.show();
     this.ytMusicService.getPlaylistWithSong(song.id).subscribe({
@@ -217,7 +276,9 @@ export class SearchPage implements OnInit {
         this.ytPlayerService.playlistId.set(playlistId);
         this.ytPlayerService.ralated.set(related);
         this.loadingService.hide();
-        this.router.navigate(['/yt-player'], { queryParams: { v: song.id, list: res.playlistId } });
+        this.router.navigate(['/yt-player'], {
+          queryParams: { v: song.id, list: res.playlistId },
+        });
       },
       error: (err) => {
         console.error('Error fetching playlist with related:', err);
