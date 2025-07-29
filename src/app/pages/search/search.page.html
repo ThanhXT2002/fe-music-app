@@ -12,7 +12,18 @@
       (keyup.enter)="onSearchButtonClick()"
       placeholder="Nhập tên bài hát, nghệ sĩ, album..."
       class="input w-full pl-10 pr-10 bg-gray-700"
+      autocomplete="off"
     />
+    <!-- Autocomplete Suggestions -->
+    @if(showSuggestions() && searchQuery().length > 0) {
+      <ul class="absolute left-0 right-0 z-20 bg-gray-700 border-gray-600 rounded mt-1 max-h-96 shadow-lg">
+        @for (s of suggestions(); track $index) {
+          <li class="px-4 py-2 cursor-pointer hover:bg-gray-600 text-gray-200" (click)="onSuggestionClick(s)">
+            {{ s }}
+          </li>
+        }
+      </ul>
+    }
     <button
       class="h-10 w-10 absolute left-0 top-1/2 transform -translate-y-1/2 text-gray-400"
       (click)="onBack()"
@@ -55,7 +66,7 @@
       </div>
       }
       <!-- No Results -->
-      @if (searchQuery().length >= 3 && searchResults().length === 0 &&
+      <!-- @if (searchQuery().length >= 3 && searchResults().length === 0 &&
       !isSearching()) {
       <div class="text-center py-8">
         <svg
@@ -74,7 +85,7 @@
         <p class="text-gray-400">No results found</p>
         <p class="text-sm text-gray-500">Try different keywords</p>
       </div>
-      }
+      } -->
     </div>
     <!-- Empty State -->
     @if (searchQuery().length < 3 && searchResults().length === 0 &&

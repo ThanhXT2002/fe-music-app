@@ -1,4 +1,3 @@
-
 import { Injectable } from '@angular/core';
 import {
   HttpClient,
@@ -98,5 +97,13 @@ export class YtMusicService {
 
   getRelated(browerId: string): Observable<YTMusicRelatedResponse> {
     return this.http.get<YTMusicRelatedResponse>(`${this.apiUrl}/related/${browerId}`);
+  }
+
+  /**
+   * Lấy gợi ý tìm kiếm (autocomplete)
+   */
+  searchSuggestions(query: string): Observable<string[]> {
+    const params = new HttpParams().set('query', query);
+    return this.http.get<string[]>(`${this.apiUrl}/search-suggestions`, { params });
   }
 }

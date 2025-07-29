@@ -40,6 +40,9 @@ export class SearchPage implements OnInit {
   searchQuery = signal('');
   searchResults = signal<YTMusicSearchResult[]>([]);
   isSearching = signal(false);
+  // Gợi ý autocomplete
+  suggestions = signal<string[]>([]);
+  showSuggestions = signal(false);
 
   // Computed signal để tối ưu performance
   songSectionData = computed(() => {
@@ -64,6 +67,7 @@ export class SearchPage implements OnInit {
   });
 
   private searchSubject = new Subject<string>();
+  private suggestionSubject = new Subject<string>();
   skeletonArray = Array.from({ length: 20 }, (_, i) => i);
 
   ngOnInit() {
@@ -76,6 +80,30 @@ export class SearchPage implements OnInit {
       )
       .subscribe(query => {
         this.searchYouTube(query);
+      });
+
+    // Gợi ý autocomplete
+    this.suggestionSubject
+      .pipe(
+        debounceTime(200),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(query => {
+        if (query.trim().length < 1) {
+          this.suggestions.set([]);
+          this.showSuggestions.set(false);
+          return;
+        }
+        this.ytMusicService.searchSuggestions(query).subscribe({
+          next: (suggests) => {
+            this.suggestions.set(suggests);
+            this.showSuggestions.set(suggests.length > 0);
+          },
+          error: () => {
+            this.suggestions.set([]);
+            this.showSuggestions.set(false);
+          }
+        });
       });
   }
 
@@ -98,6 +126,19 @@ export class SearchPage implements OnInit {
   onInputChange(event: any) {
     const query = event.target.value;
     this.searchQuery.set(query);
+    // Gọi gợi ý
+    if (query.trim().length > 0) {
+      this.suggestionSubject.next(query);
+    } else {
+      this.suggestions.set([]);
+      this.showSuggestions.set(false);
+    }
+  }
+
+  onSuggestionClick(s: string) {
+    this.searchQuery.set(s);
+    this.showSuggestions.set(false);
+    this.onSearchButtonClick();
   }
 
   closeModal() {
@@ -118,6 +159,8 @@ export class SearchPage implements OnInit {
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.isSearching.set(false);
+    this.suggestions.set([]);
+    this.showSuggestions.set(false);
   }
 
   async searchYouTube(query: string) {
@@ -150,6 +193,7 @@ export class SearchPage implements OnInit {
   }
 
   onSearchButtonClick() {
+    this.showSuggestions.set(false);
     const query = this.searchQuery().trim();
     if (query.length < 1) {
       this.searchResults.set([]);
