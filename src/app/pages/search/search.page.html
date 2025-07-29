@@ -1,7 +1,10 @@
-<ion-header mode="md" [translucent]="true" class="p-4 bg-grid"
-[ngClass]="isNative? 'pt-10': 'pt-4'"
+<ion-header
+  mode="md"
+  [translucent]="true"
+  class="p-4 bg-grid"
+  [ngClass]="isNative? 'pt-10': 'pt-4'"
 >
-  <div class="relative ">
+  <div class="relative">
     <input
       type="text"
       [value]="searchQuery()"
@@ -30,24 +33,25 @@
     <!-- Search Section -->
     <div class="p-4">
       <!-- Loading State -->
-      <div *ngIf="isSearching()" class="text-center py-8">
-        <div class="spinner mx-auto"></div>
-        <p class="text-gray-400 mt-2">Searching...</p>
-      </div>
+      @if(isSearching()){ @for (item of skeletonArray; track $index) {
+      <app-skeleton-song-item [index]="$index" />
+      } }
       <!-- Tabs -->
       @if (searchResults().length > 0 && !isSearching()) {
       <div class="space-y-3">
-
-        <ng-container *ngFor="let song of songSectionData(); trackBy: trackBySongId">
-        <app-song-item-home
-          [song]="song"
-          [isHomePage]="false"
-          [showDuration]="true"
-          [showArtist]="true"
-          (songClick)="onSongClick(song)"
-          (songOptions)="onSongOptions(song)">
-        </app-song-item-home>
-      </ng-container>
+        <ng-container
+          *ngFor="let song of songSectionData(); trackBy: trackBySongId"
+        >
+          <app-song-item-home
+            [song]="song"
+            [isHomePage]="false"
+            [showDuration]="true"
+            [showArtist]="true"
+            (songClick)="onSongClick(song)"
+            (songOptions)="onSongOptions(song)"
+          >
+          </app-song-item-home>
+        </ng-container>
       </div>
       }
       <!-- No Results -->
@@ -78,7 +82,10 @@
     <div
       class="flex flex-col items-center justify-center h-64 text-center px-4"
     >
-      <i class="fa-solid fa-magnifying-glass text-purple-400 mb-4" style="font-size: 5rem;"></i>
+      <i
+        class="fa-solid fa-magnifying-glass text-purple-400 mb-4"
+        style="font-size: 5rem"
+      ></i>
       <h3 class="text-lg font-semibold text-gray-300 mb-2">
         Tìm kiếm bài hát yêu thích
       </h3>

@@ -14,13 +14,14 @@ import { Router } from '@angular/router';
 import { LoadingService } from 'src/app/services/loading.service';
 import { Capacitor } from '@capacitor/core';
 import { PageContextService } from 'src/app/services/page-context.service';
+import { SkeletonSongItemComponent } from "src/app/components/skeleton-song-item/skeleton-song-item.component";
 
 
 @Component({
   selector: 'app-search',
   templateUrl: './search.page.html',
   standalone: true,
-  imports: [CommonModule, FormsModule, IonicModule, SongItemHomeComponent],
+  imports: [CommonModule, FormsModule, IonicModule, SongItemHomeComponent, SkeletonSongItemComponent],
   styleUrls: ['./search.page.scss'],
 })
 export class SearchPage implements OnInit {
@@ -63,6 +64,7 @@ export class SearchPage implements OnInit {
   });
 
   private searchSubject = new Subject<string>();
+  skeletonArray = Array.from({ length: 20 }, (_, i) => i);
 
   ngOnInit() {
     this.pageContext.setCurrentPage('search');

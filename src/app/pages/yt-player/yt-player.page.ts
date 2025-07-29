@@ -53,7 +53,7 @@ export class YtPlayerPage implements OnInit {
   currentIndex: number = 0;
   currentSong: YTPlayerTrack | null = null;
   isPlaying: boolean = true;
-  isShuffling = this.ytPlayerService.isShuffling; // Add isShuffling property
+  isShuffling = this.ytPlayerService.isShuffling;
   safeVideoUrl: SafeResourceUrl = '';
   audioUrl: string = '';
   songTitle: string = '';
@@ -68,7 +68,7 @@ export class YtPlayerPage implements OnInit {
   videoCurrentTime: number = 0;
   dragging: boolean = false;
   hoverPercent: number = -1;
-  tempProgress: number = 0; // progress tạm khi kéo
+  tempProgress: number = 0;
 
   private iframeReady = false;
   private shouldInitPlayer = false;
@@ -113,6 +113,7 @@ export class YtPlayerPage implements OnInit {
     // Hủy subscription
     this.destroy$.next();
     this.destroy$.complete();
+    this.pause();
 
     // Hủy player
     if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
@@ -154,7 +155,9 @@ export class YtPlayerPage implements OnInit {
   }
 
   getPlaylistFallBack(videoId: string) {
-    this.ytMusicService.getPlaylistWithSong(videoId).subscribe({
+    this.ytMusicService.getPlaylistWithSong(videoId).
+    pipe(takeUntil(this.destroy$)).
+    subscribe({
       next: (res) => {
         const tracks = res.tracks;
         const playlistId = res.playlistId ?? null;
@@ -241,7 +244,6 @@ export class YtPlayerPage implements OnInit {
 
   next() {
     if (this.isShuffling()) {
-      // Phát ngẫu nhiên, tránh lặp lại bài hiện tại nếu có nhiều hơn 1 bài
       let nextIndex = this.currentIndex;
       if (this.playlist.length > 1) {
         do {
@@ -496,7 +498,7 @@ export class YtPlayerPage implements OnInit {
           onReorder: (from: number, to: number) => this.handleReorder(from, to),
           countdownTime: this.getCountdownTime.bind(this),
         },
-        presentingElement: undefined, // Allow full-screen modal
+        presentingElement: undefined,
         breakpoints: [0, 1],
         initialBreakpoint: 1,
         handle: true,

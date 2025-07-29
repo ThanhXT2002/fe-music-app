@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Platform } from '@ionic/angular/standalone';
 import { PlaybackState, Song } from 'src/app/interfaces/song.interface';
 import { SongItemHomeComponent } from '../song-item-home/song-item-home.component';
+import { SkeletonSongItemComponent } from "../skeleton-song-item/skeleton-song-item.component";
 
 @Component({
   selector: 'app-song-section',
   standalone: true,
-  imports: [CommonModule, SongItemHomeComponent],
+  imports: [CommonModule, SongItemHomeComponent, SkeletonSongItemComponent],
   templateUrl: './song-section.component.html',
   styleUrls: ['./song-section.component.scss'],
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
