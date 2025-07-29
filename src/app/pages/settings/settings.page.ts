@@ -13,6 +13,7 @@ import { Router, RouterLink } from '@angular/router';
 import { RefreshService } from 'src/app/services/refresh.service';
 import { environment } from 'src/environments/environment';
 import { DatabaseService } from 'src/app/services/database.service';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-settings',
@@ -34,6 +35,7 @@ export class SettingsPage implements OnInit {
   private toastService = inject(ToastService);
   private refreshService = inject(RefreshService);
   private router = inject(Router);
+  private titleService = inject(Title);
 
   currentSong = this.audioPlayerService.currentSong;
   isNative = Capacitor.isNativePlatform();
@@ -44,7 +46,9 @@ export class SettingsPage implements OnInit {
   emailSupport = environment.emailSupport;
   appName = environment.appName;
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.titleService.setTitle('Cài đặt chung - XTMusic');
+  }
 
   async clearCache() {
     console.log('Clearing cache...');

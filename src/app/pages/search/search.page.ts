@@ -26,6 +26,7 @@ import { LoadingService } from 'src/app/services/loading.service';
 import { Capacitor } from '@capacitor/core';
 import { PageContextService } from 'src/app/services/page-context.service';
 import { SkeletonSongItemComponent } from 'src/app/components/skeleton-song-item/skeleton-song-item.component';
+import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-search',
@@ -49,6 +50,7 @@ export class SearchPage implements OnInit, AfterViewInit {
   private loadingService = inject(LoadingService);
   private pageContext = inject(PageContextService);
   private router = inject(Router);
+  private titleService = inject(Title);
 
   isNative = Capacitor.isNativePlatform();
 
@@ -102,6 +104,7 @@ export class SearchPage implements OnInit, AfterViewInit {
 
     // Gợi ý autocomplete
     this.suggestion();
+
   }
 
   ngAfterViewInit() {

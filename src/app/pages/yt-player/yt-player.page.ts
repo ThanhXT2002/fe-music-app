@@ -6,7 +6,11 @@ import {
   NgZone,
   ChangeDetectorRef,
 } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import {
+  DomSanitizer,
+  SafeResourceUrl,
+  Title,
+} from '@angular/platform-browser';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -39,7 +43,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
     PlayerHeaderComponent,
     BtnAddPlaylistComponent,
     BtnDownAndHeartComponent,
-],
+  ],
 })
 export class YtPlayerPage implements OnInit {
   @ViewChild('ytIframe', { static: false })
@@ -85,9 +89,10 @@ export class YtPlayerPage implements OnInit {
     private cdr: ChangeDetectorRef,
     private location: Location,
     private modalCtrl: ModalController,
-    private audioPlayerService: AudioPlayerService
+    private audioPlayerService: AudioPlayerService,
+    private titleService: Title
   ) {
-    this.audioPlayerService.pause()
+    this.audioPlayerService.pause();
   }
 
   ngOnInit() {
@@ -155,23 +160,24 @@ export class YtPlayerPage implements OnInit {
   }
 
   getPlaylistFallBack(videoId: string) {
-    this.ytMusicService.getPlaylistWithSong(videoId).
-    pipe(takeUntil(this.destroy$)).
-    subscribe({
-      next: (res) => {
-        const tracks = res.tracks;
-        const playlistId = res.playlistId ?? null;
-        localStorage.setItem('yt-tracks', JSON.stringify(tracks));
-        localStorage.setItem('yt-playlistId', JSON.stringify(playlistId));
-        this.ytPlayerService.currentPlaylist.set(tracks);
-        this.ytPlayerService.playlistId.set(playlistId);
-        this.setPlaylistAndCurrent(tracks, videoId);
-      },
-      error: (err) => {
-        console.error('Error fetching playlist with related:', err);
-        this.router.navigate(['/oops-404']);
-      },
-    });
+    this.ytMusicService
+      .getPlaylistWithSong(videoId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          const tracks = res.tracks;
+          const playlistId = res.playlistId ?? null;
+          localStorage.setItem('yt-tracks', JSON.stringify(tracks));
+          localStorage.setItem('yt-playlistId', JSON.stringify(playlistId));
+          this.ytPlayerService.currentPlaylist.set(tracks);
+          this.ytPlayerService.playlistId.set(playlistId);
+          this.setPlaylistAndCurrent(tracks, videoId);
+        },
+        error: (err) => {
+          console.error('Error fetching playlist with related:', err);
+          this.router.navigate(['/oops-404']);
+        },
+      });
   }
 
   updateSafeUrl(videoId: string) {
@@ -300,6 +306,13 @@ export class YtPlayerPage implements OnInit {
     if (callUpdateSafeUrl) {
       this.updateSafeUrl(this.videoId);
     }
+
+    // Set title động
+    this.titleService.setTitle(
+      this.songTitle
+        ? `${this.songTitle} - ${this.songArtist} | Ứng dụng nghe nhạc hiện đại`
+        : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
+    );
   }
 
   onIframeEnded() {
