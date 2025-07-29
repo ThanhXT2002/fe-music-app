@@ -8,10 +8,14 @@ import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from './services/database.service';
 import { PermissionService } from './services/permission.service';
 import { LoadingComponent } from './components/loading/loading.component';
-import { Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HealthCheckService } from './services/api/health-check.service';
 import { PWAInstallationModalComponent } from "./components/pwa-installation-modal/pwa-installation-modal.component";
+import { Title } from '@angular/platform-browser';
+import { CustomTitleService } from './services/custom-title.service';
+import { filter, map, Subject, takeUntil, tap } from 'rxjs';
+
 
 @Component({
   selector: 'app-root',
@@ -35,7 +39,9 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private dbService: DatabaseService,
     private permissionService: PermissionService,
-    private router: Router
+    private router: Router,
+    private titleService: Title,
+    private customTitleService: CustomTitleService
   ) {
     this.actionHealthCheck();
   }
@@ -49,6 +55,24 @@ export class AppComponent implements OnInit {
     }, 30 * 60 * 1000);
 
 
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      map(() => this.getDeepestRoute(this.router.routerState.root)),
+      tap(route => {
+        const title = route.snapshot.data['title'];
+        if (title) {
+          this.titleService.setTitle(`${title} - XTMusic`);
+          this.customTitleService.setTitle(title);
+        }
+      })
+    ).subscribe();
+  }
+
+  private getDeepestRoute(route: ActivatedRoute): ActivatedRoute {
+    while (route.firstChild) {
+      route = route.firstChild;
+    }
+    return route;
   }
 
   async initializeApp() {
@@ -104,4 +128,5 @@ export class AppComponent implements OnInit {
       }
     }
   }
+
 }

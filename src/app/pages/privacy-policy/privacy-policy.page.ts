@@ -16,6 +16,7 @@ export class PrivacyPolicyPage implements OnInit {
   constructor(  ) { }
 
   ngOnInit() {
+
   }
 
 

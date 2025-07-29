@@ -7,8 +7,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HeaderComponent } from 'src/app/components/header/header.component';
-import { NavbarBottomComponent } from 'src/app/components/navbar-bottom/navbar-bottom.component';
 import { BenefitCommonComponent } from './components/benefit-common/benefit-common.component';
 import { TabAgentComponent } from './components/tab-agent/tab-agent.component';
 import { CautionComponent } from "./components/caution/caution.component";

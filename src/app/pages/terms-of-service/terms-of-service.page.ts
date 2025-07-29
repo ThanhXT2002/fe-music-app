@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DragBackComponent } from "src/app/components/drag-back/drag-back.component";
-import { Title } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-terms-of-service',
@@ -13,16 +12,10 @@ import { Title } from '@angular/platform-browser';
   imports: [ CommonModule, FormsModule, RouterModule, DragBackComponent]
 })
 export class TermsOfServicePage implements OnInit {
-  constructor(
-    private titleService: Title
-  ) { }
+  constructor() { }
 
   ngOnInit() {
-    // Set title động
-    this.titleService.setTitle('Điều khảng dịch vụ - XTMusic');
   }
-
-
   termsCards = [
     {
       title: 'Quy định sử dụng',
