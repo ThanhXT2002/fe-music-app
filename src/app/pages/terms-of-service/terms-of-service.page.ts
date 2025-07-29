@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonTitle } from '@ionic/angular/standalone';
 import { RouterModule } from '@angular/router';
 import { DragBackComponent } from "src/app/components/drag-back/drag-back.component";
 
@@ -10,12 +9,10 @@ import { DragBackComponent } from "src/app/components/drag-back/drag-back.compon
   templateUrl: './terms-of-service.page.html',
   styleUrls: ['./terms-of-service.page.scss'],
   standalone: true,
-  imports: [IonTitle, IonButton, IonButtons, IonToolbar, IonHeader, IonContent, CommonModule, FormsModule, RouterModule, DragBackComponent]
+  imports: [ CommonModule, FormsModule, RouterModule, DragBackComponent]
 })
 export class TermsOfServicePage implements OnInit {
-
-
-  constructor(  private location: Location) { }
+  constructor() { }
 
   ngOnInit() {
   }
