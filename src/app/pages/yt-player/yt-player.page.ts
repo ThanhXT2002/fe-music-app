@@ -28,6 +28,7 @@ import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
 import { Song } from 'src/app/interfaces/song.interface';
 import { formatTime } from 'src/app/utils/format-time.util';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { CustomTitleService } from '../../services/custom-title.service';
 
 @Component({
   selector: 'app-yt-player',
@@ -90,7 +91,7 @@ export class YtPlayerPage implements OnInit {
     private location: Location,
     private modalCtrl: ModalController,
     private audioPlayerService: AudioPlayerService,
-    private titleService: Title
+    private CustomTitleService: CustomTitleService
   ) {
     this.audioPlayerService.pause();
   }
@@ -308,7 +309,7 @@ export class YtPlayerPage implements OnInit {
     }
 
     // Set title động
-    this.titleService.setTitle(
+    this.CustomTitleService.setTitle(
       this.songTitle
         ? `${this.songTitle} - ${this.songArtist} | Ứng dụng nghe nhạc hiện đại`
         : 'XTMusic - Ứng dụng nghe nhạc hiện đại'

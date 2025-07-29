@@ -54,6 +54,12 @@ export class AppComponent implements OnInit {
       this.pwaService.checkForUpdates();
     }, 30 * 60 * 1000);
 
+    this.customTitleService.title$.subscribe(title => {
+    if (title) {
+      this.titleService.setTitle(title);
+    }
+  });
+
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -61,8 +67,7 @@ export class AppComponent implements OnInit {
       tap(route => {
         const title = route.snapshot.data['title'];
         if (title) {
-          this.titleService.setTitle(`${title} - XTMusic`);
-          this.customTitleService.setTitle(title);
+          this.customTitleService.setTitle(`${title} - XTMusic`);
         }
       })
     ).subscribe();

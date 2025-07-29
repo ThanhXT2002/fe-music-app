@@ -8,6 +8,8 @@ import {
   computed,
   ViewChild,
   ElementRef,
+  effect,
+  EffectRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -30,6 +32,7 @@ import { ProgressBarComponent } from "src/app/components/progress-bar/progress-b
 import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
 import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
 import { formatTime } from 'src/app/utils/format-time.util';
+import { CustomTitleService } from 'src/app/services/custom-title.service';
 
 @Component({
   selector: 'app-player',
@@ -48,6 +51,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   private gestureCtrl = inject(GestureController);
   private playlistModalService = inject(GlobalPlaylistModalService);
   private downloadService = inject(DownloadService);
+  private CustomTitleService = inject(CustomTitleService);
 
   // Audio service signals
   currentSong = this.audioPlayerService.currentSong;
@@ -70,6 +74,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   private swipeGesture!: Gesture;
 
+ private currentSongEffect!: EffectRef;
+
   // Computed values
   progress = computed(() => {
     if (this.isDragging()) {
@@ -89,7 +95,22 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
 
   durationTime = computed(() => formatTime(this.duration()));
 
+  constructor() {
+    this.currentSongEffect = effect(() => {
+    const song = this.currentSong();
+    this.CustomTitleService.setTitle(
+      song
+        ? `${song.title} - ${song.artist} | Ứng dụng nghe nhạc hiện đại`
+        : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
+    );
+  });
+  }
+
   ngOnInit() {
+
+
+
+
   }
 
   ngAfterViewInit() {
@@ -104,6 +125,8 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     if (this.swipeGesture) {
       this.swipeGesture.destroy();
     }
+
+    this.currentSongEffect?.destroy?.();
   }
 
   private createSwipeGesture() {
@@ -271,9 +294,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-
-
-
   async toggleFavorite() {
     const song = this.currentSong();
     if (song) {
@@ -287,8 +307,6 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
       }
     }
   }
-
-
 
   getRepeatColor(): string {
     return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';

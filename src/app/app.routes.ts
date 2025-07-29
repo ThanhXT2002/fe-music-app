@@ -55,8 +55,7 @@ export const routes: Routes = [
   {
     path: 'player',
     loadComponent: () =>
-      import('./pages/player/player.page').then((m) => m.PlayerPage),
-    data: { title: 'Trình phát nhạc' }
+      import('./pages/player/player.page').then((m) => m.PlayerPage)
   },
   {
     path: 'search',
@@ -99,8 +98,7 @@ export const routes: Routes = [
   {
     path: 'yt-player',
     loadComponent: () =>
-      import('./pages/yt-player/yt-player.page').then((m) => m.YtPlayerPage),
-    data: { title: 'Trình phát nhạc YouTube Music' }
+      import('./pages/yt-player/yt-player.page').then((m) => m.YtPlayerPage)
   },
   {
     path: 'pwa-guide',
