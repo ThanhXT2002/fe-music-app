@@ -6,11 +6,23 @@
         <a
           [routerLink]="tab.link"
           routerLinkActive="active"
+          *ngIf="tab.link === '/' else otherTab"
+          [routerLinkActiveOptions]="{ exact: true }"
           class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
         >
           <i class="fas" [ngClass]="tab.icon + ' text-xl mb-1'"></i>
           <span class="text-xs font-medium">{{ tab.label }}</span>
         </a>
+        <ng-template #otherTab>
+          <a
+            [routerLink]="tab.link"
+            routerLinkActive="active"
+            class="tab-item flex flex-col items-center p-1 rounded-lg transition-all duration-200"
+          >
+            <i class="fas" [ngClass]="tab.icon + ' text-xl mb-1'"></i>
+            <span class="text-xs font-medium">{{ tab.label }}</span>
+          </a>
+        </ng-template>
         }
       </div>
     </div>
