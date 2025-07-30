@@ -58,9 +58,6 @@ export class HomePage implements OnInit {
     window.addEventListener('online', () =>
       this.healthCheckService.refreshHealth()
     );
-    window.addEventListener('offline', () =>
-      this.healthCheckService.isHealthy.set(false)
-    );
 
     if (Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song
