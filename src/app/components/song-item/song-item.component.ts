@@ -17,9 +17,8 @@ import { addIcons } from 'ionicons';
 import { apps, reorderThreeOutline } from 'ionicons/icons';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { LottieEqualizerComponent } from '../lottie-equalizer/lottie-equalizer.component';
-import { BtnDownAndHeartComponent } from "../btn-down-and-heart/btn-down-and-heart.component";
-import { BtnAddPlaylistComponent } from "../btn-add-playlist/btn-add-playlist.component";
 import { SongItemActionsComponent } from "../song-item-actions/song-item-actions.component";
+import { PageContextService } from 'src/app/services/page-context.service';
 
 @Component({
   selector: 'app-song-item',
@@ -70,6 +69,7 @@ export class SongItemComponent implements OnInit {
   @Input() isReady: boolean = false; // 🆕 Sẵn sàng download
 
   isShowBoxFunction: boolean = false;
+  pageName: string | null = null;
 
   get isCurrentPlayPage(): boolean {
     return this.modePage === 'current-play';
@@ -91,9 +91,11 @@ export class SongItemComponent implements OnInit {
   constructor(
     private audioPlayerService: AudioPlayerService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private pageContext: PageContextService
   ) {
     addIcons({ apps, reorderThreeOutline });
+    this.pageName = this.pageContext.getCurrentPage()();
 
     // Use effect to reactively update when playback state changes
     effect(() => {
@@ -112,7 +114,10 @@ export class SongItemComponent implements OnInit {
   }
 
   get isCurrentSong(): boolean {
-    return this.currentSong?.id === this.song.id || this.currentSongId === this.song.id;
+    if(this.pageName === 'yt-player') {
+      return this.currentSongId === this.song.id;
+    }
+    return this.currentSong?.id === this.song.id;
   }
 
   get isThisSongPlaying(): boolean {

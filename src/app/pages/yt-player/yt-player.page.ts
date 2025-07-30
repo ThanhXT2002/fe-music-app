@@ -29,6 +29,7 @@ import { Song } from 'src/app/interfaces/song.interface';
 import { formatTime } from 'src/app/utils/format-time.util';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { CustomTitleService } from '../../services/custom-title.service';
+import { PageContextService } from 'src/app/services/page-context.service';
 
 @Component({
   selector: 'app-yt-player',
@@ -91,12 +92,14 @@ export class YtPlayerPage implements OnInit {
     private location: Location,
     private modalCtrl: ModalController,
     private audioPlayerService: AudioPlayerService,
-    private CustomTitleService: CustomTitleService
+    private CustomTitleService: CustomTitleService,
+    private pageContext: PageContextService
   ) {
     this.audioPlayerService.pause();
   }
 
   ngOnInit() {
+    this.pageContext.setCurrentPage('yt-player');
     this.updateCurrentTrackFromParams();
   }
 
