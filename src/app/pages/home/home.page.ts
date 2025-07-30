@@ -47,7 +47,7 @@ export class HomePage implements OnInit {
   isCurrentSong = !!this.audioPlayerService.currentSong();
   pbCustom!: string;
 
-  isOnline = navigator.onLine;
+  isOnline: boolean = navigator.onLine;
   get isHealthyValue() {
     return this.healthCheckService.isHealthy();
   }
@@ -55,9 +55,14 @@ export class HomePage implements OnInit {
   constructor() {}
 
   ngOnInit() {
-    window.addEventListener('online', () =>
-      this.healthCheckService.refreshHealth()
-    );
+    window.addEventListener('online', () => {
+      this.isOnline = true;
+      this.healthCheckService.refreshHealth();
+    });
+
+    window.addEventListener('offline', () => {
+      this.isOnline = false;
+    });
 
     if (Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song

@@ -27,6 +27,9 @@ import { Capacitor } from '@capacitor/core';
 import { PageContextService } from 'src/app/services/page-context.service';
 import { SkeletonSongItemComponent } from 'src/app/components/skeleton-song-item/skeleton-song-item.component';
 import { Title } from '@angular/platform-browser';
+import { HealthCheckService } from 'src/app/services/api/health-check.service';
+import { InternetErrorComponent } from 'src/app/components/internet-error/internet-error.component';
+import { Oops505Component } from 'src/app/components/oops-505/oops-505.component';
 
 @Component({
   selector: 'app-search',
@@ -38,6 +41,8 @@ import { Title } from '@angular/platform-browser';
     IonicModule,
     SongItemHomeComponent,
     SkeletonSongItemComponent,
+    InternetErrorComponent,
+    Oops505Component,
   ],
   styleUrls: ['./search.page.scss'],
 })
@@ -50,7 +55,12 @@ export class SearchPage implements OnInit, AfterViewInit {
   private loadingService = inject(LoadingService);
   private pageContext = inject(PageContextService);
   private router = inject(Router);
-  private titleService = inject(Title);
+  healthCheckService = inject(HealthCheckService);
+
+  isOnline: boolean = navigator.onLine;
+  get isHealthyValue() {
+    return this.healthCheckService.isHealthy();
+  }
 
   isNative = Capacitor.isNativePlatform();
 
@@ -94,6 +104,17 @@ export class SearchPage implements OnInit, AfterViewInit {
   skeletonArray = Array.from({ length: 20 }, (_, i) => i);
 
   ngOnInit() {
+    window.addEventListener('online', () => {
+      console.log('Online status changed:', navigator.onLine);
+      this.isOnline = true;
+      this.healthCheckService.refreshHealth();
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('Offline status detected');
+      this.isOnline = false;
+    });
+
     this.pageContext.setCurrentPage('search');
     // Sử dụng takeUntilDestroyed để tự động unsubscribe
     this.searchSubject
@@ -104,7 +125,6 @@ export class SearchPage implements OnInit, AfterViewInit {
 
     // Gợi ý autocomplete
     this.suggestion();
-
   }
 
   ngAfterViewInit() {
@@ -221,6 +241,10 @@ export class SearchPage implements OnInit, AfterViewInit {
           error: (err) => {
             console.error('Search error:', err);
             this.searchResults.set([]);
+            this.isOnline = navigator.onLine;
+            if(this.isOnline){
+              this.healthCheckService.refreshHealth();
+            }
           },
           complete: () => {
             this.isSearching.set(false);
