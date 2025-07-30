@@ -10,7 +10,7 @@ export interface HealthCheckResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class HealthCheckService {
   apiUrl = environment.apiUrl + '/health';
@@ -18,14 +18,13 @@ export class HealthCheckService {
 
   constructor(private http: HttpClient) {
     // Kiểm tra trạng thái sức khỏe khi khởi tạo service
+    this.refreshHealth();
+  }
+
+  refreshHealth() {
     this.checkHealth().subscribe({
-      next: (response) => {
-        console.log('Health check response:', response);
-        this.isHealthy.set(response.success) ;
-      },
-      error: () => {
-         this.isHealthy.set(false);
-      }
+      next: (response) => this.isHealthy.set(response.success),
+      error: () => this.isHealthy.set(false),
     });
   }
 
@@ -33,5 +32,3 @@ export class HealthCheckService {
     return this.http.get<HealthCheckResponse>(this.apiUrl);
   }
 }
-
-

@@ -1,21 +1,22 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  CUSTOM_ELEMENTS_SCHEMA,
+  inject,
+  OnInit,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import {
-  Platform,
-} from '@ionic/angular/standalone';
+import { Platform } from '@ionic/angular/standalone';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { SongSectionComponent } from '../../components/song-section/song-section.component';
 import { HomeService } from 'src/app/services/api/home.service';
-import {
-  Song
-} from 'src/app/interfaces/song.interface';
+import { Song } from 'src/app/interfaces/song.interface';
 import { AudioPlayerService } from 'src/app/services/audio-player.service';
 import { Capacitor } from '@capacitor/core';
 import { DatabaseService } from 'src/app/services/database.service';
-import { InternetErrorComponent } from "src/app/components/internet-error/internet-error.component";
+import { InternetErrorComponent } from 'src/app/components/internet-error/internet-error.component';
 import { HealthCheckService } from 'src/app/services/api/health-check.service';
-import { Oops505Component } from "src/app/components/oops-505/oops-505.component";
+import { Oops505Component } from 'src/app/components/oops-505/oops-505.component';
 
 @Component({
   selector: 'app-home',
@@ -29,48 +30,49 @@ import { Oops505Component } from "src/app/components/oops-505/oops-505.component
     FooterComponent,
     SongSectionComponent,
     InternetErrorComponent,
-    Oops505Component
-],
+    Oops505Component,
+  ],
 })
 export class HomePage implements OnInit {
-   private healthCheckService = inject(HealthCheckService)
+  healthCheckService = inject(HealthCheckService);
+  private homeService = inject(HomeService);
+  audioPlayerService = inject(AudioPlayerService);
+  private databaseService = inject(DatabaseService);
+  private platform = inject(Platform);
+
   listEveryoneToListens: Song[] = [];
   listRemixSongs: Song[] = [];
   listInstrumentalSongs: Song[] = [];
   listTikTokSongs: Song[] = [];
-  isCurrentSong: boolean = false;
+  isCurrentSong = !!this.audioPlayerService.currentSong();
   pbCustom!: string;
 
   isOnline = navigator.onLine;
-  isHealthy = this.healthCheckService.isHealthy;
-
-  constructor(
-    private homeService: HomeService,
-    private databaseService: DatabaseService,
-    public audioPlayerService: AudioPlayerService,
-    private platform: Platform,
-  ) {
-    this.isCurrentSong = !!this.audioPlayerService.currentSong();
+  get isHealthyValue() {
+    return this.healthCheckService.isHealthy();
   }
 
+  constructor() {}
+
   ngOnInit() {
-    console.log(this.isHealthy);
+    window.addEventListener('online', () =>
+      this.healthCheckService.refreshHealth()
+    );
+    window.addEventListener('offline', () =>
+      this.healthCheckService.isHealthy.set(false)
+    );
 
-    if(Capacitor.isNativePlatform()) {
+    if (Capacitor.isNativePlatform()) {
       // For native platforms, set padding based on current song
-       this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
-    }else{
-      if(this.platform.is('pwa')) {
-         this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
+      this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
+    } else {
+      if (this.platform.is('pwa')) {
+        this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
+      } else if (this.platform.is('desktop')) {
+        this.pbCustom = this.isCurrentSong ? 'pb-80' : 'pb-64';
+      } else {
+        this.pbCustom = this.isCurrentSong ? 'pb-[445px]' : 'pb-96';
       }
-      else if(this.platform.is('desktop')) {
-          this.pbCustom = this.isCurrentSong ? 'pb-80' : 'pb-64';
-      }
-      else {
-        this.pbCustom =this.isCurrentSong?'pb-[445px]' :'pb-96';
-      }
-
-
     }
 
     this.loadEveryoneToListen();
@@ -194,22 +196,21 @@ export class HomePage implements OnInit {
   }
 
   // Event handlers for song interactions
-onSongClick(event: { song: Song, playlist: Song[] }) {
-  const { song, playlist } = event;
-  const index = playlist.findIndex(s => s.id === song.id);
-  if (index !== -1) {
-    this.audioPlayerService.setPlaylist(playlist, index);
+  onSongClick(event: { song: Song; playlist: Song[] }) {
+    const { song, playlist } = event;
+    const index = playlist.findIndex((s) => s.id === song.id);
+    if (index !== -1) {
+      this.audioPlayerService.setPlaylist(playlist, index);
+    }
   }
-}
 
-async syncFavorites(songs: Song[]): Promise<Song[]> {
-  const favoriteIds = await this.databaseService.getAllFavoriteSongIds(); // Trả về mảng id các bài hát favorite
-  return songs.map(song => ({
-    ...song,
-    isFavorite: favoriteIds.includes(song.id)
-  }));
-}
-
+  async syncFavorites(songs: Song[]): Promise<Song[]> {
+    const favoriteIds = await this.databaseService.getAllFavoriteSongIds(); // Trả về mảng id các bài hát favorite
+    return songs.map((song) => ({
+      ...song,
+      isFavorite: favoriteIds.includes(song.id),
+    }));
+  }
 
   onSongOptions(song: Song) {
     console.log('Song options:', song.title);
