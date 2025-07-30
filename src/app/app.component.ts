@@ -95,7 +95,7 @@ export class AppComponent implements OnInit {
 
   actionHealthCheck() {
     if (!this.healthCheckService.isHealthy() || !navigator.onLine) {
-      this.router.navigate(['/tabs/list']);
+      this.router.navigate(['/list']);
     }
   }
 

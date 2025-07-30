@@ -223,7 +223,7 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
             this.location.back();
           } else {
             // Fallback to home if no history (e.g., direct URL access)
-            this.router.navigate(['/tabs/home'], { replaceUrl: true });
+            this.router.navigate(['/'], { replaceUrl: true });
           }
         }
       })
@@ -233,11 +233,11 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
           if (window.history.length > 1) {
             this.location.back();
           } else {
-            this.router.navigate(['/tabs/home'], { replaceUrl: true });
+            this.router.navigate(['/'], { replaceUrl: true });
           }
         } catch (error) {
           console.error('Navigation error:', error);
-          this.router.navigate(['/tabs/home'], { replaceUrl: true });
+          this.router.navigate(['/'], { replaceUrl: true });
         }
       });
   }

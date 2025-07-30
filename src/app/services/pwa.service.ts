@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { AlertController } from '@ionic/angular/standalone';
 import { Platform } from '@ionic/angular';
 import { ToastService } from './toast.service';
 import { filter } from 'rxjs/operators';
@@ -15,7 +14,7 @@ export class PWAService {
     private toastService: ToastService,
     private platform: Platform
   ) {
-    if (swUpdate.isEnabled && platform.is('pwa')) {
+    if (swUpdate.isEnabled && this.platform.is('pwa')) {
       this.checkForUpdates();
       this.promptUser();
     }

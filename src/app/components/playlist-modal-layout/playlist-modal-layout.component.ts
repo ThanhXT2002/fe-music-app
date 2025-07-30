@@ -3,6 +3,7 @@ import { IonReorderGroup } from "@ionic/angular/standalone";
 import { IonicModule } from "@ionic/angular";
 import { SongItemComponent } from "../song-item/song-item.component";
 import { CommonModule } from '@angular/common';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-playlist-modal-layout',
@@ -29,4 +30,6 @@ export class PlaylistModalLayoutComponent {
   @Output() togglePlayPause = new EventEmitter<void>();
   @Output() toggleShuffle = new EventEmitter<void>();
   @Output() onIonReorder = new EventEmitter<any>();
+  isNative = Capacitor.isNativePlatform();
+
 }

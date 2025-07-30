@@ -125,7 +125,7 @@ export class EditPlaylistPage implements OnInit {
     });
     await alert.present();
     if (success) {
-      this.router.navigate(['/tabs/playlists']);
+      this.router.navigate(['/playlists']);
     }
   }
 

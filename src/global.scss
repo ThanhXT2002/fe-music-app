@@ -80,21 +80,12 @@
   }
 
   /* Custom Button Styles */
-  .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
-  }
+
 
   .btn-primary {
     @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
   }
 
-  .btn-secondary {
-    @apply bg-gray-700 text-gray-100 hover:bg-gray-600 focus:ring-gray-500;
-  }
-
-  .btn-icon {
-    @apply p-2 rounded-full hover:bg-gray-800 transition-colors;
-  }
 
   .btn-header {
     @apply block h-10 w-10 rounded-full hover:bg-gray-600 flex__middle;
@@ -105,128 +96,11 @@
     @apply w-full px-3 py-2 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-800 text-white;
   }
 
-  /* Custom Card Styles */
-  .card {
-    @apply bg-gray-800 rounded-lg shadow-sm border border-gray-700;
-  }
-
-  /* Custom Range Slider */
-  .range-slider {
-    @apply w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer;
-  }
-
-  .range-slider::-webkit-slider-thumb {
-    @apply appearance-none w-4 h-4 bg-blue-600 rounded-full cursor-pointer;
-  }
-
-  .range-slider::-moz-range-thumb {
-    @apply w-4 h-4 bg-blue-600 rounded-full cursor-pointer border-none;
-  }
-
-  /* Custom Tab Styles */
-  .tab-button {
-    @apply px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-colors;
-  }
-
-  .tab-button.active {
-    @apply text-blue-600 border-blue-600;
-  }
-
-  /* Custom Modal */
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
-  }
-
-  .modal-content {
-    @apply bg-gray-800 rounded-lg max-w-md w-full mx-4;
-  }
-
-  /* Custom Toast */
-  .toast {
-    @apply fixed top-4 right-4 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-4 z-50;
-  }
   /* Custom Loading Spinner */
   .spinner {
     @apply animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600;
   }
-  /* Custom Toggle Switch */
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 24px;
-  }
 
-  .toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #cbd5e1;
-    transition: 0.3s;
-    border-radius: 24px;
-  }
-
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 2px;
-    background-color: white;
-    transition: 0.3s;
-    border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  }
-
-  input:checked + .toggle-slider {
-    background-color: #8b5cf6;
-  }
-
-  input:checked + .toggle-slider:before {
-    transform: translateX(24px);
-  }
-
-  input:focus + .toggle-slider {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-  }
-
-  /* Dark mode toggle adjustments - now always purple */
-  .toggle-slider {
-    background-color: #475569;
-  }
-
-  input:checked + .toggle-slider {
-    background-color: #a855f7;
-  }
-  /* Custom Select Dropdown */
-  // .select {
-  //   width: 100%;
-  //   padding: 8px 12px;
-  //   border: 1px solid #4b5563;
-  //   border-radius: 8px;
-  //   background-color: #374151;
-  //   color: white;
-  //   appearance: none;
-  //   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
-  //   background-repeat: no-repeat;
-  //   background-position: right 8px center;
-  //   background-size: 16px;
-  // }
-  // .select:focus {
-  //   outline: none;
-  //   box-shadow: 0 0 0 2px #3b82f6;
-  //   border-color: transparent;
-  // }
 }
 
 /* Scrollbar customization - Always Dark */
@@ -473,9 +347,6 @@ ion-backdrop {
   &:active {
     transform: translateY(0);
   }
-}
-.toggle-switch .toggle-slider {
-  @apply bg-gray-600 backdrop-blur-sm rounded-full transition-all duration-200 border border-purple-500;
 }
 
 .ptAreanSave {

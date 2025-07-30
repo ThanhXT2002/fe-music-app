@@ -65,12 +65,12 @@ export class AccountPanelComponent implements OnInit {
   navigateToLogin() {
     this.router.navigate(['/login']);
   }
-  
+
   async loginWithGoogle() {
     try {
       this.isLoading.set(true);
       await this.authService.loginWithGoogle();
-      await this.router.navigate(['/tabs/settings'], {
+      await this.router.navigate(['/settings'], {
         replaceUrl: true,
       });
     } catch (error) {
@@ -84,7 +84,7 @@ export class AccountPanelComponent implements OnInit {
   async onLoginWithFacebook() {
     try {
       await this.authService.loginWithFacebook();
-      await this.router.navigate(['/tabs/settings'], {
+      await this.router.navigate(['/settings'], {
         replaceUrl: true,
       });
     } catch (error) {

@@ -3,21 +3,11 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'tabs',
-    pathMatch: 'full',
-  },
-  {
-    path: 'tabs',
     loadComponent: () =>
       import('./pages/layout/layout.component').then((m) => m.LayoutComponent),
     children: [
       {
         path: '',
-        redirectTo: 'home',
-        pathMatch: 'full',
-      },
-      {
-        path: 'home',
         loadComponent: () =>
           import('./pages/home/home.page').then((m) => m.HomePage),
         data: { title: 'Trang chủ' },
@@ -34,7 +24,7 @@ export const routes: Routes = [
           import('./pages/downloads/downloads.page').then(
             (m) => m.DownloadsPage
           ),
-          data: { title: 'Tải xuống' }
+        data: { title: 'Tải xuống' }
       },
       {
         path: 'settings',
@@ -48,7 +38,7 @@ export const routes: Routes = [
           import('./pages/playlists/playlists.page').then(
             (m) => m.PlaylistsPage
           ),
-          data: { title: 'Danh sách phát' }
+        data: { title: 'Danh sách phát' }
       },
     ],
   },

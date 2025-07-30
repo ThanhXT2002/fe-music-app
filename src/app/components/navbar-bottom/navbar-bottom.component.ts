@@ -16,27 +16,27 @@ export class NavbarBottomComponent {
 
   tabs = [
     {
-      link: '/tabs/home',
+      link: '/',
       icon: 'fa-house',
       label: 'Trang chủ',
     },
     {
-      link: '/tabs/list',
+      link: '/list',
       icon: 'fa-list',
       label: 'Danh sách',
     },
     {
-      link: '/tabs/playlists',
+      link: '/playlists',
       icon: 'fa-wave-square',
       label: 'Playlist',
     },
     {
-      link: '/tabs/downloads',
+      link: '/downloads',
       icon: 'fa-download',
       label: 'Tải xuống',
     },
     {
-      link: '/tabs/settings',
+      link: '/settings',
       icon: 'fa-user-gear',
       label: 'Cài đặt',
     },
