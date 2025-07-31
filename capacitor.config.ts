@@ -6,7 +6,12 @@ const config: CapacitorConfig = {
   webDir: 'www',
   server: {
     androidScheme: 'https',
-    allowNavigation: ['https://i.ytimg.com', 'https://img.youtube.com'],
+    allowNavigation: [
+      'https://app-music.tranxuanthanhtxt.com', // API chính
+      'http://localhost:4800',                 // API local
+      'https://i.ytimg.com',                   // Hình ảnh từ YouTube
+      'https://img.youtube.com',               // Hình ảnh từ YouTube
+    ],
   },
   plugins: {
     Keyboard: {
