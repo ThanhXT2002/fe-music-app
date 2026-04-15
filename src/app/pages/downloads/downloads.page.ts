@@ -143,15 +143,14 @@ export class DownloadsPage implements OnInit, OnDestroy {
         // Step 4: Show song info to user
         this.showSongInfo(songData);
 
-        // Step 5: Start polling status in background để check khi nào ready
+        // Step 5: Bắt đầu download NGAY LẬP TỨC (proxy-download không cần chờ)
+        this.downloadSong(songData);
+
+        // Step 6: Vẫn polling status ở background (cho UI tracking + BE cache)
         this.downloadService.startStatusPolling(songData);
 
         // Reload search history to show the new item
         await this.loadSearchHistory();
-
-        this.toastService.success(
-          'Đã lấy thông tin bài hát thành công! Đang chuẩn bị dữ liệu.'
-        );
       } else {
         console.error('API returned error:', response.message);
         this.toastService.error(`Lỗi: ${response.message}`);
@@ -190,22 +189,14 @@ export class DownloadsPage implements OnInit, OnDestroy {
    */
   async downloadSong(songData: DataSong) {
     try {
-      // Step 1: Kiểm tra xem bài hát có ready không
-      if (!this.downloadService.isSongReadyForDownload(songData.id)) {
-        this.toastService.warning('Bài hát chưa sẵn sàng để tải xuống!');
-        return;
-      }
-
-      // Step 2: Kiểm tra xem đã download chưa
+      // Kiểm tra xem đã download chưa
       if (this.isDownloaded(songData.id)) {
         this.toastService.warning('Bài hát đã được tải xuống!');
         return;
       }
 
-      // Step 3: Sử dụng downloadService để tạo download task với progress tracking
+      // Bắt đầu download qua proxy (không cần chờ BE sẵn sàng)
       this.toastService.info(`Đang tải "${songData.title}"...`);
-
-      // Tạo download task bằng downloadService
       await this.downloadService.downloadSong(songData);
 
       // Download task đã được tạo và bắt đầu process tự động thông qua downloadService

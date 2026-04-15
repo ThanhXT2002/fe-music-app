@@ -517,8 +517,9 @@ export class DownloadService {
   }
 
   // Tính toán timeout dựa vào duration
+  // Proxy-download là long-poll: BE chờ background task xong (max 180s) + stream file
   private calculateTimeout(duration?: number): number {
-    const DEFAULT_TIMEOUT = 120000; // 2 phút
+    const DEFAULT_TIMEOUT = 210000; // 3.5 phút (BE chờ max 3 phút + buffer)
     const LONG_SONG_TIMEOUT = 600000; // 10 phút
     const LONG_SONG_THRESHOLD = 1800; // 30 phút
 
@@ -527,24 +528,40 @@ export class DownloadService {
       : DEFAULT_TIMEOUT;
   }
 
-  // Tải audio với real progress
+  // Tải audio với real progress — ưu tiên proxy-download, fallback về endpoint cũ
   private async downloadAudio(
     songId: string,
     downloadId: string,
     signal: AbortSignal,
     timeoutMs: number
   ): Promise<Blob> {
-    return await this.downloadAudioWithRealProgress(
-      songId,
-      downloadId,
-      signal,
-      timeoutMs,
-      1, // startProgress
-      91 // endProgress
-    );
+    try {
+      // Ưu tiên: proxy-download (không cần chờ BE xử lý xong)
+      return await this.downloadAudioWithRealProgress(
+        songId,
+        downloadId,
+        signal,
+        timeoutMs,
+        1, // startProgress
+        91, // endProgress
+        true // useProxy = true
+      );
+    } catch (proxyError) {
+      console.warn(`⚠️ Proxy download thất bại cho ${songId}, thử endpoint cũ:`, proxyError);
+      // Fallback: endpoint cũ (yêu cầu BE đã completed)
+      return await this.downloadAudioWithRealProgress(
+        songId,
+        downloadId,
+        signal,
+        timeoutMs,
+        1,
+        91,
+        false // useProxy = false
+      );
+    }
   }
 
-  // Tải thumbnail
+  // Tải thumbnail qua BE (BE tự proxy từ YouTube nếu chưa có file)
   private async downloadThumbnail(
     songData: any,
     download: any,
@@ -562,7 +579,7 @@ export class DownloadService {
         download.songData.thumbnail_url = thumbnailBase64;
       }
     } catch (thumbError) {
-      console.warn('Không tải được thumbnail, tiếp tục tải audio:', thumbError);
+      console.warn('Không tải được thumbnail, tiếp tục:', thumbError);
     }
   }
 
@@ -660,11 +677,16 @@ export class DownloadService {
     signal: AbortSignal,
     timeoutMs: number,
     startProgress: number,
-    endProgress: number
+    endProgress: number,
+    useProxy: boolean = false
   ): Promise<Blob> {
     return new Promise((resolve, reject) => {
-      const subscription = this.musicApiService
-        .downloadSongAudio(songId, true)
+      // Chọn endpoint: proxy (nhanh, không cần chờ) hoặc cũ (cần BE completed)
+      const audioObservable = useProxy
+        ? this.musicApiService.proxyDownloadAudio(songId)
+        : this.musicApiService.downloadSongAudio(songId, true);
+
+      const subscription = audioObservable
         .pipe(
           timeout(timeoutMs),
           takeUntil(fromEvent(signal, 'abort')) // Hủy khi signal abort
@@ -1103,20 +1125,11 @@ export class DownloadService {
 
           if (isReady) {
             this.stopStatusPolling(songId);
-            this.downloadSong(songData);
-            this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
-            // Chỉ gửi thông báo "sẵn sàng" một lần cho mỗi bài hát
-            // if (!this.readyNotificationSentCache.has(songId)) {
-            //   this.readyNotificationSentCache.add(songId);
-            //   this.saveNotificationCache();
-            //   this.toastService.success('Bài hát đã sẵn sàng để tải xuống!');
-            // }
+            // Không cần gọi downloadSong ở đây nữa — download đã bắt đầu ngay qua proxy
           } else if (status.status === 'failed') {
             console.error('❌ Song processing failed:', status.error_message);
             this.stopStatusPolling(songId);
-            // Gửi thông báo lỗi
-
-            this.toastService.success(
+            this.toastService.error(
               `Xử lý thất bại: ${status.error_message}`
             );
           }

@@ -93,6 +93,36 @@ export class MusicApiService {
   }
 
   /**
+   * 5. GET /api/songs/proxy-download/{song_id} - Proxy Download Audio
+   * Proxy download audio trực tiếp từ YouTube, không cần chờ BE xử lý xong.
+   * Nếu file đã có trên server → trả từ cache.
+   * @param songId - ID của bài hát
+   * @returns Observable<HttpEvent<Blob>> - với progress tracking
+   */
+  proxyDownloadAudio(songId: string): Observable<HttpEvent<Blob>> {
+    const url = `${this.apiUrl}/songs/proxy-download/${songId}`;
+    const req = new HttpRequest<any>('GET', url, null, {
+      responseType: 'blob',
+      reportProgress: true,
+    });
+    return this.http.request<Blob>(req).pipe(
+      catchError(this.handleError('proxyDownloadAudio'))
+    );
+  }
+
+  /**
+   * 6. Download thumbnail trực tiếp từ YouTube URL (không qua BE)
+   * Dùng khi BE chưa tải thumbnail về server
+   * @param thumbnailUrl - URL thumbnail từ YouTube
+   * @returns Observable<Blob>
+   */
+  downloadThumbnailDirect(thumbnailUrl: string): Observable<Blob> {
+    return this.http
+      .get(thumbnailUrl, { responseType: 'blob' })
+      .pipe(catchError(this.handleError('downloadThumbnailDirect')));
+  }
+
+  /**
    * Helper: Streaming URL cho audio player (không download)
    * @param songId - ID của bài hát
    * @returns string - URL để stream
