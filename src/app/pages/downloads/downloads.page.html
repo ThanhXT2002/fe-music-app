@@ -1,12 +1,12 @@
 <div class="search-page h-full flex flex-col">
-  <!-- Content -->
+  <!-- ===================== MAIN CONTENT ===================== -->
   <div
     class="overflow-y-auto"
     [ngClass]="searchHistoryItem().length > 0 ? 'h-2/5' : 'flex-1'"
   >
-    <!-- Search Section -->
+    <!-- ===================== SEARCH SECTION ===================== -->
     <div class="px-4 mt-1">
-      <!-- Search Input -->
+      <!-- Ô nhập liệu tìm kiếm (Input) -->
       <div class="relative mb-4">
         <input
           #searchInput
@@ -57,8 +57,8 @@
         <button
           (click)="onSearchYoutubeUrl()"
           [ngClass]="{
-            'bg-pink-500': downloadService.validateYoutubeUrl(searchQuery()),
-            'bg-gray-300 bg-opacity-20': !downloadService.validateYoutubeUrl(searchQuery())
+            'bg-pink-500': isYoutubeUrl(searchQuery()),
+            'bg-gray-300 bg-opacity-20': !isYoutubeUrl(searchQuery())
           }"
           class="absolute right-1 top-1/2 transform -translate-y-1/2 text-white w-8 h-8 rounded-full"
         >
@@ -66,7 +66,7 @@
         </button>
       </div>
 
-      <!-- Loading State -->
+      <!-- ===================== LOADING STATE ===================== -->
       @if(isSearching()){
       <div class="space-y-3">
         <h3 class="text-lg font-semibold text-gray-200 mb-3 animate-pulse">
@@ -91,7 +91,7 @@
       </div>
       }
 
-      <!-- Search Results -->
+      <!-- ===================== SEARCH RESULTS ===================== -->
       @if(searchResults().length > 0 && !isSearching()) {
       <div class="space-y-3">
         <h3 class="text-lg font-semibold text-gray-200 mb-3">
@@ -114,9 +114,10 @@
         />
       </div>
       }
-      <!-- No Results -->
+      <!-- ===================== NO RESULT STATES ===================== -->
+      <!-- Hiển thị khi gõ đủ ký tự cho URL YouTube nhưng không có kết quả -->
       @if(searchQuery().length >= 3 && searchResults().length === 0 &&
-      !isSearching() && downloadService.validateYoutubeUrl(searchQuery())) {
+      !isSearching() && isYoutubeUrl(searchQuery())) {
       <div class="text-center">
         <i class="fa-solid fa-magnifying-glass text-gray-300 text-6xl my-5"></i>
         <p class="text-gray-400">Tìm kiếm ngay</p>
@@ -126,7 +127,8 @@
       </div>
       }
     </div>
-    <!-- Empty State -->
+    <!-- ===================== EMPTY STATE ===================== -->
+    <!-- Hiển thị mặc định khi chưa có hành động tìm kiếm nào -->
     <div
       *ngIf="searchQuery().length < 3 && searchResults().length === 0 && !isSearching()"
       class="flex flex-col items-center justify-center h-auto text-center px-4"
@@ -141,9 +143,10 @@
       </p>
     </div>
 
+    <!-- ===================== TEXT SEARCH NO RESULTS ===================== -->
     @if(searchQuery().length >= 2 &&
-    !downloadService.validateYoutubeUrl(searchQuery()) && !isSearching()) {
-    <!-- No search results found for text search -->
+    !isYoutubeUrl(searchQuery()) && !isSearching()) {
+    <!-- Hiển thị khi tìm kiếm từ khóa thư viện không có kết quả -->
     <div class="flex flex-col items-start justify-center px-4">
       <div class="text-center">
         <i class="fa-solid fa-search text-6xl text-gray-600 mb-4"></i>
@@ -181,11 +184,12 @@
     </div>
     }
   </div>
+  <!-- ===================== HISTORY LIST ===================== -->
   @if(searchHistoryItem().length > 0){
   <div class="h-3/5">
     <div class="space-y-3 h-full">
       @if(searchQuery().length >= 2 &&
-      !downloadService.validateYoutubeUrl(searchQuery())) {
+      !isYoutubeUrl(searchQuery())) {
       <h3 class="text-lg font-semibold text-gray-200 mb-3 px-4">
         <i class="fa-solid fa-filter mr-2"></i> Kết quả tìm kiếm "{{
         searchQuery() }}"

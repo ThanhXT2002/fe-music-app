@@ -1,13 +1,20 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ModalController, AlertController } from '@ionic/angular';
-import { PlaylistService } from 'src/app/services/playlist.service';
-import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { Playlist } from 'src/app/interfaces/playlist.interface';
+import { ModalController, AlertController } from '@ionic/angular/standalone';
+import { PlaylistService } from '@core/services/playlist.service';
+import { LibraryStore } from '../../core/stores/library.store';
+import { Playlist } from '@core/interfaces/playlist.interface';
 import { CommonModule } from '@angular/common';
-import { RefreshService } from 'src/app/services/refresh.service';
 import { IonContent, IonList } from "@ionic/angular/standalone";
 
+/**
+ * Component Sheet trượt dưới lên nhằm hiển thị Danh Sách Playlist (Chọn Thêm Hoặc Gỡ).
+ *
+ * Chức năng:
+ * - Tương tác Database để Fetch danh mục Playlist mà User này đã tạo tự do cất giấu.
+ * - Hiển thị Alert Native Modal tạo mới Playlist (Tên List Mới).
+ * - Hành vi Toggle Tick/Untick đưa bài hát vô list hoặc bốc ra khỏi List.
+ */
 @Component({
   selector: 'app-playlist-select-modal',
   templateUrl: './playlist-select-modal.component.html',
@@ -16,35 +23,57 @@ import { IonContent, IonList } from "@ionic/angular/standalone";
   imports: [IonList, IonContent, FormsModule, CommonModule],
 })
 export class PlaylistSelectModalComponent implements OnInit {
+  // ─────────────────────────────────────────────────────────
+  // Input Data Params
+  // ─────────────────────────────────────────────────────────
+  /** ID Của bản nhạc đang chuẩn bị cần xếp vào Ngăn Playlist nào đó */
   @Input() songId!: string;
+  
+  // ─────────────────────────────────────────────────────────
+  // Local Properties
+  // ─────────────────────────────────────────────────────────
+  /** Data mang kết quả trả ra từ API Service */
   playlists: Playlist[] = [];
+  
+  /** Trạng thái UX Loading cho khung đồ hoạ */
   loading = false;
 
+  private readonly modalCtrl = inject(ModalController);
+  private readonly playlistService = inject(PlaylistService);
+  private readonly alertController = inject(AlertController);
+  private readonly library = inject(LibraryStore);
 
-  constructor(
-    private modalCtrl: ModalController,
-    private playlistService: PlaylistService,
-    private alertController: AlertController,
-    private refreshService: RefreshService
-  ) {}
-
+  // ─────────────────────────────────────────────────────────
+  // Callbacks Cycle
+  // ─────────────────────────────────────────────────────────
   async ngOnInit() {
     await this.loadPlaylists();
-    // this.refreshService.triggerRefresh();
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Controller Logic
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Gọi Service đùn data Playlist loại "User" về (Tránh loại Hệ thống sinh ra ví dụ Fav List).
+   */
   async loadPlaylists() {
     this.loading = true;
-    // Lấy tất cả playlist do người dùng tạo
     this.playlists = (await this.playlistService.getPlaylistsByType('user')) || [];
     this.loading = false;
   }
 
+  /**
+   * Lookup tìm xem cái Node ID `songId` đó có kẹt bên trong lõi mảng `songs` thuộc playlist đó không.
+   */
   isSongInPlaylist(playlist: Playlist): boolean {
     if (!this.songId) return false;
+    // Hầu hết Model Playlist trả về kèm Songs Array con
     return playlist.songs?.some(s => s.id === this.songId);
   }
 
+  /**
+   * Kích bắn quá trình Inject Insert DB / Delete Row DB (Thêm Playlist / Xóa Bài).
+   */
   async onTogglePlaylist(playlist: Playlist, checked: boolean) {
     if (!this.songId) return;
     if (checked) {
@@ -53,10 +82,12 @@ export class PlaylistSelectModalComponent implements OnInit {
       await this.playlistService.removeSongFromPlaylist(playlist.id, this.songId);
     }
     await this.loadPlaylists();
-    this.refreshService.triggerRefresh();
+    this.library.refresh(); // Sync Đồng bộ trạng thái thẻ Tab ngoài Layout User Library
   }
 
-
+  /**
+   * Đẩy Popup Khung Native thông minh yêu cầu nhập Tên thư mục Nhạc muốn khai sinh mới mẻ.
+   */
   async showCreatePlaylistAlert() {
     const alert = await this.alertController.create({
       mode: 'ios',
@@ -86,13 +117,17 @@ export class PlaylistSelectModalComponent implements OnInit {
     await alert.present();
   }
 
+  /**
+   * Thổi luồng kết xuất Service Data cho thao tác Tạo thư mục mới.
+   */
   private async createArtistPlaylist(name: string) {
     await this.playlistService.createArtistPlaylist({ name });
     await this.loadPlaylists();
   }
 
-
-
+  /**
+   * Biến mất Panel
+   */
   close() {
     this.modalCtrl.dismiss();
   }

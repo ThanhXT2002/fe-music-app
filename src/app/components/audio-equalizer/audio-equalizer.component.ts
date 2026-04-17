@@ -10,16 +10,24 @@ import {
   ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { PlayerStore } from '../../core/stores/player.store';
 
-
+/**
+ * Component hiển thị hiệu ứng sóng âm (audio equalizer) theo nhạc.
+ * 
+ * Chức năng:
+ * - Lấy data từ AudioContext của trình duyệt để vẽ cột sóng âm
+ * - Tự động fallback sang giả lập sóng (smart animation) nếu không access được AudioElement
+ * - Tối ưu hoá performance (tính toán trước phần trăm, dùng requestAnimationFrame)
+ * - Tối ưu hóa việc kết nối AudioContext: Sử dụng chung connection cho toàn bộ ứng dụng để tránh lỗi "hết slot AudioContext".
+ */
 @Component({
   selector: 'app-audio-equalizer',
   standalone: true,
   imports: [CommonModule],
   template: `
     <div class="equalizer-container" [style.width]="width" [style.height]="height">
-      <!-- Real-time frequency bars -->
+      <!-- ===================== CỘT SÓNG ÂM ===================== -->
       <div class="frequency-bars" #frequencyBars>
         <div
           class="bar"
@@ -30,7 +38,7 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
         ></div>
       </div>
 
-      <!-- Glow effect overlay -->
+      <!-- ===================== HIỆU ỨNG ÁNH SÁNG ===================== -->
       <div class="glow-overlay" *ngIf="isPlaying && showGlow"></div>
     </div>
   `,
@@ -86,39 +94,77 @@ import { AudioPlayerService } from 'src/app/services/audio-player.service';
   `]
 })
 export class AudioEqualizerComponent implements OnInit, OnDestroy {
+  // ─────────────────────────────────────────────────────────
+  // Inputs / ViewChild
+  // ─────────────────────────────────────────────────────────
+
+  /** Chiều rộng của component equalizer */
   @Input() width: string = '100px';
+  
+  /** Chiều cao của component equalizer */
   @Input() height: string = '40px';
+  
+  /** Số lượng cột sóng âm hiển thị */
   @Input() barCount: number = 16;
+  
+  /** Độ nhạy của sóng âm: số càng cao cột nảy càng mạnh */
   @Input() sensitivity: number = 1.5;
+  
+  /** Cho phép hiện hiệu ứng phát sáng mờ khi nhạc đang phát */
   @Input() showGlow: boolean = true;
+  
+  /** Tham chiếu đến DOM chứa các cột sóng để thao tác trực tiếp nếu cần thiết */
   @ViewChild('frequencyBars', { static: true }) frequencyBarsRef!: ElementRef;
 
-  private audioPlayerService = inject(AudioPlayerService);
+  // ─────────────────────────────────────────────────────────
+  // Injected dependencies
+  // ─────────────────────────────────────────────────────────
+
+  private player = inject(PlayerStore);
   private cdr = inject(ChangeDetectorRef);
-  // Audio analysis properties
+
+  // ─────────────────────────────────────────────────────────
+  // Audio Analysis Properties (Local)
+  // ─────────────────────────────────────────────────────────
+
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private source: MediaElementAudioSourceNode | null = null;
   private animationFrame: number | null = null;
   private frequencyData: Uint8Array | null = null;
 
-  // Static shared resources to avoid multiple connections
+  // ─────────────────────────────────────────────────────────
+  // Static Shared Resources
+  // ─────────────────────────────────────────────────────────
+
+  // NOTE: Giữ static properties để dùng chung AudioContext cho mọi instance. 
+  // Trình duyệt có giới hạn số lượng AudioContext, nếu tạo mới mỗi lần sẽ bị lỗi "hardware exception".
   private static sharedAudioContext: AudioContext | null = null;
   private static sharedSource: MediaElementAudioSourceNode | null = null;
   private static sharedAnalyser: AnalyserNode | null = null;
   private static connectedElement: HTMLAudioElement | null = null;
-  // Component state
+
+  // ─────────────────────────────────────────────────────────
+  // State
+  // ─────────────────────────────────────────────────────────
+
+  /** Mảng lưu chiều cao của các cột sóng âm (tính theo %) */
   bars: number[] = [];
+  
+  /** Trạng thái hiển thị hiệu ứng nhạc */
   isPlaying = false;
+  
   private isInitialized = false;
   private lastAudioElement: HTMLAudioElement | null = null;
 
-  // Performance optimization - pre-calculated values
+  // ─────────────────────────────────────────────────────────
+  // Caching / Constants (Performance Optimization)
+  // ─────────────────────────────────────────────────────────
+
   private centerWeights: number[] = [];
   private frequencyMappings: { start: number; end: number }[] = [];
   private centerDistances: number[] = [];
 
-  // Performance constants - pre-calculated to avoid repeated calculations
   private readonly SENSITIVITY_FACTOR = 100;
   private readonly MIN_HEIGHT_BASE = 4;
   private readonly MIN_HEIGHT_CENTER_BONUS = 8;
@@ -128,10 +174,14 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
   private readonly WAVE_AMPLITUDE = 3;
   private readonly WAVE_FREQUENCY_STEP = 0.5;
 
+  // ─────────────────────────────────────────────────────────
+  // Lifecycle
+  // ─────────────────────────────────────────────────────────
+
   constructor() {
-    // React to audio player state changes
+    // Theo dõi trạng thái PlayerStore để start/stop hiệu ứng animation đồng bộ với nhạc
     effect(() => {
-      const state = this.audioPlayerService.playbackState();
+      const state = this.player.playbackState();
       this.isPlaying = state.isPlaying;
 
       if (state.isPlaying && state.currentSong) {
@@ -149,21 +199,29 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.cleanup();
-  }  private initializeBars() {
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Data Setup
+  // ─────────────────────────────────────────────────────────
+
+  /**
+   * Tính toán trước (pre-calculate) các biến nội suy, vùng tần số, và khoảng cách tới tâm 
+   * để không phải tính lại trong mỗi frame loop vẽ của requestAnimationFrame.
+   */
+  private initializeBars() {
     this.bars = new Array(this.barCount);
     this.centerWeights = new Array(this.barCount);
     this.frequencyMappings = new Array(this.barCount);
     this.centerDistances = new Array(this.barCount);
 
-    // Pre-calculate all values once to avoid repeated calculations
     for (let i = 0; i < this.barCount; i++) {
       const position = i / (this.barCount - 1);
       const centerDistance = Math.abs(position - 0.5);
 
-      // Store pre-calculated values
       this.centerDistances[i] = centerDistance;
 
-      // Pre-calculate center weights
+      // Tính đường cong chóp núi (cột ở giữa cao hơn các cột hai bên)
       const mountainCurve = Math.cos(centerDistance * Math.PI) * 0.4 + 0.6;
       let centerBoost = 1.0;
 
@@ -179,71 +237,73 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
 
       this.centerWeights[i] = mountainCurve * centerBoost;
 
-      // Pre-calculate frequency mappings
+      // Tính dải tần số tương ứng cho mỗi cột
       const midRangeStart = 0.4 - centerDistance * 0.2;
       const midRangeEnd = 0.6 + centerDistance * 0.2;
       this.frequencyMappings[i] = { start: midRangeStart, end: midRangeEnd };
 
-      // Initialize bar heights with center bias
+      // Khởi tạo cột nằm ở mức tối thiểu có bias cao hơn dần vào giữa
       this.bars[i] = 4 + (1 - centerDistance) * 8;
     }
   }
+
+  /**
+   * Khởi tạo Web Audio API để phân tích tần số nhạc theo thời gian thực.
+   */
   private async setupAudioAnalysis() {
     try {
-      // Get audio element from service
-      const audioElement = this.audioPlayerService.getAudioElement();
+      const audioElement = this.player.getAudioElement();
       if (!audioElement) {
-        console.warn('🔊 No audio element available, using fallback animation');
+        // FIXME: Chưa lấy được audio element có thể do race condition, đang dùng animation tĩnh tạm
+        console.warn('No audio element available, using fallback animation');
         this.fallbackToSmartAnimation();
         return;
       }
 
-      // Use shared audio context to avoid multiple connections
+      // Chỉ thiết lập lại context nếu audio element bị đổi sang phần tử khác thực sự
       if (AudioEqualizerComponent.connectedElement === audioElement &&
           AudioEqualizerComponent.sharedAudioContext &&
           AudioEqualizerComponent.sharedAnalyser) {
-
         this.audioContext = AudioEqualizerComponent.sharedAudioContext;
         this.analyser = AudioEqualizerComponent.sharedAnalyser;
         this.source = AudioEqualizerComponent.sharedSource;
-
       } else {
-        // Clean up previous connections
         this.cleanupSharedAudio();
 
-        // Create new audio context
+        // Khởi tạo context Audio tùy loại trình duyệt
         AudioEqualizerComponent.sharedAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         this.audioContext = AudioEqualizerComponent.sharedAudioContext;
 
-        // Create analyzer
         AudioEqualizerComponent.sharedAnalyser = this.audioContext.createAnalyser();
+        // 512 là đủ để có độ chi tiết cao mà không tốn CPU
         AudioEqualizerComponent.sharedAnalyser.fftSize = 512;
         AudioEqualizerComponent.sharedAnalyser.smoothingTimeConstant = 0.8;
         AudioEqualizerComponent.sharedAnalyser.minDecibels = -90;
         AudioEqualizerComponent.sharedAnalyser.maxDecibels = -10;
         this.analyser = AudioEqualizerComponent.sharedAnalyser;
 
-        // Create source (only once per audio element)
         AudioEqualizerComponent.sharedSource = this.audioContext.createMediaElementSource(audioElement);
         this.source = AudioEqualizerComponent.sharedSource;
 
-        // Connect: source -> analyser -> destination
+        // Bắt buộc phải connect source vào analyser và destination để âm thanh được phát ra loa
         this.source.connect(this.analyser);
         this.source.connect(this.audioContext.destination);
 
-        // Track the connected element
         AudioEqualizerComponent.connectedElement = audioElement;
       }
 
-      // Create frequency data array
       this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
       this.isInitialized = true;
 
     } catch (error) {
-      console.error('❌ Failed to setup audio analysis:', error);
+      console.error('Failed to setup audio analysis:', error);
       this.fallbackToSmartAnimation();
     }
   }
+
+  // ─────────────────────────────────────────────────────────
+  // Animation & Rendering Process
+  // ─────────────────────────────────────────────────────────
 
   private startAnalysis() {
     if (!this.isInitialized || !this.analyser || !this.frequencyData) {
@@ -251,7 +311,6 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Resume audio context if suspended
     if (this.audioContext?.state === 'suspended') {
       this.audioContext.resume();
     }
@@ -265,37 +324,31 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
       this.animationFrame = null;
     }
 
-    // Gradually reduce bars to minimum
     this.animateToMinimum();
   }
+
   private animate() {
     if (!this.analyser || !this.frequencyData) return;
 
-    // Get frequency data
-    this.analyser.getByteFrequencyData(this.frequencyData);
+    // HACK: Ép kiểu sang any do lỗi mismatch type Uint8Array giữa thư viện core TypeScript mới (TS > 5) và DOM API.
+    // Lỗi gốc: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'Uint8Array<ArrayBuffer>'
+    this.analyser.getByteFrequencyData(this.frequencyData as any);
 
-    // Process frequency data into bars
     this.updateBars();
-
-    // Trigger change detection
     this.cdr.detectChanges();
 
-    // Continue animation if playing
     if (this.isPlaying) {
       this.animationFrame = requestAnimationFrame(() => this.animate());
     }
   }
-  // Remove unused method - values are now pre-calculated
-  // private getFrequencyWeight(barIndex: number): number { ... }
 
   private updateBars() {
     if (!this.frequencyData) return;
 
     const bufferLength = this.frequencyData.length;
-    const time = Date.now() * this.TIME_MULTIPLIER; // Use pre-calculated constant
+    const time = Date.now() * this.TIME_MULTIPLIER; 
 
     for (let i = 0; i < this.barCount; i++) {
-      // Use pre-calculated values (no repeated calculations)
       const mapping = this.frequencyMappings[i];
       const centerWeight = this.centerWeights[i];
       const centerDistance = this.centerDistances[i];
@@ -303,11 +356,10 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
       const startIndex = Math.floor(mapping.start * bufferLength);
       const endIndex = Math.floor(mapping.end * bufferLength);
 
-      // Ensure valid range (optimized bounds checking)
+      // Đảm bảo không truy cập mảng bị lố index
       const safeStart = Math.max(0, Math.min(startIndex, bufferLength - 1));
       const safeEnd = Math.max(safeStart + 1, Math.min(endIndex, bufferLength));
 
-      // Calculate average efficiently
       let sum = 0;
       const rangeSize = safeEnd - safeStart;
       for (let j = safeStart; j < safeEnd; j++) {
@@ -315,21 +367,20 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
       }
       const average = sum / rangeSize;
 
-      // Apply pre-calculated weights (no repeated multiplication)
       let barHeight = (average / 255) * this.SENSITIVITY_FACTOR * this.sensitivity * centerWeight;
 
-      // Simplified movement calculation with pre-calculated constants
       const centerBonus = 1 - centerDistance;
+      // Cộng hưởng thêm mượt mà dựa trên sóng đồ thị hàm sin
       barHeight += Math.sin(time + i * this.WAVE_FREQUENCY_STEP) * this.WAVE_AMPLITUDE * centerBonus;
 
-      // Pre-calculated minimum height using constants
       const minHeight = this.MIN_HEIGHT_BASE + centerBonus * this.MIN_HEIGHT_CENTER_BONUS;
       barHeight = Math.max(minHeight, Math.min(100, barHeight));
 
-      // Smooth transitions using pre-calculated factors
+      // Dùng hệ số làm mượt để các cột không bị giật cục
       this.bars[i] = this.bars[i] * this.SMOOTH_KEEP_FACTOR + barHeight * this.SMOOTH_NEW_FACTOR;
     }
   }
+
   private animateToMinimum() {
     const animateDown = () => {
       let allAtMinimum = true;
@@ -350,11 +401,13 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
 
     animateDown();
   }
-  private fallbackToSmartAnimation() {
 
+  /**
+   * Giả lập effect nhạc trường hợp Web Audio API bị block (ví dụ: Apple chặn auto-play, chưa tương tác người dùng).
+   */
+  private fallbackToSmartAnimation() {
     if (!this.isPlaying) return;
 
-    // Pre-calculate constants to avoid repeated calculations
     const timeMultiplier = 0.002;
     const globalPulseFreq = 2;
     const centerDistanceEffect = 0.6;
@@ -362,19 +415,17 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
     const frequencyRange = 0.3;
     const harmonicsMultiplier = 1.5;
     const harmonicsAmplitude = 12;
-    const smoothFactor = 0.2; // For smooth transitions
+    const smoothFactor = 0.2; 
 
     const animate = () => {
-      const time = Date.now() * timeMultiplier; // Calculate once
-      const globalPulse = Math.sin(time * globalPulseFreq) * 8; // Global pulse effect
-      const globalSin = Math.sin(time * 0.8); // Calculate once
+      const time = Date.now() * timeMultiplier;
+      const globalPulse = Math.sin(time * globalPulseFreq) * 8; 
+      const globalSin = Math.sin(time * 0.8);
 
       for (let i = 0; i < this.barCount; i++) {
-        // Use pre-calculated values (no repeated calculations)
         const centerDistance = this.centerDistances[i];
         const centerMultiplier = 1 - centerDistance * centerDistanceEffect;
 
-        // Optimized calculations with pre-calculated values
         const frequency = frequencyBase + centerDistance * frequencyRange;
         const amplitude = (35 + globalSin * 25) * centerMultiplier;
 
@@ -382,16 +433,14 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
         const harmonics = Math.sin(time * frequency * harmonicsMultiplier) * harmonicsAmplitude * centerMultiplier;
         const centerPulse = globalPulse * (1 - centerDistance);
 
-        // Pre-calculated minimum height
         const minHeight = 6 + (1 - centerDistance) * 12;
         const calculatedHeight = baseHeight + harmonics + centerPulse;
 
-        // Smooth transition instead of direct assignment
         const targetHeight = Math.max(minHeight, Math.min(95, calculatedHeight));
         this.bars[i] = this.bars[i] * (1 - smoothFactor) + targetHeight * smoothFactor;
       }
 
-      this.cdr.markForCheck(); // More efficient than detectChanges
+      this.cdr.markForCheck(); 
 
       if (this.isPlaying) {
         setTimeout(() => requestAnimationFrame(animate), 50);
@@ -401,18 +450,28 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
     animate();
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Utilities & Internal Styles Computation
+  // ─────────────────────────────────────────────────────────
+
+  /**
+   * Tính toán màu CSS gradient cho từng cột sóng (bar).
+   * Dùng dải màu HSL trải từ tím đậm đến ngọc lục bảo tuỳ thuộc vào chiều cao hiện tại.
+   */
   getBarColor(index: number, height: number): string {
     const intensity = height / 100;
     const position = index / (this.barCount - 1);
 
-    // Professional gradient: Deep purple to cyan
-    const baseHue = 270 - (position * 120); // 270 (purple) to 150 (cyan)
+    const baseHue = 270 - (position * 120); 
     const saturation = 70 + intensity * 30;
     const lightness = 40 + intensity * 30;
 
     return `hsl(${baseHue}, ${saturation}%, ${lightness}%)`;
   }
 
+  /**
+   * Tính toán độ đổ bóng (box-shadow/glow) cho component tương ứng với màu sắc và biên độ âm thanh.
+   */
   getBarShadow(index: number, height: number): string {
     const intensity = height / 100;
     const glowStrength = Math.max(0.2, intensity);
@@ -421,10 +480,11 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
 
     return `0 0 ${4 + glowStrength * 8}px hsla(${baseHue}, 80%, 60%, ${glowStrength * 0.6})`;
   }
+
   private cleanup() {
     this.stopAnalysis();
     this.isInitialized = false;
-    // Don't cleanup shared resources here, let other instances use them
+    // NOTE: Cố ý không dọn dẹp AudioContext static ở đây để các instance component khác dùng chung
   }
 
   private static cleanupSharedAudio() {
@@ -443,16 +503,22 @@ export class AudioEqualizerComponent implements OnInit, OnDestroy {
     AudioEqualizerComponent.cleanupSharedAudio();
   }
 
-  // Public methods for external control
+  // ─────────────────────────────────────────────────────────
+  // Public Interface Control
+  // ─────────────────────────────────────────────────────────
+
+  /** Cập nhật lại số cột sóng âm hiển thị */
   public setBarCount(count: number) {
     this.barCount = count;
     this.initializeBars();
   }
 
+  /** Điều chỉnh độ nhạy nhảy sóng (cột sẽ nảy cao hơn với cùng mức âm lượng khi hệ số lớn) */
   public setSensitivity(sensitivity: number) {
     this.sensitivity = Math.max(0.1, Math.min(3.0, sensitivity));
   }
 
+  /** Bật/Tắt hiệu ứng background gradient phản sáng vòng tròn */
   public toggleGlow() {
     this.showGlow = !this.showGlow;
   }

@@ -42,7 +42,13 @@
             ],
             "styles": ["src/global.scss", "src/theme/variables.scss","node_modules/@fortawesome/fontawesome-free/css/all.min.css"],
             "scripts": [],
-            "browser": "src/main.ts"
+            "browser": "src/main.ts",
+            "allowedCommonJsDependencies": [
+              "lottie-web",
+              "jszip",
+              "file-saver",
+              "@stencil/core"
+            ]
           },
           "configurations": {
             "production": {

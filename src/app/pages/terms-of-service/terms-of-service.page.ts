@@ -4,6 +4,15 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DragBackComponent } from "src/app/components/drag-back/drag-back.component";
 
+/**
+ * Trang thông tin Điều khoản dịch vụ.
+ *
+ * Chức năng:
+ * - Cung cấp thông tin pháp lý, hạn chế trách nhiệm và quyền sở hữu trí tuệ
+ * - Hiển thị các khối nội dung dạng danh sách hoặc văn bản (Card format)
+ *
+ * Route: /terms-of-service
+ */
 @Component({
   selector: 'app-terms-of-service',
   templateUrl: './terms-of-service.page.html',

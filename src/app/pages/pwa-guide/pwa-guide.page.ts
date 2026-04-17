@@ -14,6 +14,16 @@ import { Renderer2, Inject } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { DragBackComponent } from "src/app/components/drag-back/drag-back.component";
 
+/**
+ * Trang hướng dẫn cài đặt ứng dụng Desktop / PWA.
+ *
+ * Chức năng:
+ * - Hướng dẫn chi tiết cách cài đặt PWA trên các nền tảng (Window, macOS, iOS, Android)
+ * - Hiển thị hiệu ứng nốt nhạc tương tác rơi xuống (Music notes effect)
+ * - Cung cấp thông tin lợi ích khi sử dụng phiên bản PWA
+ *
+ * Route: /pwa-guide
+ */
 @Component({
   selector: 'app-pwa-guide',
   templateUrl: './pwa-guide.page.html',

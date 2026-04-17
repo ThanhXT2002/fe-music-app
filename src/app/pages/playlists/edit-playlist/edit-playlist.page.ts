@@ -18,12 +18,23 @@ import {
 } from '@ionic/angular/standalone';
 import { SongItemComponent } from 'src/app/components/song-item/song-item.component';
 import { ActivatedRoute, Router } from '@angular/router';
-import { PlaylistService } from 'src/app/services/playlist.service';
-import { DatabaseService } from 'src/app/services/database.service';
-import { Song } from 'src/app/interfaces/song.interface';
-import { RefreshService } from 'src/app/services/refresh.service';
+import { PlaylistService } from '@core/services/playlist.service';
+import { DatabaseService } from '@core/data/database.service';
+import { Song } from '@core/interfaces/song.interface';
+import { LibraryStore } from 'src/app/core/stores/library.store';
 import { Location } from '@angular/common';
 
+/**
+ * Trang chỉnh sửa danh sách phát cá nhân.
+ *
+ * Chức năng:
+ * - Hiển thị và lọc danh sách tất cả các bài hát để thêm vào danh sách phát
+ * - Cho phép kéo thả (drag & drop) để sắp xếp thứ tự bài hát trong danh sách phát
+ * - Thêm hoặc xóa bài hát khỏi danh sách phát trực tiếp (Optimistic UI Update)
+ *
+ * Route: /playlists/edit/:playlistId
+ * Phụ thuộc: PlaylistService, DatabaseService, LibraryStore
+ */
 @Component({
   selector: 'app-edit-playlist',
   templateUrl: './edit-playlist.page.html',
@@ -61,7 +72,7 @@ export class EditPlaylistPage implements OnInit {
     private alertController: AlertController,
     private router: Router,
     private location: Location,
-    private refreshService: RefreshService
+    private library: LibraryStore
   ) {}
 
   async ngOnInit() {
@@ -156,7 +167,7 @@ export class EditPlaylistPage implements OnInit {
         );
       }
 
-      this.refreshService.triggerRefresh();
+      this.library.refresh();
     } catch (error) {
       // Rollback nếu lỗi
       if (checked) {

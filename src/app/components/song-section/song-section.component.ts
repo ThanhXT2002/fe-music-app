@@ -1,10 +1,18 @@
 import { Component, Input, Output, EventEmitter, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Platform } from '@ionic/angular/standalone';
-import { PlaybackState, Song } from 'src/app/interfaces/song.interface';
+import { PlaybackState, Song } from '@core/interfaces/song.interface';
 import { SongItemHomeComponent } from '../song-item-home/song-item-home.component';
 import { SkeletonSongItemComponent } from "../skeleton-song-item/skeleton-song-item.component";
 
+/**
+ * Component Hiển thị Khối Chuyên đề danh sách bài hát (Ví dụ: "Nhạc Mới", "Thịnh Hành").
+ *
+ * Chức năng:
+ * - Trình bày thanh trượt ngang (Swiper Slide/CSS Scroll) nhồi một mảng Array Song vào.
+ * - Điều chuyển logic Click sang Store Player kèm theo danh sách phát Section để xếp Queue.
+ * - Triển khai Load đồ hoạ Skeleton Loading khi call API mảng bị trễ.
+ */
 @Component({
   selector: 'app-song-section',
   standalone: true,
@@ -14,19 +22,48 @@ import { SkeletonSongItemComponent } from "../skeleton-song-item/skeleton-song-i
   schemas: [CUSTOM_ELEMENTS_SCHEMA]
 })
 export class SongSectionComponent {
+  // ─────────────────────────────────────────────────────────
+  // Dependencies & Local Properties
+  // ─────────────────────────────────────────────────────────
   private platform = inject(Platform);
 
+  // ─────────────────────────────────────────────────────────
+  // Inputs Data Model
+  // ─────────────────────────────────────────────────────────
+  /** Tiêu đề chữ in hoa to nhất ở Section Header (VD: GỢI Ý CHO BẠN) */
   @Input() title?: string;
+  
+  /** Chuỗi mảng bài hát nạp vào băng chuyền Carousel slide */
   @Input() songs: Song[] = [];
+  
+  /** Cờ khẳng định tiến trình kéo API mảng này vẫn đang xoay */
   @Input() loading: boolean = false;
+  
+  /** Dòng chữ thông báo tuỳ chỉnh chèn ở Loading Screen Area */
   @Input() loadingText: string = 'Đang tải...';
+  
+  /** Thông số Data chạy nền của AudioPlayer chuyển vào các Component cháu */
   @Input() playerState!: PlaybackState;
 
-@Output() songClick = new EventEmitter<{ song: Song, playlist: Song[] }>();
+  // ─────────────────────────────────────────────────────────
+  // Outputs Signals
+  // ─────────────────────────────────────────────────────────
+  /** Push dữ liệu ra hàm Router Home thực hiện Request phát bài Playlist mớ này */
+  @Output() songClick = new EventEmitter<{ song: Song, playlist: Song[] }>();
+  
+  /** Cổ điển chỉ nhắm hát mỗi 1 bài này duy nhất */
   @Output() songPlay = new EventEmitter<Song>();
+  
+  /** Nhấn nút ba chấm options mở Panel Bottom/Action Sheet */
   @Output() songOptions = new EventEmitter<Song>();
 
-  // Group songs into arrays of 4 for slide layout
+  // ─────────────────────────────────────────────────────────
+  // Array Manipulators
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Băm nhỏ mảng tổng ra từng cụm con. Phục vụ layout nhóm (grouping).
+   * Ví dụ: Slide hiển thị Grid 2x2 = 4 phần tử trên 1 Viewport Slide swiper.
+   */
   getGroupedSongs(songs: Song[]): Song[][] {
     if (!songs || songs.length === 0) {
       return [];
@@ -39,7 +76,10 @@ export class SongSectionComponent {
     return groupedSongs;
   }
 
-  // Generate skeleton items for loading state
+  /**
+   * Tính toán đổ bóng Skeleton Element theo chuẩn màn hình đang chạy.
+   * Mobile/tablet (hẹp): Render 8 cái chia cục 4. PC Desktop: 25 cái dàn dài trượt ngang.
+   */
   getSkeletonItems(): number[][] {
     const isMobile = this.platform.is('mobile') || this.platform.is('tablet') || window.innerWidth < 768;
     const totalItems = isMobile ? 8 : 25;
@@ -53,9 +93,15 @@ export class SongSectionComponent {
     return skeletonGroups;
   }
 
-onSongClick(song: Song) {
-  this.songClick.emit({ song, playlist: this.songs });
-}
+  // ─────────────────────────────────────────────────────────
+  // Handlers Dom Listeners
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Khi ấn vào một khung hình bài. Đóng gói cùng cha của nó thành Queue Playlist đi theo nó luôn.
+   */
+  onSongClick(song: Song) {
+    this.songClick.emit({ song, playlist: this.songs });
+  }
 
   onSongOptions(song: Song) {
     this.songOptions.emit(song);

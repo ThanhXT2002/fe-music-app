@@ -1,3 +1,4 @@
+import { UiStateService } from '@core/ui/ui-state.service';
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -8,17 +9,25 @@ import {
   ChangeDetectorRef,
   effect,
 } from '@angular/core';
-import { DataSong, Song } from 'src/app/interfaces/song.interface';
-import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { DatabaseService } from 'src/app/services/database.service';
+import { DataSong, Song } from '@core/interfaces/song.interface';
+import { PlayerStore } from '../../core/stores/player.store';
+import { DownloadStore } from '../../core/stores/download.store';
+import { LibraryStore } from '../../core/stores/library.store';
 import {
   DownloadService,
   DownloadTask,
-} from 'src/app/services/download.service';
-import { RefreshService } from 'src/app/services/refresh.service';
+} from '@core/services/download.service';
 import { Subscription, takeWhile } from 'rxjs';
-import { PageContextService } from 'src/app/services/page-context.service';
 
+/**
+ * Component cụm tổng hợp chức năng Action thao tác nhanh về bài hát.
+ * Chứa đựng: Nút "Tải Xuống Offline" (Download) & Nút thả "Tim" (Heart/Favorite) gom thành hàng ngang.
+ *
+ * Chức năng:
+ * - Trực tiếp gọi DownloadStore để tống nhạc vào hàng chờ đợi kéo mảng mp3.
+ * - Call LibraryStore để lật ngược biến số Yêu thích (Toggle Like) theo model bài hát.
+ * - Hiển thị đồ hoạ Spinner tiến trình nhỏ xinh báo cáo cho bài đang Download.
+ */
 @Component({
   selector: 'app-btn-down-and-heart',
   imports: [CommonModule],
@@ -27,31 +36,54 @@ import { PageContextService } from 'src/app/services/page-context.service';
   styleUrls: ['./btn-down-and-heart.component.scss'],
 })
 export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
-  downloadService = inject(DownloadService);
-  private databaseService = inject(DatabaseService);
-  private refreshService = inject(RefreshService);
-  private audioPlayerService = inject(AudioPlayerService);
-  private cdr = inject(ChangeDetectorRef);
-  private pageContext = inject(PageContextService);
+  // ─────────────────────────────────────────────────────────
+  // Dependencies Injection (Store/Service)
+  // ─────────────────────────────────────────────────────────
+  private readonly downloadService = inject(DownloadService);
+  private readonly downloadStore = inject(DownloadStore);
+  private readonly player = inject(PlayerStore);
+  private readonly library = inject(LibraryStore);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly pageContext = inject(UiStateService);
 
+  // ─────────────────────────────────────────────────────────
+  // Variables 
+  // ─────────────────────────────────────────────────────────
   private downloadStatusSub?: Subscription;
+  private songDownloadedSub?: Subscription;
 
+  /** Phiên bản Data Model Bài Hát nhồi từ Component lớn cha truyền qua */
   @Input() song!: Song;
+
+  /** Cờ khẳng định file âm thanh đã được download và đóng kho lưu ổn thoả 100% trong máy */
+  isDownloaded: boolean = false;
+  
+  /** Cờ cho giao diện thiết kế biết chúng ta đang bị chèn vào trang Search List chứ không phải Player */
+  isSearchPage = false;
+
+  // ─────────────────────────────────────────────────────────
+  // Computed Getters (Logic Render)
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Tính kết quả Loading chớp chớp khi API backend còn đang fetch URL Stream trước giờ G Download.
+   */
   get isLoading(): boolean {
     return (
       !!this.song &&
       this.downloadService.loadingFallbackSongIds().has(this.song.id)
     );
   }
-  isDownloaded: boolean = false;
 
-  private songDownloadedSub?: Subscription;
-  isSearchPage = false;
-
+  /**
+   * Bốc Data Object từ Service đang làm nhiệm vụ Download để quan sát nội bộ tiến trình.
+   */
   get downloadTask(): DownloadTask | undefined {
     return this.downloadService.getDownloadBySongId(this.song.id);
   }
 
+  /**
+   * Biến phản biện xem Service Tải Ngầm liệu có đang nhúc nhíc cắn Byte mạng cho dòng chảy này.
+   */
   get isDownloading(): boolean {
     return (
       !!this.downloadTask &&
@@ -60,10 +92,16 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Số tỉ lệ tải theo mốc thập phân phần trăm dùng lợp viền SVG Spinner tròn.
+   */
   get downloadProgress(): number {
     return this.downloadTask?.progress ?? 0;
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Lifecycle hooks
+  // ─────────────────────────────────────────────────────────
   constructor() {
     effect(() => {
       const page = this.pageContext.getCurrentPage()();
@@ -74,7 +112,6 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Lắng nghe trạng thái đã download từ service, phân biệt bài hát nào đang được hiển thị
     this.songDownloadedSub = this.downloadService.songDownloaded$.subscribe(
       (data) => {
         if (data && data.songId === this.song.id) {
@@ -83,38 +120,46 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
         }
       }
     );
-    // Kiểm tra trạng thái ban đầu
-    this.checkDownloaded();
-    // Kiểm tra trạng thái ban đầu
     this.checkDownloaded();
   }
 
   ngOnDestroy() {
     this.songDownloadedSub?.unsubscribe();
-    this.songDownloadedSub?.unsubscribe();
     this.downloadStatusSub?.unsubscribe();
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Core Actions
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Giao tiếp lấy kết quả tải về thật của Node ID và cập nhật tick icon xanh hoàn thành.
+   */
   async checkDownloaded() {
     this.isDownloaded = await this.downloadService.isSongDownloadedDB(
       this.song.id
     );
-    this.cdr.markForCheck(); // Nếu dùng ChangeDetectionStrategy.OnPush
+    this.cdr.markForCheck();
   }
 
+  /**
+   * Hành động đổi màu Tim khi User thích List Nhạc (Favorite Toggle) và thao tác lên CSDL.
+   */
   async toggleFavorite() {
     if (this.song) {
       try {
-        await this.databaseService.toggleFavorite(this.song.id);
+        await this.library.toggleFavorite(this.song.id);
         this.song.isFavorite = !this.song.isFavorite;
-        this.audioPlayerService.updateCurrentSong(this.song);
-        this.refreshService.triggerRefresh();
+        this.player.updateCurrentSong(this.song); // Phản chiếu thay đổi lên Box Player cha nếu đang phát
       } catch (error) {
-        console.error('Error toggling favorite:', error);
+        // eslint-disable-next-line no-console
+        console.log('Lỗi cấu hình CSDL Yêu Thích:', error);
       }
     }
   }
 
+  /**
+   * Khởi phát dây chuyền tạo lập đối tượng Tải bài hát nhét vào hàng đợi.
+   */
   async toggleDownload(): Promise<void> {
     const song: DataSong = {
       id: this.song.id,
@@ -132,12 +177,10 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
     if (this.isDownloaded) return;
 
     try {
-      await this.downloadService.downloadSong(song);
+      await this.downloadStore.download(song);
 
-      // Hủy subscription cũ nếu có
       this.downloadStatusSub?.unsubscribe();
-
-      this.downloadStatusSub = this.downloadService.downloads$
+      this.downloadStatusSub = this.downloadStore.downloads$
         .pipe(
           takeWhile((downloads) => {
             const task = downloads.find((d) => d.songData?.id === this.song.id);
@@ -149,26 +192,39 @@ export class BtnDownAndHeartComponent implements OnInit, OnDestroy {
           if (task && task.status === 'completed') {
             setTimeout(() => {
               this.checkDownloaded();
-              this.refreshService.triggerRefresh();
+              this.library.refresh();
             }, 300);
           }
         });
     } catch (error) {
-      console.error('Download failed:', error);
+      // eslint-disable-next-line no-console
+      console.log('Tải xuống luồng mảng lỗi:', error);
     }
   }
 
+  // ─────────────────────────────────────────────────────────
+  // Helper Queries
+  // ─────────────────────────────────────────────────────────
+  /**
+   * Lục lọi List Download Đang Xử Lý xem phiên của Bài hát này còn làm việc kéo Mạng không.
+   */
   get currentDownloadTask() {
     if (!this.song) return null;
     const downloads = this.downloadService.currentDownloads;
     return downloads.find((d) => d.songData?.id === this.song.id);
   }
 
+  /**
+   * Bắt Array Download thô và gạn lọc trả về Object Task chứa bài hát hiện thời.
+   */
   getDownloadTask(downloads: DownloadTask[] | null): DownloadTask | null {
     if (!downloads) return null;
     return downloads.find((d) => d.songData?.id === this.song.id) || null;
   }
 
+  /**
+   * Trả về Boolean khẳng định Server Crawler YTC vẫn đang xử lý chưa cấy xong Audio Buffer.
+   */
   isPolling(songId: string): boolean {
     return this.downloadService.isPolling(songId);
   }

@@ -1,42 +1,47 @@
+import { UiStateService } from '@core/ui/ui-state.service';
 import {
   Component,
   OnInit,
+  OnDestroy,
+  AfterViewInit,
   ViewChild,
   ElementRef,
   NgZone,
   ChangeDetectorRef,
+  inject,
 } from '@angular/core';
-import {
-  DomSanitizer,
-  SafeResourceUrl,
-  Title,
-} from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
-import { YtMusicService } from '../../services/api/ytmusic.service';
-import { YTPlayerTrack } from 'src/app/interfaces/ytmusic.interface';
-import { YtPlayerService } from 'src/app/services/yt-player.service';
+import { YTPlayerTrack } from '@core/interfaces/ytmusic.interface';
+import { YtPlayerStore } from '../../core/stores/yt-player.store';
+import { PlayerStore } from '../../core/stores/player.store';
 import { ProgressBarComponent } from 'src/app/components/progress-bar/progress-bar.component';
 import { PlayerInfoComponent } from 'src/app/components/player-info/player-info.component';
 import { PlayerHeaderComponent } from 'src/app/components/player-header/player-header.component';
-import { ModalController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular/standalone';
 import { BtnAddPlaylistComponent } from 'src/app/components/btn-add-playlist/btn-add-playlist.component';
 import { BtnDownAndHeartComponent } from 'src/app/components/btn-down-and-heart/btn-down-and-heart.component';
-import { ytPlayerTrackToSong } from 'src/app/utils/yt-player-track.converter';
-import { Song } from 'src/app/interfaces/song.interface';
-import { formatTime } from 'src/app/utils/format-time.util';
-import { AudioPlayerService } from 'src/app/services/audio-player.service';
-import { CustomTitleService } from '../../services/custom-title.service';
-import { PageContextService } from 'src/app/services/page-context.service';
+import { Song } from '@core/interfaces/song.interface';
+import { formatTime } from '@core/utils/format-time.util';
 
+
+
+/**
+ * Trang Tr�nh ph�t nh?c t? YouTube (Visual / IFrame Player).
+ *
+ * Ch?c nang:
+ * - Nh�ng tr?c ti?p Youtube IFrame API d? ph�t v� hi?n th? video nh?c.
+ * - Kh? nang nh?n link Playlist t? Web Share Target API ho?c router.
+ * - Gi? l?p c�c t�nh nang gi?ng Tr�nh ph�t g?c (Ti?n tr�nh, �i?u khi?n).
+ */
 @Component({
   selector: 'app-yt-player',
   templateUrl: './yt-player.page.html',
   styleUrls: ['./yt-player.page.scss'],
   standalone: true,
-  providers: [ModalController],
   imports: [
     CommonModule,
     FormsModule,
@@ -47,90 +52,81 @@ import { PageContextService } from 'src/app/services/page-context.service';
     BtnDownAndHeartComponent,
   ],
 })
-export class YtPlayerPage implements OnInit {
+export class YtPlayerPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('ytIframe', { static: false })
   ytIframe?: ElementRef<HTMLIFrameElement>;
   ytPlayer: any = null;
   iframeKey = 1;
 
-  song: Song | null = null;
-  videoId: string = '';
-  playlist: YTPlayerTrack[] = [];
-  currentIndex: number = 0;
-  currentSong: YTPlayerTrack | null = null;
-  isPlaying: boolean = true;
-  isShuffling = this.ytPlayerService.isShuffling;
+  // ═══ STORES (2 main) ═══
+  readonly yt = inject(YtPlayerStore);
+  private readonly player = inject(PlayerStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly sanitizer = inject(DomSanitizer);
+  private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly location = inject(Location);
+  private readonly modalCtrl = inject(ModalController);
+  private readonly titleService = inject(UiStateService);
+  private readonly pageContext = inject(UiStateService);
+
+  // ═══ STORE DELEGATES ═══
+  readonly song = this.yt.currentSongAsLocal;
+  readonly isPlaying = this.yt.isPlaying;
+  readonly isShuffling = this.yt.isShuffling;
+  readonly repeatMode = this.yt.repeatMode;
+  readonly songTitle = this.yt.songTitle;
+  readonly songArtist = this.yt.songArtist;
+  readonly songThumbnail = this.yt.songThumbnail;
+  readonly songDuration = this.yt.songDuration;
+  readonly playlist = this.yt.playlist;
+  readonly currentIndex = this.yt.currentIndex;
+  readonly currentSong = this.yt.currentTrack;
+
+  // ═══ UI-only state ═══
   safeVideoUrl: SafeResourceUrl = '';
-  audioUrl: string = '';
-  songTitle: string = '';
-  songArtist: string = '';
-  songThumbnail: string = '';
-  songDuration: string = '';
-  repeatMode = this.ytPlayerService.repeatModeSignal;
+  dragging = false;
+  hoverPercent = -1;
+  tempProgress = 0;
+  showIframe = false;
 
   private destroy$ = new Subject<void>();
-
-  videoDuration: number = 0;
-  videoCurrentTime: number = 0;
-  dragging: boolean = false;
-  hoverPercent: number = -1;
-  tempProgress: number = 0;
-
   private iframeReady = false;
   private shouldInitPlayer = false;
-  showIframe: boolean = false;
   private rafId: number | null = null;
 
-  constructor(
-    private route: ActivatedRoute,
-    private sanitizer: DomSanitizer,
-    private router: Router,
-    private ytMusicService: YtMusicService,
-    private ytPlayerService: YtPlayerService,
-    private ngZone: NgZone,
-    private cdr: ChangeDetectorRef,
-    private location: Location,
-    private modalCtrl: ModalController,
-    private audioPlayerService: AudioPlayerService,
-    private CustomTitleService: CustomTitleService,
-    private pageContext: PageContextService
-  ) {
-    this.audioPlayerService.pause();
+  constructor() {
+    // Pause local audio when entering YT player
+    this.player.pause();
   }
 
+  // ═══ LIFECYCLE ═══
   ngOnInit() {
     this.pageContext.setCurrentPage('yt-player');
-    this.updateCurrentTrackFromParams();
-  }
-
-  private updateCurrentTrackFromParams() {
     this.route.queryParamMap
       .pipe(takeUntil(this.destroy$))
-      .subscribe((params) => {
+      .subscribe(params => {
         const videoId = params.get('v');
-        const playlist = this.ytPlayerService.currentPlaylist();
         if (videoId) {
-          this.videoId = videoId;
-          this.checkExitPlaylist(playlist ?? [], videoId);
+          this.initializePlayback(videoId);
         } else {
           this.router.navigate(['/']);
         }
       });
   }
 
+  ngAfterViewInit() {
+    this.loadYouTubeAPI();
+  }
+
   ngOnDestroy() {
-    // Hủy subscription
     this.destroy$.next();
     this.destroy$.complete();
-    this.pause();
+    this.yt.isPlaying.set(false);
 
-    // Hủy player
-    if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
-      try {
-        this.ytPlayer.destroy();
-      } catch (e) {
-        console.warn('Error destroying player in ngOnDestroy:', e);
-      }
+    if (this.ytPlayer?.destroy) {
+      try { this.ytPlayer.destroy(); } catch {}
       this.ytPlayer = null;
     }
 
@@ -139,81 +135,49 @@ export class YtPlayerPage implements OnInit {
       this.rafId = null;
     }
 
-    // Reset states
     this.iframeReady = false;
     this.shouldInitPlayer = false;
   }
 
-  private setPlaylistAndCurrent(playlist: YTPlayerTrack[], videoId: string) {
-    this.playlist = playlist;
-    this.currentIndex = playlist.findIndex(
-      (track) => track.videoId === videoId
-    );
-    this.currentSong = this.playlist[this.currentIndex] || null;
-    this.updateSongInfo();
-    this.syncPlayerStateToService();
-    this.setCurrentSong(this.currentSong);
-  }
-
-  checkExitPlaylist(playlist: YTPlayerTrack[], videoId: string) {
-    if (playlist && playlist.some((track) => track.videoId === videoId)) {
-      this.setPlaylistAndCurrent(playlist, videoId);
+  // ═══ INIT ═══
+  private async initializePlayback(videoId: string) {
+    const loaded = await this.yt.loadPlaylist(videoId);
+    if (loaded) {
+      this.updateSafeUrl(videoId);
+      this.updateTitle();
     } else {
-      this.getPlaylistFallBack(videoId);
+      this.router.navigate(['/oops-404']);
     }
   }
 
-  getPlaylistFallBack(videoId: string) {
-    this.ytMusicService
-      .getPlaylistWithSong(videoId)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (res) => {
-          const tracks = res.tracks;
-          const playlistId = res.playlistId ?? null;
-          localStorage.setItem('yt-tracks', JSON.stringify(tracks));
-          localStorage.setItem('yt-playlistId', JSON.stringify(playlistId));
-          this.ytPlayerService.currentPlaylist.set(tracks);
-          this.ytPlayerService.playlistId.set(playlistId);
-          this.setPlaylistAndCurrent(tracks, videoId);
-        },
-        error: (err) => {
-          console.error('Error fetching playlist with related:', err);
-          this.router.navigate(['/oops-404']);
-        },
-      });
+  private updateTitle() {
+    const title = this.songTitle();
+    const artist = this.songArtist();
+    this.titleService.setTitle(
+      title
+        ? `${title} - ${artist} | Ứng dụng nghe nhạc hiện đại`
+        : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
+    );
   }
 
+  // ═══ YOUTUBE IFRAME ═══
   updateSafeUrl(videoId: string) {
-    // Hủy player cũ nếu có
-    if (this.ytPlayer && typeof this.ytPlayer.destroy === 'function') {
-      try {
-        this.ytPlayer.destroy();
-      } catch (e) {
-        console.warn('Error destroying player:', e);
-      }
+    if (this.ytPlayer?.destroy) {
+      try { this.ytPlayer.destroy(); } catch {}
       this.ytPlayer = null;
     }
 
-    // Reset states
     this.iframeReady = false;
     this.showIframe = false;
-
-    // Force change detection
     this.cdr.detectChanges();
 
-    // Tạo URL mới với timestamp để tránh cache
     const timestamp = Date.now();
-    const newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(
-      window.location.origin
-    )}&t=${timestamp}`;
+    const newUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}&t=${timestamp}`;
     this.safeVideoUrl = this.sanitizer.bypassSecurityTrustResourceUrl(newUrl);
-    // Tăng iframe key
     this.iframeKey++;
     this.showIframe = true;
-    // Force change detection ngay lập tức
     this.cdr.detectChanges();
-    // Đợi iframe render xong
+
     setTimeout(() => {
       this.iframeReady = true;
       if (this.shouldInitPlayer && this.ytIframe?.nativeElement) {
@@ -225,135 +189,20 @@ export class YtPlayerPage implements OnInit {
   onIframeLoad() {
     this.iframeReady = true;
     setTimeout(() => {
-      if (
-        this.shouldInitPlayer &&
-        !this.ytPlayer &&
-        this.ytIframe?.nativeElement
-      ) {
+      if (this.shouldInitPlayer && !this.ytPlayer && this.ytIframe?.nativeElement) {
         this.initPlayer();
       }
     }, 300);
-  }
-
-  // Điều khiển phát nhạc
-  play() {
-    this.isPlaying = true;
-    if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
-      this.ytPlayer.playVideo();
-    }
-    this.syncPlayerStateToService();
-  }
-
-  pause() {
-    this.isPlaying = false;
-    if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
-      this.ytPlayer.pauseVideo();
-    }
-    this.syncPlayerStateToService();
-  }
-
-  next() {
-    if (this.isShuffling()) {
-      let nextIndex = this.currentIndex;
-      if (this.playlist.length > 1) {
-        do {
-          nextIndex = Math.floor(Math.random() * this.playlist.length);
-        } while (nextIndex === this.currentIndex);
-      }
-      this.updatePlayerState(nextIndex, true);
-    } else if (this.currentIndex < this.playlist.length - 1) {
-      this.updatePlayerState(this.currentIndex + 1, true);
-    }
-  }
-
-  previous() {
-    if (this.currentIndex > 0) {
-      this.updatePlayerState(this.currentIndex - 1, true);
-    }
-  }
-
-  private updatePlayerState(index: number, play: boolean = true) {
-    this.currentIndex = index;
-    this.currentSong = this.playlist[this.currentIndex];
-    this.videoId = this.currentSong.videoId;
-    this.isPlaying = play;
-    this.updateSongInfo(false);
-    this.updateSafeUrl(this.videoId);
-    this.updateUrlWithLocation();
-    this.syncPlayerStateToService();
-    this.setCurrentSong(this.currentSong);
-  }
-
-  private updateUrlWithLocation() {
-    const queryParams = new URLSearchParams();
-    queryParams.set('v', this.videoId);
-    const playlistId = this.ytPlayerService.playlistId();
-    if (playlistId) {
-      queryParams.set('list', playlistId);
-    }
-    const newUrl = `/yt-player?${queryParams.toString()}`;
-    this.location.replaceState(newUrl, '');
-  }
-
-  private updateSongInfo(callUpdateSafeUrl: boolean = true) {
-    this.songTitle = this.currentSong?.title || '';
-    this.songArtist =
-      this.currentSong?.artists && this.currentSong.artists.length > 0
-        ? this.currentSong.artists[0].name || ''
-        : '';
-    this.songThumbnail =
-      this.currentSong?.thumbnail && this.currentSong.thumbnail.length > 0
-        ? this.currentSong.thumbnail[this.currentSong.thumbnail.length - 1]
-            .url || ''
-        : '';
-    this.songDuration = this.currentSong?.length || '';
-    if (callUpdateSafeUrl) {
-      this.updateSafeUrl(this.videoId);
-    }
-
-    // Set title động
-    this.CustomTitleService.setTitle(
-      this.songTitle
-        ? `${this.songTitle} - ${this.songArtist} | Ứng dụng nghe nhạc hiện đại`
-        : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
-    );
-  }
-
-  onIframeEnded() {
-    this.next();
-  }
-
-  getCurrentSongInfo() {
-    return this.currentSong;
-  }
-
-  getPlaylist() {
-    return this.playlist;
-  }
-
-  getPlayerState() {
-    return this.isPlaying ? 'playing' : 'paused';
-  }
-
-  handleBack() {
-    this.router.navigate(['/search']);
-  }
-
-  ngAfterViewInit() {
-    this.loadYouTubeAPI();
   }
 
   private loadYouTubeAPI() {
     if (!(window as any).YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
-      tag.onerror = (error) => {
-        console.error('Failed to load YouTube API script:', error);
-      };
+      tag.onerror = (error) => console.error('Failed to load YouTube API:', error);
       document.body.appendChild(tag);
     }
 
-    // Set callback
     const callbackName = `onYTReady_${Date.now()}`;
     (window as any)[callbackName] = () => {
       this.shouldInitPlayer = true;
@@ -363,8 +212,7 @@ export class YtPlayerPage implements OnInit {
     };
     (window as any).onYouTubeIframeAPIReady = (window as any)[callbackName];
 
-    // Check if API is already available
-    if ((window as any).YT && (window as any).YT.Player) {
+    if ((window as any).YT?.Player) {
       this.shouldInitPlayer = true;
       if (this.iframeReady && this.ytIframe?.nativeElement && !this.ytPlayer) {
         this.initPlayer();
@@ -374,19 +222,10 @@ export class YtPlayerPage implements OnInit {
 
   initPlayer() {
     if (!this.ytIframe?.nativeElement) {
-      setTimeout(() => {
-        if (!this.ytPlayer) {
-          this.initPlayer();
-        }
-      }, 200);
+      setTimeout(() => { if (!this.ytPlayer) this.initPlayer(); }, 200);
       return;
     }
-    if (!this.shouldInitPlayer) {
-      return;
-    }
-    if (this.ytPlayer) {
-      return;
-    }
+    if (!this.shouldInitPlayer || this.ytPlayer) return;
 
     try {
       this.ytPlayer = new (window as any).YT.Player(
@@ -395,15 +234,12 @@ export class YtPlayerPage implements OnInit {
           events: {
             onReady: (event: any) => {
               this.ngZone.run(() => {
-                this.videoDuration = event.target.getDuration();
-                this.isPlaying = true;
+                this.yt.updateTime(0, event.target.getDuration());
+                this.yt.isPlaying.set(true);
                 event.target.playVideo();
                 setTimeout(() => {
-                  const state = event.target.getPlayerState();
-                  if (state !== 1) {
-                    console.warn('Autoplay bị chặn hoặc video không phát!');
-                    this.isPlaying = false;
-                    // Có thể hiển thị overlay yêu cầu user click để phát
+                  if (event.target.getPlayerState() !== 1) {
+                    this.yt.isPlaying.set(false);
                   }
                 }, 500);
                 this.syncProgress();
@@ -411,9 +247,9 @@ export class YtPlayerPage implements OnInit {
             },
             onStateChange: (event: any) => {
               this.ngZone.run(() => {
-                if (event.data === 0) this.next(); // Ended
-                if (event.data === 2) this.isPlaying = false; // Paused
-                if (event.data === 1) this.isPlaying = true; // Playing
+                if (event.data === 0) this.next();
+                if (event.data === 2) this.yt.isPlaying.set(false);
+                if (event.data === 1) this.yt.isPlaying.set(true);
               });
             },
             onError: (event: any) => {
@@ -424,26 +260,81 @@ export class YtPlayerPage implements OnInit {
       );
     } catch (error) {
       console.error('Error creating YouTube Player:', error);
-      setTimeout(() => {
-        if (!this.ytPlayer) {
-          this.initPlayer();
-        }
-      }, 500);
+      setTimeout(() => { if (!this.ytPlayer) this.initPlayer(); }, 500);
     }
   }
 
   syncProgress() {
     if (!this.ytPlayer) return;
     const update = () => {
-      if (this.ytPlayer && typeof this.ytPlayer.getCurrentTime === 'function') {
+      if (this.ytPlayer?.getCurrentTime) {
         this.ngZone.run(() => {
-          this.videoCurrentTime = this.ytPlayer.getCurrentTime();
-          this.videoDuration = this.ytPlayer.getDuration();
+          this.yt.updateTime(
+            this.ytPlayer.getCurrentTime(),
+            this.ytPlayer.getDuration()
+          );
         });
       }
       this.rafId = requestAnimationFrame(update);
     };
     update();
+  }
+
+  // ═══ PLAYBACK CONTROLS ═══
+  play() {
+    this.yt.isPlaying.set(true);
+    this.ytPlayer?.playVideo?.();
+  }
+
+  pause() {
+    this.yt.isPlaying.set(false);
+    this.ytPlayer?.pauseVideo?.();
+  }
+
+  togglePlayPause() {
+    if (this.isPlaying()) {
+      this.pause();
+    } else {
+      this.play();
+    }
+  }
+
+  next() {
+    const videoId = this.yt.next();
+    if (videoId) {
+      this.updateSafeUrl(videoId);
+      this.updateTitle();
+    }
+  }
+
+  previous() {
+    const videoId = this.yt.previous();
+    if (videoId) {
+      this.updateSafeUrl(videoId);
+      this.updateTitle();
+    }
+  }
+
+  toggleShuffle() {
+    this.yt.toggleShuffle();
+  }
+
+  toggleRepeat() {
+    this.yt.toggleRepeat();
+  }
+
+  getShuffleColor(): string {
+    return this.yt.shuffleColor();
+  }
+
+  getRepeatColor(): string {
+    return this.yt.repeatColor();
+  }
+
+  // ═══ PROGRESS BAR ═══
+  progress(): number {
+    if (this.dragging) return this.tempProgress;
+    return this.yt.progress();
   }
 
   hoverProgress(): number {
@@ -467,9 +358,9 @@ export class YtPlayerPage implements OnInit {
   }
 
   seekToEvent(time: number) {
-    if (this.ytPlayer && typeof this.ytPlayer.seekTo === 'function') {
+    if (this.ytPlayer?.seekTo) {
       this.ytPlayer.seekTo(time, true);
-      this.videoCurrentTime = time;
+      this.yt.updateTime(time, this.yt.videoDuration());
     }
   }
 
@@ -480,22 +371,13 @@ export class YtPlayerPage implements OnInit {
     } else if (event instanceof TouchEvent) {
       clientX = event.touches[0]?.clientX || 0;
     }
-    const progressElem = document.querySelector(
-      '[data-progress-container]'
-    ) as HTMLElement;
+    const progressElem = document.querySelector('[data-progress-container]') as HTMLElement;
     if (!progressElem) return 0;
     const rect = progressElem.getBoundingClientRect();
-    const percent = ((clientX - rect.left) / rect.width) * 100;
-    return Math.max(0, Math.min(100, percent));
+    return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
   }
 
-  // --- Progress bar binding ---
-  progress(): number {
-    if (this.dragging) return this.tempProgress;
-    if (!this.videoDuration) return 0;
-    return (this.videoCurrentTime / this.videoDuration) * 100;
-  }
-
+  // ═══ PLAYLIST MODAL ═══
   async openPlaylist() {
     try {
       const { YtPlaylistComponent } = await import(
@@ -504,7 +386,7 @@ export class YtPlayerPage implements OnInit {
       const modal = await this.modalCtrl.create({
         component: YtPlaylistComponent,
         componentProps: {
-          playlist: this.playlist,
+          playlist: this.playlist(),
           progressPercentage: this.progress.bind(this),
           onPlaySong: (event: { song: any; playlist: any[]; index: number }) =>
             this.handlePlaySong(event),
@@ -515,89 +397,47 @@ export class YtPlayerPage implements OnInit {
           onReorder: (from: number, to: number) => this.handleReorder(from, to),
           countdownTime: this.getCountdownTime.bind(this),
         },
-        presentingElement: undefined,
         breakpoints: [0, 1],
         initialBreakpoint: 1,
         handle: true,
         backdropDismiss: true,
         mode: 'ios',
       });
-
       await modal.present();
     } catch (error) {
       console.error('Error opening playlist modal:', error);
     }
   }
 
-  // Handle play song event from playlist modal
   handlePlaySong(event: { song: any; playlist: any[]; index: number }) {
-    this.updatePlayerState(event.index, true);
+    const videoId = this.yt.goToIndex(event.index);
+    this.updateSafeUrl(videoId);
+    this.updateTitle();
   }
 
-  private syncPlayerStateToService() {
-    this.ytPlayerService.currentIndex.set(this.currentIndex);
-    this.ytPlayerService.currentSong.set(this.currentSong);
-    this.ytPlayerService.isPlaying.set(this.isPlaying);
-    this.ytPlayerService.songTitle.set(this.songTitle);
-    this.ytPlayerService.songArtist.set(this.songArtist);
-    this.ytPlayerService.songThumbnail.set(this.songThumbnail);
-    this.ytPlayerService.songDuration.set(this.songDuration);
-  }
-
-  // Toggle play/pause from playlist modal
-  togglePlayPause() {
-    if (this.isPlaying) {
-      this.pause();
-    } else {
-      this.play();
-    }
-  }
-
-  // Toggle shuffle from playlist modal
-  toggleShuffle() {
-    this.ytPlayerService.isShuffling.set(!this.ytPlayerService.isShuffling());
-    this.syncPlayerStateToService();
-  }
-
-  toggleRepeat() {
-    const current = this.ytPlayerService.repeatModeSignal();
-    let next: 'none' | 'all' | 'one';
-    if (current === 'none') next = 'all';
-    else if (current === 'all') next = 'one';
-    else next = 'none';
-    this.ytPlayerService.repeatModeSignal.set(next);
-    this.syncPlayerStateToService();
-  }
-
-  getShuffleColor(): string {
-    return this.isShuffling() ? 'text-purple-500' : 'text-white';
-  }
-
-  getRepeatColor(): string {
-    return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';
-  }
-
-  // Handle reorder event from playlist modal
   handleReorder(from: number, to: number) {
-    if (from !== to && this.playlist.length > 0) {
-      const movedItem = this.playlist.splice(from, 1)[0];
-      this.playlist.splice(to, 0, movedItem);
-      // Update currentIndex if needed
-      if (this.currentSong) {
-        this.currentIndex = this.playlist.findIndex(
-          (s) => s.videoId === this.currentSong?.videoId
-        );
-      }
-    }
-    // Force update if needed
+    this.yt.reorder(from, to);
     this.cdr.detectChanges();
   }
 
   getCountdownTime(): string {
-    return formatTime(this.videoDuration - this.videoCurrentTime);
+    return this.yt.countdownTime();
   }
 
-  setCurrentSong(track: YTPlayerTrack) {
-    this.song = ytPlayerTrackToSong(track);
+  // ═══ NAVIGATION ═══
+  handleBack() {
+    this.router.navigate(['/search']);
+  }
+
+  getCurrentSongInfo() {
+    return this.currentSong();
+  }
+
+  getPlaylist() {
+    return this.playlist();
+  }
+
+  getPlayerState() {
+    return this.isPlaying() ? 'playing' : 'paused';
   }
 }

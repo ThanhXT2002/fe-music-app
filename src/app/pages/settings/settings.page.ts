@@ -3,17 +3,28 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AlertController } from '@ionic/angular/standalone';
 import { InstallPromptComponent } from '../../components/install-prompt/install-prompt.component';
-import { routeAnimation } from 'src/app/shared/route-animation';
+import { routeAnimation } from '@core/utils/route-animation';
 import { Capacitor } from '@capacitor/core';
-import { AudioPlayerService } from '../../services/audio-player.service';
+import { PlayerStore } from '../../core/stores/player.store';
+import { LibraryStore } from '../../core/stores/library.store';
 import { AccountPanelComponent } from 'src/app/components/account-panel/account-panel.component';
-import { SaveFileZipService } from 'src/app/services/save-file-zip.service';
-import { ToastService } from 'src/app/services/toast.service';
+import { SaveFileZipService } from '@core/services/save-file-zip.service';
+import { ToastService } from '@core/ui/toast.service';
 import { Router, RouterLink } from '@angular/router';
-import { RefreshService } from 'src/app/services/refresh.service';
 import { environment } from 'src/environments/environment';
-import { DatabaseService } from 'src/app/services/database.service';
+import { DatabaseService } from '@core/data/database.service';
 
+/**
+ * Trang cấu hình và quản lý dữ liệu cá nhân.
+ *
+ * Chức năng:
+ * - Xóa bộ nhớ đệm (Cache) hoặc thiết lập lại toàn bộ ứng dụng (Clear Database)
+ * - Tự động sao lưu và phục hồi dữ liệu qua file ZIP (Export/Import)
+ * - Liên kết đến hướng dẫn PWA, Điều khoản dịch vụ và Chính sách quyền riêng tư
+ *
+ * Route: /settings
+ * Phụ thuộc: DatabaseService, SaveFileZipService, LibraryStore, PlayerStore
+ */
 @Component({
   selector: 'app-settings',
   standalone: true,
@@ -27,15 +38,23 @@ import { DatabaseService } from 'src/app/services/database.service';
   animations: [routeAnimation],
 })
 export class SettingsPage implements OnInit {
-  private databaseService = inject(DatabaseService);
-  private alertController = inject(AlertController);
-  private audioPlayerService = inject(AudioPlayerService);
-  private saveFileZipService = inject(SaveFileZipService);
-  private toastService = inject(ToastService);
-  private refreshService = inject(RefreshService);
-  private router = inject(Router);
+  // ═══ DEPENDENCIES ═══
+  /** Service tương tác trực tiếp với IndexedDB */
+  private readonly databaseService = inject(DatabaseService);
+  /** Component controller của Ionic */
+  private readonly alertController = inject(AlertController);
+  /** Store quản lý trình phát nhạc */
+  private readonly player = inject(PlayerStore);
+  /** Store quản lý dữ liệu thư viện */
+  private readonly library = inject(LibraryStore);
+  /** Service xử lý xuất nhập file nén */
+  private readonly saveFileZipService = inject(SaveFileZipService);
+  /** Service hiển thị thông báo toast */
+  private readonly toastService = inject(ToastService);
+  /** Angular Router */
+  private readonly router = inject(Router);
 
-  currentSong = this.audioPlayerService.currentSong;
+  currentSong = this.player.currentSong;
   isNative = Capacitor.isNativePlatform();
   isPwa = Capacitor.getPlatform() === 'pwa';
   isLoadingImport = false;
@@ -66,7 +85,7 @@ export class SettingsPage implements OnInit {
             this.toastService.success(
               `Đã xóa cache thành công!`
             );
-            this.refreshService.triggerRefresh();
+            this.library.refresh();
           },
         },
       ],
@@ -95,7 +114,7 @@ export class SettingsPage implements OnInit {
               this.toastService.success(
               `Đã xóa toàn bộ dữ liệu thành công!`
             );
-            this.refreshService.triggerRefresh();
+            this.library.refresh();
             window.location.reload();
             }
           },
@@ -131,7 +150,7 @@ export class SettingsPage implements OnInit {
         this.toastService.success(
           `Đã nhập: ${result.songs} bài hát, ${result.playlists} playlist, ${result.audio} file audio.`
         );
-        this.refreshService.triggerRefresh();
+        this.library.refresh();
         this.isLoadingImport = false;
       }
     };

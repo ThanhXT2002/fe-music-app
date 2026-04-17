@@ -1,3 +1,4 @@
+import { UiStateService } from '@core/ui/ui-state.service';
 import {
   Component,
   OnInit,
@@ -12,28 +13,31 @@ import {
   EffectRef,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { Location } from '@angular/common';
-import { AudioPlayerService } from '../../services/audio-player.service';
-import { DatabaseService } from '../../services/database.service';
+import { PlayerStore } from '../../core/stores/player.store';
+import { ModalService } from '../../core/ui/modal.service';
+import { DownloadStore } from '../../core/stores/download.store';
 import {
-  ModalController,
   IonicModule,
   Gesture,
   GestureController,
 } from '@ionic/angular';
-import { ThemeService } from 'src/app/services/theme.service';
-import { GlobalPlaylistModalService } from 'src/app/services/global-playlist-modal.service';
-import { DownloadService } from 'src/app/services/download.service';
-import { DataSong } from '../../interfaces/song.interface';
+import { ThemeService } from '@core/platform/theme.service';
 import { BtnDownAndHeartComponent } from "src/app/components/btn-down-and-heart/btn-down-and-heart.component";
 import { BtnAddPlaylistComponent } from "src/app/components/btn-add-playlist/btn-add-playlist.component";
 import { ProgressBarComponent } from "src/app/components/progress-bar/progress-bar.component";
 import { PlayerInfoComponent } from "src/app/components/player-info/player-info.component";
 import { PlayerHeaderComponent } from "src/app/components/player-header/player-header.component";
-import { formatTime } from 'src/app/utils/format-time.util';
-import { CustomTitleService } from 'src/app/services/custom-title.service';
 
+
+/**
+ * Trang giao di?n Tr�nh Ph�t Nh?c ch�nh (Player Page).
+ *
+ * Ch?c nang:
+ * - Hi?n th? ?nh b�a Album/Track d?ng dia than xoay tr�n.
+ * - Map c�c Signals t? `PlayerStore` d? hi?n th? d?ng b? ti?n tr�nh nh?c.
+ * - �i?u khi?n Play, Pause, Next, Prev, Sync Lyrics.
+ * - H? tr? thao t�c k�o th? Gesture d? d�ng modal (vu?t xu?ng).
+ */
 @Component({
   selector: 'app-player',
   standalone: true,
@@ -42,105 +46,78 @@ import { CustomTitleService } from 'src/app/services/custom-title.service';
   styleUrls: ['./player.page.scss'],
 })
 export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
-  public  audioPlayerService = inject(AudioPlayerService);
-  private databaseService = inject(DatabaseService);
-  private router = inject(Router);
-  private location = inject(Location);
-  private modalCtrl = inject(ModalController);
-  private themeService = inject(ThemeService);
-  private gestureCtrl = inject(GestureController);
-  private playlistModalService = inject(GlobalPlaylistModalService);
-  private downloadService = inject(DownloadService);
-  private CustomTitleService = inject(CustomTitleService);
+  // ═══ STORES (2 main + 2 lightweight) ═══
+  readonly player = inject(PlayerStore);
+  private readonly modal = inject(ModalService);
+  private readonly downloadStore = inject(DownloadStore);
+  private readonly themeService = inject(ThemeService);
+  private readonly gestureCtrl = inject(GestureController);
+  private readonly titleService = inject(UiStateService);
 
-  // Audio service signals
-  currentSong = this.audioPlayerService.currentSong;
-  playbackState = this.audioPlayerService.playbackState;
-  currentTime = this.audioPlayerService.currentTime;
-  duration = this.audioPlayerService.duration;
-  isPlaying = this.audioPlayerService.isPlayingSignal;
-  isShuffling = this.audioPlayerService.isShuffling;
-  repeatMode = this.audioPlayerService.repeatModeSignal;
-  currentIndex = this.audioPlayerService.currentIndex;
-  // UI state signals
-  isDragging = signal(false);
-  tempProgress = signal(0);
-  hoverProgress = signal(-1); // -1 means not hovering
-  isHoveringProgress = signal(false);
-  bufferProgress = this.audioPlayerService.bufferProgress;
-  public downloads$ = this.downloadService.downloads$;
+  // ═══ SIGNALS — Delegate to PlayerStore ═══
+  readonly currentSong = this.player.currentSong;
+  readonly playbackState = this.player.playbackState;
+  readonly currentTime = this.player.currentTime;
+  readonly duration = this.player.duration;
+  readonly isPlaying = this.player.isPlaying;
+  readonly isShuffling = this.player.isShuffling;
+  readonly repeatMode = this.player.repeatMode;
+  readonly currentIndex = this.player.currentIndex;
+  readonly bufferProgress = this.player.bufferProgress;
+
+  // ═══ UI-only signals ═══
+  readonly isDragging = signal(false);
+  readonly tempProgress = signal(0);
+  readonly hoverProgress = signal(-1);
+  readonly isHoveringProgress = signal(false);
+  readonly downloads$ = this.downloadStore.downloads$;
 
   @ViewChild('modalContent', { read: ElementRef }) modalContent!: ElementRef;
-
   private swipeGesture!: Gesture;
+  private currentSongEffect!: EffectRef;
 
- private currentSongEffect!: EffectRef;
-
-  // Computed values
+  // ═══ COMPUTED ═══
   progress = computed(() => {
-    if (this.isDragging()) {
-      return this.tempProgress();
-    }
-    const current = this.currentTime();
-    const total = this.duration();
-    return total > 0 ? (current / total) * 100 : 0;
+    if (this.isDragging()) return this.tempProgress();
+    return this.player.progress();
   });
 
-  progressTime = computed(() => {
-    const current = this.isDragging()
-      ? (this.tempProgress() / 100) * this.duration()
-      : this.currentTime();
-    return formatTime(current);
-  });
-
-  durationTime = computed(() => formatTime(this.duration()));
+  progressTime = this.player.formattedCurrentTime;
+  durationTime = this.player.formattedDuration;
 
   constructor() {
     this.currentSongEffect = effect(() => {
-    const song = this.currentSong();
-    this.CustomTitleService.setTitle(
-      song
-        ? `${song.title} - ${song.artist} | Ứng dụng nghe nhạc hiện đại`
-        : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
-    );
-  });
+      const song = this.currentSong();
+      this.titleService.setTitle(
+        song
+          ? `${song.title} - ${song.artist} | Ứng dụng nghe nhạc hiện đại`
+          : 'XTMusic - Ứng dụng nghe nhạc hiện đại'
+      );
+    });
   }
 
-  ngOnInit() {
-
-
-
-
-  }
+  ngOnInit() {}
 
   ngAfterViewInit() {
-    // Delay để đảm bảo DOM đã render hoàn toàn
-    setTimeout(() => {
-      this.createSwipeGesture();
-    }, 100);
+    setTimeout(() => this.createSwipeGesture(), 100);
   }
 
   ngOnDestroy() {
     this.themeService.setHeaderThemeColor('#000000');
-    if (this.swipeGesture) {
-      this.swipeGesture.destroy();
-    }
-
+    if (this.swipeGesture) this.swipeGesture.destroy();
     this.currentSongEffect?.destroy?.();
   }
 
+  // ═══ GESTURE ═══
   private createSwipeGesture() {
-    if (!this.modalContent?.nativeElement) {
-      return;
-    }
-
+    if (!this.modalContent?.nativeElement) return;
     try {
       this.swipeGesture = this.gestureCtrl.create({
         el: this.modalContent.nativeElement,
         threshold: 15,
         gestureName: 'swipe-down',
         direction: 'y',
-        passive: false, // Explicitly set since we need preventDefault
+        passive: false,
         onMove: (ev) => this.onSwipeMove(ev),
         onEnd: (ev) => this.onSwipeEnd(ev),
       });
@@ -151,169 +128,54 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private onSwipeMove(ev: any) {
-    // Chỉ theo dõi khoảng cách kéo, không có hiệu ứng visual
-    if (ev.deltaY > 0 && ev.startY < 100) {
-      // Không làm gì cả, chỉ cho phép gesture tiếp tục
-      // Loại bỏ mọi hiệu ứng transform và opacity
-    }
+    // Just track, no visual effects
   }
 
   private onSwipeEnd(ev: any) {
-    const threshold = 80; // Khoảng cách vuốt tối thiểu để đóng modal
-
-    if (ev.deltaY > threshold && ev.startY < 100) {
-      // Đóng modal ngay lập tức không có animation
+    if (ev.deltaY > 80 && ev.startY < 100) {
       this.closeModal();
     }
-    // Không cần else case vì không có animation để reset
   }
 
+  // ═══ ACTIONS — Delegate to stores ═══
   openPlaylist() {
-    // Kiểm tra xem có đang ở trong ngữ cảnh modal không (khi được mở dưới dạng modal từ trang khác)
-    this.modalCtrl
-      .getTop()
-      .then((modal) => {
-        if (modal) {
-          // Đang ở trong ngữ cảnh modal, sử dụng global modal service
-          this.playlistModalService.open();
-        } else {
-          // Đang ở trong điều hướng trực tiếp, tự tạo và hiển thị modal
-          this.presentPlaylistModal();
-        }
-      })
-      .catch(() => {
-        // Trường hợp dự phòng: thử tạo modal trực tiếp
-        this.presentPlaylistModal();
-      });
-  }
-
-  private async presentPlaylistModal() {
-    try {
-      const { CurrentPlaylistComponent } = await import(
-        '../../components/current-playlist/current-playlist.component'
-      );
-      const modal = await this.modalCtrl.create({
-        component: CurrentPlaylistComponent,
-        presentingElement: undefined, // Allow full-screen modal
-        breakpoints: [0, 0.6, 1],
-        initialBreakpoint: 0.6,
-        handle: true,
-        backdropDismiss: true,
-        mode: 'ios',
-      });
-
-      await modal.present();
-    } catch (error) {
-      console.error('Error opening playlist modal:', error);
-    }
+    this.modal.openCurrentPlaylist();
   }
 
   closeModal() {
-    // Check if we're in a modal context or navigated directly
-    this.modalCtrl
-      .getTop()
-      .then((modal) => {
-        if (modal) {
-          // We're in a modal, dismiss it
-          this.modalCtrl.dismiss();
-        } else {
-          // We're in a direct navigation, go back to previous page
-          // Check if there's a history to go back to
-          if (window.history.length > 1) {
-            this.location.back();
-          } else {
-            // Fallback to home if no history (e.g., direct URL access)
-            this.router.navigate(['/'], { replaceUrl: true });
-          }
-        }
-      })
-      .catch(() => {
-        // Fallback: try going back first, then to home if that fails
-        try {
-          if (window.history.length > 1) {
-            this.location.back();
-          } else {
-            this.router.navigate(['/'], { replaceUrl: true });
-          }
-        } catch (error) {
-          console.error('Navigation error:', error);
-          this.router.navigate(['/'], { replaceUrl: true });
-        }
-      });
+    this.modal.smartClose();
   }
 
   togglePlayPause() {
-    this.audioPlayerService.togglePlayPause();
-    // Force a manual trigger for change detection
-    setTimeout(() => {
-      this.triggerGlobalChangeDetection();
-    }, 0);
+    this.player.togglePlayPause();
   }
 
   previousTrack() {
-    this.audioPlayerService.playPrevious();
-    // Force a manual trigger for change detection
-    setTimeout(() => {
-      this.triggerGlobalChangeDetection();
-    }, 0);
+    this.player.playPrevious();
   }
 
   nextTrack() {
-    this.audioPlayerService.playNext();
-    // Force a manual trigger for change detection
-    setTimeout(() => {
-      this.triggerGlobalChangeDetection();
-    }, 0);
+    this.player.playNext();
   }
 
   toggleShuffle() {
-    this.audioPlayerService.toggleShuffle();
-    // Force a manual trigger for change detection
-    setTimeout(() => {
-      this.triggerGlobalChangeDetection();
-    }, 0);
+    this.player.toggleShuffle();
   }
 
   toggleRepeat() {
-    this.audioPlayerService.toggleRepeat();
-    // Force a manual trigger for change detection
-    setTimeout(() => {
-      this.triggerGlobalChangeDetection();
-    }, 0);
-  }
-
-  // Helper method to trigger change detection globally
-  private triggerGlobalChangeDetection() {
-    // Dispatch a custom event that CurrentPlaylistComponent can listen to
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('player-action-triggered', {
-          detail: { timestamp: Date.now() },
-        })
-      );
-    }
+    this.player.toggleRepeat();
   }
 
   async toggleFavorite() {
-    const song = this.currentSong();
-    if (song) {
-      try {
-        await this.databaseService.toggleFavorite(song.id);
-        // Update the song object
-        song.isFavorite = !song.isFavorite;
-        this.audioPlayerService.updateCurrentSong(song);
-      } catch (error) {
-        console.error('Error toggling favorite:', error);
-      }
-    }
+    await this.player.toggleFavorite();
   }
 
   getRepeatColor(): string {
-    return this.repeatMode() !== 'none' ? 'text-purple-500' : 'text-white';
+    return this.player.repeatColor();
   }
 
   getShuffleColor(): string {
-    return this.isShuffling() ? 'text-purple-500' : 'text-white';
+    return this.player.shuffleColor();
   }
 
   onImageError(event: any): void {
@@ -321,41 +183,16 @@ export class PlayerPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   isDownloaded(songId: string): boolean {
-    return this.downloadService.isSongDownloaded(songId);
+    return this.player.isSongDownloaded(songId);
   }
 
-  async toggleDownload(currentSong: any): Promise<void> {
-    const song: DataSong = {
-      id: currentSong.id,
-      title: currentSong.title,
-      artist: currentSong.artist,
-      thumbnail_url: currentSong.thumbnail_url,
-      duration: currentSong.duration,
-      duration_formatted: currentSong.duration_formatted,
-      keywords: currentSong.keywords,
-      original_url: '',
-      created_at: new Date().toISOString(),
-    };
-
-    console.table(song);
-    if (!song) return;
-    if (this.isDownloaded(song.id)) {
-      // Có thể show thông báo đã tải rồi
-      return;
-    }
-    try {
-      await this.downloadService.downloadSong(song);
-      // Có thể show thông báo "Đã thêm vào danh sách tải"
-    } catch (error) {
-      console.error('Download failed:', error);
-      // Có thể show thông báo lỗi
-    }
+  async toggleDownload(): Promise<void> {
+    await this.player.downloadCurrentSong();
   }
 
   get currentDownloadTask() {
     const song = this.currentSong();
     if (!song) return null;
-    const downloads = this.downloadService.currentDownloads;
-    return downloads.find((d) => d.songData?.id === song.id);
+    return this.downloadStore.getTask(song.id);
   }
 }

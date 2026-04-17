@@ -9,15 +9,26 @@ import { FormsModule } from '@angular/forms';
 import { Platform } from '@ionic/angular/standalone';
 import { FooterComponent } from '../../components/footer/footer.component';
 import { SongSectionComponent } from '../../components/song-section/song-section.component';
-import { HomeService } from 'src/app/services/api/home.service';
-import { Song } from 'src/app/interfaces/song.interface';
-import { AudioPlayerService } from 'src/app/services/audio-player.service';
+import { HomeService } from '@core/api/home.service';
+import { Song } from '@core/interfaces/song.interface';
+import { PlayerStore } from '../../core/stores/player.store';
+import { LibraryStore } from '../../core/stores/library.store';
 import { Capacitor } from '@capacitor/core';
-import { DatabaseService } from 'src/app/services/database.service';
 import { InternetErrorComponent } from 'src/app/components/internet-error/internet-error.component';
-import { HealthCheckService } from 'src/app/services/api/health-check.service';
+import { HealthCheckService } from '@core/api/health-check.service';
 import { Oops505Component } from 'src/app/components/oops-505/oops-505.component';
 
+/**
+ * Trang chủ ứng dụng.
+ *
+ * Chức năng:
+ * - Hiển thị danh sách các bài hát theo nhiều chuyên mục khác nhau (Remix, Không Lời, TikTok, Mọi người cùng nghe)
+ * - Quản lý trạng thái kết nối mạng của thiết bị
+ * - Chừa không gian (padding bottom) tương thích trên các nền tảng khác nhau (PWA, Desktop, Native)
+ *
+ * Route: /home
+ * Phụ thuộc: PlayerStore, LibraryStore, HomeService, HealthCheckService
+ */
 @Component({
   selector: 'app-home',
   templateUrl: './home.page.html',
@@ -34,38 +45,52 @@ import { Oops505Component } from 'src/app/components/oops-505/oops-505.component
   ],
 })
 export class HomePage implements OnInit {
-  healthCheckService = inject(HealthCheckService);
-  private homeService = inject(HomeService);
-  audioPlayerService = inject(AudioPlayerService);
-  private databaseService = inject(DatabaseService);
-  private platform = inject(Platform);
+  // ═══ STORES ═══
+  /** Store quản lý trạng thái trình phát nhạc */
+  readonly player = inject(PlayerStore);
+  /** Store quản lý dữ liệu thư viện nhạc cá nhân */
+  private readonly library = inject(LibraryStore);
+  /** Service gọi API lấy danh sách nhạc trên trang chủ */
+  private readonly homeService = inject(HomeService);
+  /** Service điều hướng, kiểm tra API health */
+  readonly healthCheckService = inject(HealthCheckService);
+  /** Nền tảng thiết bị hiện tại cung cấp bởi Ionic */
+  private readonly platform = inject(Platform);
 
+  // ═══ STATE ═══
+  /** Danh sách bài hát được mọi người nghe nhiều nhất */
   listEveryoneToListens: Song[] = [];
+  /** Danh sách bài hát Remix */
   listRemixSongs: Song[] = [];
+  /** Danh sách bài hát Không Lời */
   listInstrumentalSongs: Song[] = [];
+  /** Danh sách bài hát thịnh hành TikTok */
   listTikTokSongs: Song[] = [];
-  isCurrentSong = !!this.audioPlayerService.currentSong();
+  
+  /** Trạng thái nhận biết có bài hát nào đang được phát hay không */
+  isCurrentSong = !!this.player.currentSong();
+  /** Padding bottom để nội dung không bị thanh điều khiển bài hát đè lên */
   pbCustom!: string;
-
+  /** Trạng thái kết nối internet của người dùng */
   isOnline: boolean = navigator.onLine;
+
+  /**
+   * Lấy trạng thái sức khỏe của hệ thống từ healthCheckService.
+   */
   get isHealthyValue() {
     return this.healthCheckService.isHealthy();
   }
-
-  constructor() {}
 
   ngOnInit() {
     window.addEventListener('online', () => {
       this.isOnline = true;
       this.healthCheckService.refreshHealth();
     });
-
     window.addEventListener('offline', () => {
       this.isOnline = false;
     });
 
     if (Capacitor.isNativePlatform()) {
-      // For native platforms, set padding based on current song
       this.pbCustom = this.isCurrentSong ? 'pb-16' : '';
     } else {
       if (this.platform.is('pwa')) {
@@ -77,145 +102,62 @@ export class HomePage implements OnInit {
       }
     }
 
-    this.loadEveryoneToListen();
-    this.loadRemixSongs();
-    this.loadInstrumentalSongs();
-    this.loadTikTokSongs();
+    this.loadAllSections();
   }
 
-  async loadEveryoneToListen() {
-    // Get cached data (already loaded when app started)
-    this.homeService.getHomeData().subscribe({
+  // ═══ DATA LOADING — Unified approach ═══
+  /** 
+   * Tải toàn bộ các chùm danh sách nhạc để hiển thị cho trang chủ.
+   * Danh sách sẽ được tự động đồng bộ cờ tải về, yêu thích thông qua library store.
+   */
+  private loadAllSections() {
+    this.loadSection('', (songs) => this.listEveryoneToListens = songs);
+    this.loadSection('remix', (songs) => this.listRemixSongs = songs, 25);
+    this.loadSection('Không Lời', (songs) => this.listInstrumentalSongs = songs, 25);
+    this.loadSection('tik', (songs) => this.listTikTokSongs = songs, 25);
+  }
+
+  /**
+   * Tải về danh sách bài hát cho từng khu vực cục bộ theo từ khóa.
+   *
+   * @param keyword - Từ khóa truyền cho API tìm kiếm
+   * @param setter - Truyền callback để gán mảng bài hát tương ứng
+   * @param limit - Số lượng bài hát muốn giới hạn lấy về
+   */
+  private loadSection(
+    keyword: string,
+    setter: (songs: Song[]) => void,
+    limit?: number
+  ) {
+    this.homeService.getHomeData(keyword || undefined, limit).subscribe({
       next: async (res) => {
-        if (res && res.data) {
-          // Ensure data is an array
-          if (Array.isArray(res.data)) {
-            this.listEveryoneToListens = await this.syncFavorites(res.data);
-          } else {
-            console.warn('Expected array but got:', typeof res.data);
-            this.listEveryoneToListens = [];
-          }
+        if (res?.data && Array.isArray(res.data)) {
+          setter(await this.library.syncFavorites(res.data));
         } else {
-          this.listEveryoneToListens = [];
+          setter([]);
         }
       },
-      error: (error) => {
-        console.error('Error in home page:', error);
-        this.listEveryoneToListens = [];
-      },
+      error: () => setter([]),
     });
   }
 
-  async loadRemixSongs() {
-    this.homeService.getHomeData('remix', 25).subscribe({
-      next: async (res) => {
-        if (res && res.data) {
-          if (Array.isArray(res.data)) {
-            this.listRemixSongs = await this.syncFavorites(res.data);
-          } else {
-            this.listRemixSongs = [];
-          }
-        } else {
-          this.listRemixSongs = [];
-        }
-      },
-      error: (error) => {
-        this.listRemixSongs = [];
-      },
-    });
-  }
-
-  async loadInstrumentalSongs() {
-    this.homeService.getHomeData('Không Lời', 25).subscribe({
-      next: async (res) => {
-        if (res && res.data) {
-          if (Array.isArray(res.data)) {
-            this.listInstrumentalSongs = await this.syncFavorites(res.data);
-          } else {
-            this.listInstrumentalSongs = [];
-          }
-        } else {
-          this.listInstrumentalSongs = [];
-        }
-      },
-      error: (error) => {
-        console.error('Error loading instrumental songs:', error);
-        this.listInstrumentalSongs = [];
-      },
-    });
-  }
-
-  async loadTikTokSongs() {
-    this.homeService.getHomeData('tik', 25).subscribe({
-      next: async (res) => {
-        if (res && res.data) {
-          if (Array.isArray(res.data)) {
-            this.listTikTokSongs = await this.syncFavorites(res.data);
-          } else {
-            this.listTikTokSongs = [];
-          }
-        } else {
-          this.listTikTokSongs = [];
-        }
-      },
-      error: (error) => {
-        this.listTikTokSongs = [];
-      },
-    });
-  }
-
-  // Các method tiện ích để refresh từng danh sách
-  refreshRemixSongs() {
-    this.homeService.refreshData('remix', 25).subscribe({
-      next: (res) => {
-        this.listRemixSongs = res.data;
-      },
-      error: (error) => {
-        console.error('Error refreshing remix songs:', error);
-      },
-    });
-  }
-
-  refreshInstrumentalSongs() {
-    this.homeService.refreshData('khong loi', 25).subscribe({
-      next: (res) => {
-        this.listInstrumentalSongs = res.data;
-      },
-      error: (error) => {
-        console.error('Error refreshing instrumental songs:', error);
-      },
-    });
-  }
-  refreshTikTokSongs() {
-    this.homeService.refreshData('tik', 25).subscribe({
-      next: (res) => {
-        this.listTikTokSongs = res.data;
-      },
-      error: (error) => {
-        console.error('Error refreshing TikTok songs:', error);
-      },
-    });
-  }
-
-  // Event handlers for song interactions
+  // ═══ EVENT HANDLERS ═══
+  /**
+   * Phát bài hát khi người dùng chọn trong danh sách nhạc.
+   *
+   * @param event - Sự kiện truyền lên chứa đối tượng bài hát và mảng playlist tương ứng
+   */
   onSongClick(event: { song: Song; playlist: Song[] }) {
-    const { song, playlist } = event;
-    const index = playlist.findIndex((s) => s.id === song.id);
-    if (index !== -1) {
-      this.audioPlayerService.setPlaylist(playlist, index);
-    }
+    this.player.playSongFromList(event.song, event.playlist);
   }
 
-  async syncFavorites(songs: Song[]): Promise<Song[]> {
-    const favoriteIds = await this.databaseService.getAllFavoriteSongIds(); // Trả về mảng id các bài hát favorite
-    return songs.map((song) => ({
-      ...song,
-      isFavorite: favoriteIds.includes(song.id),
-    }));
-  }
-
+  /**
+   * Xử lý khi nhấn nút ba chấm xem lựa chọn phụ của bài hát.
+   *
+   * @param song - Thông tin bài hát
+   */
   onSongOptions(song: Song) {
+    // TODO: Hiện modal popup lựa chọn nhạc (Thêm vào DS, Tải về, v.v.)
     console.log('Song options:', song.title);
-    // TODO: Show song options menu (add to playlist, download, etc.)
   }
 }

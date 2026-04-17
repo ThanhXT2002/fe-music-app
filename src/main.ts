@@ -22,10 +22,10 @@ import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-br
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { environment } from './environments/environment';
-import { ThemeService } from './app/services/theme.service';
-import { authInterceptor } from './app/interceptors/auth.interceptor';
+import { ThemeService } from '@core/platform/theme.service';
+import { authInterceptor } from '@core/interceptors/auth.interceptor';
 import { provideServiceWorker } from '@angular/service-worker';
-import { SafeAreaService } from './app/services/safe-area.service';
+import { SafeAreaService } from '@core/platform/safe-area.service';
 import { provideLottieOptions } from 'ngx-lottie';
 import player from 'lottie-web';
 import { register as registerSwiperElements } from 'swiper/element/bundle';

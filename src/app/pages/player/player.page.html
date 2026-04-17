@@ -57,7 +57,7 @@
         [isDragging]="isDragging()"
         [isHovering]="isHoveringProgress()"
         [hover]="hoverProgress()"
-        (seek)="audioPlayerService.seek($event)"
+        (seek)="player.seek($event)"
         (dragStart)="isDragging.set(true)"
         (dragEnd)="isDragging.set(false)"
         (hoverChange)="hoverProgress.set($event)"

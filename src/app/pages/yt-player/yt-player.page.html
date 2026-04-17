@@ -5,10 +5,10 @@
   <!-- Background Album Art -->
   <div class="absolute inset-0 opacity-50">
     <img
-      [src]="songThumbnail"
-      [alt]="songTitle"
+      [src]="songThumbnail()"
+      [alt]="songTitle()"
       class="w-full h-full object-cover blur-md scale-110"
-      *ngIf="songThumbnail"
+      *ngIf="songThumbnail()"
     />
   </div>
 
@@ -25,10 +25,10 @@
 
     <div class="flex-1 flex items-center justify-center">
       <app-player-info
-        [thumbnail]="songThumbnail"
-        [title]="songTitle"
-        [artist]="songArtist"
-        [isPlaying]="isPlaying"
+        [thumbnail]="songThumbnail()"
+        [title]="songTitle()"
+        [artist]="songArtist()"
+        [isPlaying]="isPlaying()"
       ></app-player-info>
     </div>
 
@@ -52,18 +52,18 @@
       <div
         class="flex items-end justify-between text-sm text-white/70 mb-5 px-5 h-[40px]"
       >
-        <ng-container *ngIf="currentSong as song">
-          <app-btn-add-playlist [songId]="song.videoId" />
+        <ng-container *ngIf="currentSong() as track">
+          <app-btn-add-playlist [songId]="track.videoId" />
         </ng-container>
-        <ng-container *ngIf="song">
-          <app-btn-down-and-heart [song]="song" />
+        <ng-container *ngIf="song() as s">
+          <app-btn-down-and-heart [song]="s" />
         </ng-container>
       </div>
       <!-- Enhanced Progress Bar -->
       <app-progress-bar
         [progress]="progress()"
-        [duration]="videoDuration"
-        [currentTime]="videoCurrentTime"
+        [duration]="yt.videoDuration()"
+        [currentTime]="yt.videoCurrentTime()"
         [isDragging]="dragging"
         [isHovering]="hoverPercent >= 0"
         [hover]="hoverPercent"
@@ -93,12 +93,12 @@
       </button>
       <!-- Play/Pause -->
       <button
-        (click)="isPlaying ? pause() : play()"
+        (click)="isPlaying() ? pause() : play()"
         class="!w-14 !h-14 text-white rounded-full flex-shrink-0 flex items-center justify-center hover:scale-105 transition-transform shadow-2xl"
       >
         <i
           class="fas text-3xl"
-          [ngClass]="isPlaying ? 'fa-pause' : 'fa-play'"
+          [ngClass]="isPlaying() ? 'fa-pause' : 'fa-play'"
         ></i>
       </button>
       <!-- Next -->

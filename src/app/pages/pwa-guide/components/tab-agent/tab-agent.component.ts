@@ -2,6 +2,15 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { Platform } from '@ionic/angular';
 
+/**
+ * Component hiển thị tab hướng dẫn thao tác cài đặt PWA phân theo hệ điều hành.
+ *
+ * Chức năng:
+ * - Hiển thị hướng dẫn từng bước cài đặt qua ảnh minh họa trên iOS và Android
+ * - Tự động phát hiện hệ điều hành hiện tại để active tab phù hợp
+ *
+ * Phụ thuộc: Platform (Ionic)
+ */
 @Component({
   selector: 'app-tab-agent',
   templateUrl: './tab-agent.component.html',
@@ -9,11 +18,13 @@ import { Platform } from '@ionic/angular';
   styleUrls: ['./tab-agent.component.scss'],
 })
 export class TabAgentComponent implements OnInit {
+  /** Danh sách cấu hình tab */
   readonly tabs = [
     { key: 'ios', label: 'iOS', icon: 'fab fa-apple' },
     { key: 'android', label: 'Android', icon: 'fab fa-android' },
   ] as const;
 
+  /** Trạng thái lưu tab đang được hiển thị */
   activeTab: 'ios' | 'android' = 'ios';
 
 
