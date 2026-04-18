@@ -92,15 +92,35 @@ export interface SearchHistoryItem {
 // Cấu trúc Data Transfer API Network (Dữ liệu chưa convert)
 // ─────────────────────────────────────────────────────────
 
-/** Response Base bọc Header tổng quan trả về chung khi request `/songs/info` */
-export interface SongsResponse<T = DataSong> {
-  success: boolean;
-  message: string;
-  data: T;
+/**
+ * Response wrapper chuẩn — khớp 100% với BE FastAPI và Mobile (React Native).
+ * Mọi endpoint đều bọc data trong format này.
+ *
+ * @template T - Kiểu dữ liệu bên trong trường data
+ */
+export interface ApiResponse<T = unknown> {
+  /** true = thành công, false = lỗi */
+  status: boolean;
+  /** HTTP-like status code (200, 400, 401, 404...) */
+  code: number;
+  /** Dữ liệu trả về — undefined khi lỗi */
+  data?: T;
+  /** Thông báo từ server */
+  message?: string;
+  /** Chi tiết lỗi validation */
+  errors?: unknown;
+  /** Thời điểm server xử lý (ISO 8601) */
+  timestamp?: string;
 }
 
+/** Response cũ — @deprecated Dùng ApiResponse<DataSong> thay thế */
+export interface SongsResponse<T = DataSong> extends ApiResponse<T> {}
+
+/** Response cũ — @deprecated Dùng ApiResponse<SongStatus> thay thế */
+export interface SongStatusResponse extends ApiResponse<SongStatus> {}
+
 /**
- * Cấu trúc Raw nguyên thủy đổ từ API Get Data. 
+ * Cấu trúc Raw nguyên thủy đổ từ API Get Data.
  * NOTE: Giao thức này chỉ có các field cơ bản, thiếu sót URL Audio, buộc Mapper qua Converter để thành model Song chuẩn.
  */
 export interface DataSong {
@@ -115,33 +135,26 @@ export interface DataSong {
   created_at: string;
 }
 
-/** Wrapper Response cho tiến trình trạng thái convert tải nhạc Server (Polling status) */
-export interface SongStatusResponse {
-  success: boolean;
-  message: string;
-  data: SongStatus;
-}
-
 /** Cấu trúc Payload phân tích tỉ lệ phần trăm thanh trạng thái xử lý Data Node. */
 export interface SongStatus {
   id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   /** Float number quy chiếu phần trăm từ 0 -> 1 */
-  progress: number; 
+  progress: number;
   error_message?: string;
   audio_filename?: string;
   thumbnail_filename?: string;
   updated_at: string;
 }
 
-/** Request cấu hình Payload chứa mảng các File đã hoàn thiện Server. */
-export interface CompletedSongsResponse {
-  success: boolean;
-  data: {
-    songs: DataSong[];
-    total: number;
-  };
+/** Payload data của completed songs list */
+export interface CompletedSongsData {
+  songs: DataSong[];
+  total: number;
 }
+
+/** Request cấu hình Payload chứa mảng các File đã hoàn thiện Server. */
+export type CompletedSongsResponse = ApiResponse<CompletedSongsData>;
 
 // ─────────────────────────────────────────────────────────
 // Cấu trúc UI Client State (Trạng thái Frontend)

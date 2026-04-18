@@ -89,25 +89,28 @@ export class HomeService {
     const url = `${this.apiUrl}/songs/completed?limit=${limit}&key=${key}`;
     return this.http.get<any>(url).pipe(
       map((response: any) => {
-        if (response.success && response.data) {
+        if (response.status && response.data) {
           if (Array.isArray(response.data)) {
             const songs = response.data.map((item: any) => SongConverter.fromApiData(item));
             return {
-              success: response.success,
+              status: response.status,
+              code: response.code ?? 200,
               message: response.message,
               data: songs
             };
           } else if (response.data.songs && Array.isArray(response.data.songs)) {
             const songs = response.data.songs.map((item: any) => SongConverter.fromApiData(item));
             return {
-              success: response.success,
+              status: response.status,
+              code: response.code ?? 200,
               message: response.message,
               data: songs
             };
           } else if (typeof response.data === 'object') {
             const songs = [SongConverter.fromApiData(response.data)];
             return {
-              success: response.success,
+              status: response.status,
+              code: response.code ?? 200,
               message: response.message,
               data: songs
             };
@@ -115,9 +118,9 @@ export class HomeService {
         }
 
         // HACK: Format trả về không hợp lệ, fallback trả về mảng rỗng để không crash loop UI.
-        // TODO: Backend phần này cần chuẩn hoá trả về duy nhất một cấu trúc interface.
         return {
-          success: false,
+          status: false,
+          code: 500,
           message: 'Invalid response format',
           data: []
         };

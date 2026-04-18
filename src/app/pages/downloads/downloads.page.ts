@@ -130,8 +130,10 @@ export class DownloadsPage implements OnInit, OnDestroy {
         this.downloadService.getSongInfo(url)
       );
 
-      if (response.success) {
+      if (response.status) {
         const songData = response.data;
+
+        if (!songData) return;
 
         if (this.isDownloaded(songData.id)) {
           this.showSongInfo(songData);

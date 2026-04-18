@@ -1124,22 +1124,22 @@ export class DownloadService {
       try {
         const statusResponse = await firstValueFrom(this.getSongStatus(songId));
 
-        if (statusResponse.success) {
+        if (statusResponse.status) {
           const status = statusResponse.data;
           const isReady =
-            status.status === 'completed' && status.progress === 1;
+            status?.status === 'completed' && status?.progress === 1;
 
           // Cập nhật trạng thái vào map
           this.songStatusMap.set(songId, {
-            status: status.status,
-            progress: Math.round(status.progress * 100),
+            status: status?.status ?? 'pending',
+            progress: Math.round((status?.progress ?? 0) * 100),
             ready: isReady,
           });
 
           if (isReady) {
             this.stopStatusPolling(songId);
             // Không cần gọi downloadSong ở đây nữa — download đã bắt đầu ngay qua proxy
-          } else if (status.status === 'failed') {
+          } else if (status?.status === 'failed') {
             console.error('Song processing failed:', status.error_message);
             this.stopStatusPolling(songId);
             this.toastService.error(
